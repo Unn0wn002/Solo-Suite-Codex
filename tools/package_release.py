@@ -582,6 +582,11 @@ def generate_metadata(
 
 
 def build_zip(root: Path, output: Path, zip_time: tuple[int, int, int, int, int, int]) -> str:
+    # ``included_files`` returns paths beneath its resolved root. Resolve the
+    # caller's root here as well so Windows 8.3 aliases (for example
+    # RUNNER~1 versus runneradmin on GitHub-hosted runners) cannot make
+    # ``relative_to`` compare two lexical spellings of the same directory.
+    root = root.resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
     if output.exists():
         output.unlink()

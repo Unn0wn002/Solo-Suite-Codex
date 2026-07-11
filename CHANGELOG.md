@@ -8,7 +8,7 @@
 - Strengthened production evidence with category-specific real-skill allowlists, typed provenance, chronology checks, and structured actionable warnings.
 - Replaced 42 invalid `$plugin-command` follow-ups with real contextual skills and fixed the command converter so the placeholder cannot return.
 - Fixed installed-cache self-check discovery when a personal marketplace exists above an unrelated cache plugin.
-- Added 62 behavior and regression tests across Site Doctor helpers, AgentRoom routing, evidence contracts, release reproducibility, and repository hygiene, bringing the suite to 173 tests and measured coverage to 65%; CI enforces a 62% floor.
+- Added 63 behavior and regression tests across Site Doctor helpers, AgentRoom routing, evidence contracts, release reproducibility, and repository hygiene, bringing the suite to 174 tests and measured coverage to 65%; CI enforces a 62% floor.
 - Split architecture/database and documentation/release-management stages, bound all gate evidence to the exact run, gate, commit, environment, and artifact digest, and made every negative or insufficient verdict stop or enter the bounded repair loop.
 - Added prepared-room digests, exact prerequisite/producer bindings, per-project run-ID reservations, run-scoped artifacts, maximum-age enforcement, machine-readable loop signals, a profile-specific N/A contract, and independent before-deploy revalidation; an all-N/A score can no longer approve production.
 - Added a hash-locked eight-package validation environment, LF-only repository policy, committed-blob packaging immune to local Git attributes and replacement refs, byte-reproducibility tests across clean clones, tracked-output protection, and fail-closed dirty/no-commit release checks.

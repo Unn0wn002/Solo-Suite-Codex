@@ -311,6 +311,27 @@ class ReleaseArtifacts(unittest.TestCase):
                 dates = {item.date_time for item in archive.infolist()}
             self.assertEqual(dates, {result.context.zip_time})
 
+    def test_zip_root_is_canonicalized_before_relative_paths(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "source"
+            root.mkdir()
+            (root / "alias-anchor").mkdir()
+            (root / "payload.txt").write_bytes(b"portable payload\n")
+            lexical_alias = root / "alias-anchor" / ".."
+            output = Path(temp) / "release.zip"
+
+            PACKAGE.build_zip(
+                lexical_alias,
+                output,
+                (2026, 7, 11, 0, 0, 0),
+            )
+
+            with zipfile.ZipFile(output) as archive:
+                self.assertEqual(
+                    archive.read(f"{PACKAGE.FOLDER}/payload.txt"),
+                    b"portable payload\n",
+                )
+
     def test_generated_checksums_and_sbom_cover_staged_release(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp) / "source"
