@@ -1,0 +1,4 @@
+interface:
+  display_name: "Website Debug"
+  short_description: "Run the Website Debug workflow in Codex"
+  default_prompt: "Use $website-debug to help with this project."

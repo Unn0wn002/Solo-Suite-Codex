@@ -1,0 +1,4 @@
+interface:
+  display_name: "Vercel Audit"
+  short_description: "Run the Vercel Audit workflow in Codex"
+  default_prompt: "Use $vercel-audit to help with this project."

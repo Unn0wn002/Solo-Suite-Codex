@@ -1,0 +1,4 @@
+interface:
+  display_name: "Software Architect"
+  short_description: "Run the Software Architect workflow in Codex"
+  default_prompt: "Use $software-architect to help with this project."

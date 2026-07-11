@@ -1,0 +1,37 @@
+{
+  "schema": "solo-suite/release-provenance-v1",
+  "subject": {
+    "name": "solo-suite-codex-v1.0.11.zip",
+    "version": "1.0.11"
+  },
+  "builder": {
+    "id": "local-codex-workspace",
+    "tool": "tools/package_release.py"
+  },
+  "build_type": "source-tree-preflight-metadata",
+  "build_timestamp": "2026-07-11T00:00:00Z",
+  "source_date_epoch": 1783728000,
+  "materials": [
+    {
+      "uri": "solo-suite-plugin-v1.0.10.zip",
+      "digest": {
+        "sha256": "3d8989c6e201215812b00f9299b47b5da0e12a7d54f899bbd7cffcea905c438a"
+      },
+      "role": "historical-source-reference",
+      "required_for_build": false
+    }
+  ],
+  "source_git_commit": null,
+  "source_git_dirty": null,
+  "source_identity_note": "The publication package resolves these fields from a clean Git HEAD and replaces this checked-in preflight record inside the staged archive.",
+  "publisher": "Sakura Yukihira (Ayaya)",
+  "validation_state": "preflight",
+  "validation_commands": [
+    "python -m unittest discover -s tests -t . -v",
+    "python plugins/solo/skills/suite-integrity/scripts/self_check.py . -",
+    "python plugins/ai/skills/agent-room-templates/scripts/validate_rooms.py --suite .",
+    "python tools/validate_plugins.py --official-if-available",
+    "python tools/smoke_package.py <release.zip>"
+  ],
+  "artifact_digest_note": "The ZIP SHA-256 is stored beside the ZIP and in the outer release handoff; embedding it in this file would create a circular digest."
+}

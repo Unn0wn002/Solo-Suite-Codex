@@ -1,0 +1,4 @@
+interface:
+  display_name: "Compliance Check"
+  short_description: "Run the Compliance Check workflow in Codex"
+  default_prompt: "Use $compliance-check to help with this project."

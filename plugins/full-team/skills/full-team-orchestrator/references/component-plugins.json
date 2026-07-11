@@ -1,0 +1,22 @@
+{
+  "schema": "solo-suite/component-requirements-v1",
+  "components": [
+    {"plugin": "ai", "representative_skill": "agent-room-templates"},
+    {"plugin": "browser", "representative_skill": "browser-qa-engineer"},
+    {"plugin": "design", "representative_skill": "ui-ux-designer"},
+    {"plugin": "dev", "representative_skill": "fullstack-developer"},
+    {"plugin": "docs", "representative_skill": "documentation-writer"},
+    {"plugin": "gate", "representative_skill": "production-readiness-reviewer"},
+    {"plugin": "git", "representative_skill": "git-workflow-manager"},
+    {"plugin": "growth", "representative_skill": "conversion-optimizer"},
+    {"plugin": "project", "representative_skill": "product-manager"},
+    {"plugin": "release", "representative_skill": "devops-engineer"},
+    {"plugin": "repo", "representative_skill": "repo-analyzer"},
+    {"plugin": "security", "representative_skill": "authz-security-reviewer"},
+    {"plugin": "site-doctor", "representative_skill": "website-audit"},
+    {"plugin": "solo", "representative_skill": "project-memory-manager"},
+    {"plugin": "spec", "representative_skill": "acceptance-criteria-writer"},
+    {"plugin": "stack", "representative_skill": "stack-advisor"},
+    {"plugin": "test", "representative_skill": "qa-engineer"}
+  ]
+}

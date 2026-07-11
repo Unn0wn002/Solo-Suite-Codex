@@ -1,0 +1,4 @@
+interface:
+  display_name: "Observability"
+  short_description: "Run the Observability workflow in Codex"
+  default_prompt: "Use $observability to help with this project."

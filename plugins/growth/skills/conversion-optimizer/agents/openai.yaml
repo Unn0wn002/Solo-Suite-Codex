@@ -1,0 +1,4 @@
+interface:
+  display_name: "Conversion Optimizer"
+  short_description: "Run the Conversion Optimizer workflow in Codex"
+  default_prompt: "Use $conversion-optimizer to help with this project."

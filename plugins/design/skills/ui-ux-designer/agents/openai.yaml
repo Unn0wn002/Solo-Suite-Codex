@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ui Ux Designer"
+  short_description: "Run the Ui Ux Designer workflow in Codex"
+  default_prompt: "Use $ui-ux-designer to help with this project."

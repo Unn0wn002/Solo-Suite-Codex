@@ -1,0 +1,4 @@
+interface:
+  display_name: "Qa Engineer"
+  short_description: "Run the Qa Engineer workflow in Codex"
+  default_prompt: "Use $qa-engineer to help with this project."

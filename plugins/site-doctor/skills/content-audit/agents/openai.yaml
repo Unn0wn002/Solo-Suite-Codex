@@ -1,0 +1,4 @@
+interface:
+  display_name: "Content Audit"
+  short_description: "Run the Content Audit workflow in Codex"
+  default_prompt: "Use $content-audit to help with this project."
