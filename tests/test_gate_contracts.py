@@ -7,6 +7,8 @@ import hashlib
 import importlib.util
 import json
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -172,6 +174,34 @@ class PhaseGateContract(unittest.TestCase):
         failures = self.validate(evidence)
         self.assertTrue(any("exceeds the gate's max_age_hours" in item
                             for item in failures))
+
+    def test_prepared_full_team_phase_contract_loads_exact_prerequisites(self):
+        template = (
+            ROOT / "plugins/ai/skills/agent-room-templates/agentsrooms/"
+            "full-team-website.json"
+        )
+        prepare = (
+            ROOT / "plugins/ai/skills/agent-room-templates/scripts/prepare_run.py"
+        )
+        room = self.root / "prepared-room.json"
+        result = subprocess.run(
+            [
+                sys.executable, str(prepare), str(template), str(room),
+                "--run-id", RUN_ID, "--profile", "saas-application",
+                "--suite", str(ROOT), "--project-root", str(self.root),
+            ],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            timeout=30,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        prerequisites, digest, max_age = phase.load_room_contract(
+            room, RUN_ID, "before_deploy"
+        )
+        self.assertGreater(len(prerequisites), 10)
+        self.assertEqual(digest, "sha256:" + hashlib.sha256(room.read_bytes()).hexdigest())
+        self.assertEqual(max_age, 12)
+        with self.assertRaisesRegex(ValueError, "requested gate exactly once"):
+            phase.load_room_contract(room, RUN_ID, "missing-gate")
 
 
 class ScoreOnlyContract(unittest.TestCase):

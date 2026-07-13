@@ -1,6 +1,6 @@
 {
   "name": "design",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "Design UX flows and component systems, then review the implemented interface. Migrated workflows: $design-component-system, $design-ui-review, $design-ux-flow.",
   "author": {
     "name": "Sakura Yukihira (Ayaya)"

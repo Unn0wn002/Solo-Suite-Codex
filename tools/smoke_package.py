@@ -14,7 +14,7 @@ import tempfile
 import zipfile
 
 
-EXPECTED_FOLDER = "solo-suite-codex-v1.0.11"
+EXPECTED_FOLDER = "solo-suite-codex-v1.0.12"
 HISTORICAL_SOURCE_NAME = "solo-suite-plugin-v1.0.10.zip"
 HISTORICAL_SOURCE_SHA256 = (
     "3d8989c6e201215812b00f9299b47b5da0e12a7d54f899bbd7cffcea905c438a"
@@ -100,7 +100,7 @@ def main() -> int:
                 f"missing={sorted(actual-set(declared))}, extra={sorted(set(declared)-actual)}"
             )
         release = json.loads((suite / "RELEASE.json").read_text(encoding="utf-8"))
-        if release["version"] != "1.0.11":
+        if release["version"] != "1.0.12":
             raise RuntimeError("packaged release version mismatch")
         if release.get("source_archive_required_for_build") is not False:
             raise RuntimeError("historical source archive is incorrectly required")
@@ -157,7 +157,7 @@ def main() -> int:
         rooms = suite / "plugins/ai/skills/agent-room-templates/scripts/validate_rooms.py"
         run([python, str(rooms), "--suite", str(suite)], outside)
 
-        cache_plugin = temp_root / "codex-cache/site-doctor/1.0.11"
+        cache_plugin = temp_root / "codex-cache/site-doctor/1.0.12"
         shutil.copytree(suite / "plugins/site-doctor", cache_plugin)
         run([python, str(self_check), str(cache_plugin), "-"], outside)
 

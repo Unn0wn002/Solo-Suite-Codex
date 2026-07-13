@@ -41,6 +41,7 @@ WINDOWS_RESERVED_NAMES = {
     *("COM%d" % value for value in range(1, 10)),
     *("LPT%d" % value for value in range(1, 10)),
 }
+WINDOWS_FORBIDDEN_PATH_CHARS = frozenset('<>:"|?*')
 
 SHARED_PREFIX = ".solo/"
 UNIVERSAL_MEMORY_EFFECTS = {
@@ -127,6 +128,74 @@ PRODUCTION_CATEGORIES = (
     "Monitoring",
     "Documentation",
 )
+
+# This mirrors the production-evidence validator's category allowlist.  Room
+# validation applies it to the declared producer command set so an AgentRoom
+# cannot pass structural validation while its production contract is
+# impossible to satisfy.  tests/test_gate_evidence.py guards the two copies
+# against drift alongside the JSON Schema allowlist.
+PRODUCTION_CATEGORY_SKILLS = {
+    "Product": frozenset({
+        "$acceptance-criteria-writer", "$product-manager", "$project-prd",
+        "$spec-acceptance", "$spec-feature-brief",
+    }),
+    "Architecture": frozenset({
+        "$project-architecture", "$repo-dependency-map", "$repo-risk-map",
+        "$software-architect",
+    }),
+    "Design": frozenset({
+        "$accessibility-review", "$browser-visual-check",
+        "$design-ui-review", "$design-ux-flow",
+    }),
+    "Frontend": frozenset({
+        "$browser-console-errors", "$browser-mobile-test",
+        "$browser-qa-engineer", "$browser-smoke-test", "$site-doctor-a11y",
+        "$test-e2e",
+    }),
+    "Backend": frozenset({
+        "$api-audit", "$authz-security-reviewer", "$site-doctor-audit-api",
+        "$test-integration",
+    }),
+    "Database": frozenset({
+        "$backup-recovery", "$database-audit", "$security-rls-test",
+        "$site-doctor-audit-db", "$stack-audit-supabase",
+    }),
+    "Security": frozenset({
+        "$authz-security-reviewer", "$dependency-audit", "$security-authz-matrix",
+        "$security-review", "$security-reviewer", "$security-rls-test",
+        "$security-threat-model", "$site-doctor-security-scan",
+    }),
+    "Testing": frozenset({
+        "$browser-qa-engineer", "$qa-engineer", "$test-e2e",
+        "$test-edge-cases", "$test-integration", "$test-unit",
+    }),
+    "Performance": frozenset({
+        "$load-testing", "$performance-tuning", "$site-doctor-load-test",
+        "$site-doctor-perf", "$website-audit",
+    }),
+    "SEO": frozenset({
+        "$content-audit", "$seo-optimization", "$site-doctor-audit-content",
+        "$site-doctor-seo", "$website-audit",
+    }),
+    "Analytics": frozenset({
+        "$analytics-audit", "$forms-audit", "$site-doctor-audit-analytics",
+        "$stack-audit-tags", "$tag-audit",
+    }),
+    "Deployment": frozenset({
+        "$deployment-review", "$infrastructure-audit", "$release-deploy-plan",
+        "$release-preflight", "$release-rollback-plan",
+        "$site-doctor-review-deploy", "$stack-audit-cloudflare",
+        "$stack-audit-vercel",
+    }),
+    "Monitoring": frozenset({
+        "$incident-response", "$observability", "$site-doctor-monitoring",
+        "$solo-sync-grafana",
+    }),
+    "Documentation": frozenset({
+        "$docs-api", "$docs-runbook", "$docs-setup-guide", "$docs-update",
+        "$documentation-writer", "$repo-onboarding",
+    }),
+}
 
 ENFORCED_GATE_COMMANDS = {
     "$gate-before-code",
@@ -221,7 +290,7 @@ LEGACY_SEAT_KEYS = (
 
 STRICT_ROOT_KEYS = {
     "$schema", "schema", "name", "version", "prepared", "run_id", "description",
-    "based_on_room", "profile", "memory_dir", "rules", "memory_steward",
+    "based_on_room", "profile", "runtime_trust", "memory_dir", "rules", "memory_steward",
     "tasks", "workspaces", "artifact_locks", "stages", "seats", "gates",
     "exit_gate", "exit_gate_note", "exit_criteria", "loop",
 }
@@ -248,10 +317,11 @@ def find_suite(start):
 
 
 def known_commands(suite_root):
-    """Return command-derived Codex skill invocations available in the suite."""
+    """Return every Codex skill invocation available in the suite."""
     if not suite_root:
         return None
     commands = set()
+    skills = set()
 
     # Codex conversion map is authoritative when present.
     map_path = os.path.join(suite_root, "command-map.json")
@@ -259,7 +329,14 @@ def known_commands(suite_root):
         try:
             with open(map_path, encoding="utf-8") as handle:
                 mapping = json.load(handle)
-            entries = mapping if isinstance(mapping, list) else mapping.get("commands", [])
+            if isinstance(mapping, list):
+                entries = mapping
+            elif isinstance(mapping, dict):
+                entries = mapping.get("commands", [])
+            else:
+                entries = []
+            if not isinstance(entries, list):
+                entries = []
             for entry in entries:
                 if isinstance(entry, dict):
                     invocation = (entry.get("codex_invocation") or
@@ -271,18 +348,27 @@ def known_commands(suite_root):
             # checks aliases discoverable from actual skill folders.
             pass
 
-    # Converted skill convention: plugins/<p>/skills/<p>-<command>/SKILL.md.
+    # A skill is invoked by its folder/frontmatter name.  Older converted
+    # commands happen to use <plugin>-<command>, while newer specialist skills
+    # (for example analytics-audit) intentionally do not.  Discover both
+    # shapes so runtime capability checks cover the whole installed suite.
     skill_pattern = os.path.join(
         suite_root, "plugins", "*", "skills", "*", "SKILL.md")
     for skill_file in glob.glob(skill_pattern):
         skill_dir = os.path.dirname(skill_file)
-        plugin_dir = os.path.dirname(os.path.dirname(skill_dir))
-        plugin = os.path.basename(plugin_dir)
         skill_name = os.path.basename(skill_dir)
-        prefix = plugin + "-"
-        if skill_name.startswith(prefix) and len(skill_name) > len(prefix):
-            commands.add("$%s-%s" % (plugin, skill_name[len(prefix):]))
-    return commands or None
+        invocation = "$" + skill_name
+        if CMD_RE.match(invocation):
+            skills.add(invocation)
+
+    # A supplied suite is a trust boundary.  A stale command-map.json cannot
+    # prove that a command can actually be invoked when the suite contains no
+    # skill definitions.  Return an empty inventory (rather than None, which
+    # means "skip existence checks") so validation fails closed.
+    if not skills:
+        return set()
+    commands.update(skills)
+    return commands
 
 
 def implicit_writes(command):
@@ -308,12 +394,29 @@ def is_windows_safe_run_id(value):
     return value.split(".", 1)[0].upper() not in WINDOWS_RESERVED_NAMES
 
 
+def _is_windows_safe_path_segment(value):
+    """Return whether one relative-path segment is portable to Windows."""
+    if (not value or value in {".", ".."} or value.endswith((" ", ".")) or
+            any(ord(char) < 32 or char in WINDOWS_FORBIDDEN_PATH_CHARS
+                for char in value)):
+        return False
+    return value.split(".", 1)[0].upper() not in WINDOWS_RESERVED_NAMES
+
+
+def is_portable_relative_path(value):
+    """Match the runner's fail-closed POSIX relative-path contract."""
+    if not _is_nonempty_string(value) or "\\" in value or "\x00" in value:
+        return False
+    normalized = value.rstrip("/")
+    if (not normalized or normalized.startswith("/") or
+            re.match(r"^[A-Za-z]:", normalized)):
+        return False
+    parts = normalized.split("/")
+    return all(_is_windows_safe_path_segment(part) for part in parts)
+
+
 def _is_artifact(value):
-    if not _is_nonempty_string(value) or "\\" in value:
-        return False
-    if value.startswith("/") or re.match(r"^[A-Za-z]:", value):
-        return False
-    return ".." not in value.split("/")
+    return is_portable_relative_path(value)
 
 
 def _duplicates(values):
@@ -393,7 +496,7 @@ def validate_room(data, label, known=None):
 
     if strict:
         required_root = STRICT_ROOT_KEYS - {
-            "based_on_room", "exit_gate_note", "loop"
+            "based_on_room", "exit_gate_note", "loop", "runtime_trust"
         }
         for key in sorted(required_root):
             if key not in data:
@@ -419,6 +522,78 @@ def validate_room(data, label, known=None):
             bad("'memory_dir' must be '.solo/'")
         if not _is_nonempty_string(data.get("profile")):
             bad("'profile' must be a non-empty project profile")
+        elif (data.get("prepared") is True and
+              data.get("profile") == "profile-selected-at-runtime"):
+            bad("prepared rooms must bind a concrete project profile")
+        if data.get("prepared") is True:
+            trust = data.get("runtime_trust")
+            if not isinstance(trust, dict):
+                bad("prepared rooms must bind runtime_trust")
+            else:
+                validators = trust.get("validators")
+                expected_validators = {
+                    "phase": (
+                        "plugins/gate/skills/quality-gatekeeper/scripts/"
+                        "validate_phase_gate_evidence.py"
+                    ),
+                    "production": (
+                        "plugins/gate/skills/production-readiness-reviewer/scripts/"
+                        "validate_gate_evidence.py"
+                    ),
+                }
+                expected_runtime = {
+                    name: (
+                        "plugins/ai/skills/agent-room-templates/scripts/" +
+                        name + ".py"
+                    )
+                    for name in (
+                        "git_trust", "prepare_run", "run_room", "runtime_trust",
+                        "state_journal", "validate_rooms",
+                    )
+                }
+                runtime = trust.get("runtime")
+                malformed = (
+                    set(trust) != {"schema", "suite_digest", "skill_count",
+                                   "validators", "runtime"} or
+                    trust.get("schema") !=
+                    "solo-suite/agentroom-runtime-trust-v2" or
+                    not isinstance(trust.get("skill_count"), int) or
+                    trust.get("skill_count", 0) < 1 or
+                    not re.fullmatch(r"sha256:[0-9a-f]{64}",
+                                     str(trust.get("suite_digest", ""))) or
+                    not isinstance(validators, dict) or
+                    set(validators or {}) != set(expected_validators) or
+                    not isinstance(runtime, dict) or
+                    set(runtime or {}) != set(expected_runtime)
+                )
+                if not malformed:
+                    for name, expected_path in expected_validators.items():
+                        contract = validators.get(name)
+                        if (not isinstance(contract, dict) or
+                                set(contract) != {"path", "digest"} or
+                                contract.get("path") != expected_path or
+                                not re.fullmatch(
+                                    r"sha256:[0-9a-f]{64}",
+                                    str(contract.get("digest", "")),
+                                )):
+                            malformed = True
+                            break
+                if not malformed:
+                    for name, expected_path in expected_runtime.items():
+                        contract = runtime.get(name)
+                        if (not isinstance(contract, dict) or
+                                set(contract) != {"path", "digest"} or
+                                contract.get("path") != expected_path or
+                                not re.fullmatch(
+                                    r"sha256:[0-9a-f]{64}",
+                                    str(contract.get("digest", "")),
+                                )):
+                            malformed = True
+                            break
+                if malformed:
+                    bad("prepared room runtime_trust is malformed")
+        elif "runtime_trust" in data:
+            bad("unprepared rooms must not bind runtime_trust")
         rules = data.get("rules")
         if not (isinstance(rules, list) and rules and
                 all(_is_nonempty_string(rule) for rule in rules)):
@@ -683,7 +858,10 @@ def validate_room(data, label, known=None):
                 bad("workspace %d has invalid id" % (index + 1))
                 continue
             workspace_by_id[wid] = workspace
-            if workspace.get("type") not in {"shared-memory", "worktree", "read-only"}:
+            # Keep this exactly aligned with run_room.materialize_workspaces.
+            # Seat memory_access may be read-only, but a workspace is either
+            # runner-managed shared memory or a detached Git worktree.
+            if workspace.get("type") not in {"shared-memory", "worktree"}:
                 bad("workspace %r has invalid type" % wid)
             if not _is_artifact(workspace.get("path")):
                 bad("workspace %r has non-portable path %r" %
@@ -971,6 +1149,14 @@ def validate_room(data, label, known=None):
                     if sorted(producer_commands) != actual_commands:
                         bad("gate %r prerequisite %r producer_commands do not match "
                             "producer %r" % (gate_id, artifact, producer_id))
+                if (command == "$gate-production-ready" and
+                        category in PRODUCTION_CATEGORY_SKILLS and
+                        isinstance(producer_commands, list) and
+                        not (set(producer_commands) &
+                             PRODUCTION_CATEGORY_SKILLS[category])):
+                    bad("production gate %r category %r has no producer command "
+                        "allowed by the production evidence contract" %
+                        (gate_id, category))
             for duplicate in sorted(_duplicates(categories)):
                 bad("gate %r repeats prerequisite category %r" % (gate_id, duplicate))
             for duplicate in sorted(_duplicates(prerequisite_artifacts)):

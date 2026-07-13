@@ -65,11 +65,27 @@
   ],
   "artifact_locks": [
     {
+      "artifact": ".solo/architecture.md",
+      "owner": "memory_steward"
+    },
+    {
+      "artifact": ".solo/bugs.md",
+      "owner": "memory_steward"
+    },
+    {
       "artifact": ".solo/decisions.md",
       "owner": "memory_steward"
     },
     {
+      "artifact": ".solo/design.md",
+      "owner": "memory_steward"
+    },
+    {
       "artifact": ".solo/handoff.md",
+      "owner": "memory_steward"
+    },
+    {
+      "artifact": ".solo/prd.md",
       "owner": "memory_steward"
     },
     {
@@ -224,8 +240,12 @@
       "workspace": "shared_memory",
       "memory_access": "direct",
       "reads": [
+        ".solo/architecture.md",
+        ".solo/bugs.md",
         ".solo/decisions.md",
+        ".solo/design.md",
         ".solo/handoff.md",
+        ".solo/prd.md",
         ".solo/project.md",
         ".solo/release.md",
         ".solo/risks.md",
@@ -234,8 +254,12 @@
         ".solo/tests.md"
       ],
       "writes": [
+        ".solo/architecture.md",
+        ".solo/bugs.md",
         ".solo/decisions.md",
+        ".solo/design.md",
         ".solo/handoff.md",
+        ".solo/prd.md",
         ".solo/project.md",
         ".solo/release.md",
         ".solo/risks.md",
@@ -282,14 +306,34 @@
         "artifacts/production-release/project-profile.json"
       ],
       "proposals": [
+        ".solo/architecture.md",
+        ".solo/bugs.md",
         ".solo/decisions.md",
+        ".solo/design.md",
         ".solo/handoff.md",
+        ".solo/prd.md",
+        ".solo/release.md",
         ".solo/risks.md",
         ".solo/stack.md",
-        ".solo/tasks.md"
+        ".solo/tasks.md",
+        ".solo/tests.md"
       ],
       "commands": [
         "$stack-intake",
+        "$spec-acceptance",
+        "$project-architecture",
+        "$design-ui-review",
+        "$browser-smoke-test",
+        "$api-audit",
+        "$database-audit",
+        "$security-review",
+        "$test-unit",
+        "$site-doctor-perf",
+        "$site-doctor-seo",
+        "$analytics-audit",
+        "$release-preflight",
+        "$observability",
+        "$docs-update",
         "$gate-score-project"
       ],
       "deliverable": "A project-profile applicability contract and fourteen normalized category evidence records tied to run, commit, and environment.",
@@ -487,32 +531,88 @@
           "category": "Security",
           "artifact": "artifacts/production-release/categories/security.json",
           "producer_commands": [
+            "$analytics-audit",
+            "$api-audit",
+            "$browser-smoke-test",
+            "$database-audit",
+            "$design-ui-review",
+            "$docs-update",
             "$gate-score-project",
-            "$stack-intake"
+            "$observability",
+            "$project-architecture",
+            "$release-preflight",
+            "$security-review",
+            "$site-doctor-perf",
+            "$site-doctor-seo",
+            "$spec-acceptance",
+            "$stack-intake",
+            "$test-unit"
           ]
         },
         {
           "category": "Testing",
           "artifact": "artifacts/production-release/categories/testing.json",
           "producer_commands": [
+            "$analytics-audit",
+            "$api-audit",
+            "$browser-smoke-test",
+            "$database-audit",
+            "$design-ui-review",
+            "$docs-update",
             "$gate-score-project",
-            "$stack-intake"
+            "$observability",
+            "$project-architecture",
+            "$release-preflight",
+            "$security-review",
+            "$site-doctor-perf",
+            "$site-doctor-seo",
+            "$spec-acceptance",
+            "$stack-intake",
+            "$test-unit"
           ]
         },
         {
           "category": "Deployment",
           "artifact": "artifacts/production-release/categories/deployment.json",
           "producer_commands": [
+            "$analytics-audit",
+            "$api-audit",
+            "$browser-smoke-test",
+            "$database-audit",
+            "$design-ui-review",
+            "$docs-update",
             "$gate-score-project",
-            "$stack-intake"
+            "$observability",
+            "$project-architecture",
+            "$release-preflight",
+            "$security-review",
+            "$site-doctor-perf",
+            "$site-doctor-seo",
+            "$spec-acceptance",
+            "$stack-intake",
+            "$test-unit"
           ]
         },
         {
           "category": "Monitoring",
           "artifact": "artifacts/production-release/categories/monitoring.json",
           "producer_commands": [
+            "$analytics-audit",
+            "$api-audit",
+            "$browser-smoke-test",
+            "$database-audit",
+            "$design-ui-review",
+            "$docs-update",
             "$gate-score-project",
-            "$stack-intake"
+            "$observability",
+            "$project-architecture",
+            "$release-preflight",
+            "$security-review",
+            "$site-doctor-perf",
+            "$site-doctor-seo",
+            "$spec-acceptance",
+            "$stack-intake",
+            "$test-unit"
           ]
         }
       ],
@@ -570,120 +670,330 @@
           "category": "Product",
           "artifact": "artifacts/production-release/categories/product.json",
           "producer_commands": [
+            "$analytics-audit",
+            "$api-audit",
+            "$browser-smoke-test",
+            "$database-audit",
+            "$design-ui-review",
+            "$docs-update",
             "$gate-score-project",
-            "$stack-intake"
+            "$observability",
+            "$project-architecture",
+            "$release-preflight",
+            "$security-review",
+            "$site-doctor-perf",
+            "$site-doctor-seo",
+            "$spec-acceptance",
+            "$stack-intake",
+            "$test-unit"
           ]
         },
         {
           "category": "Architecture",
           "artifact": "artifacts/production-release/categories/architecture.json",
           "producer_commands": [
+            "$analytics-audit",
+            "$api-audit",
+            "$browser-smoke-test",
+            "$database-audit",
+            "$design-ui-review",
+            "$docs-update",
             "$gate-score-project",
-            "$stack-intake"
+            "$observability",
+            "$project-architecture",
+            "$release-preflight",
+            "$security-review",
+            "$site-doctor-perf",
+            "$site-doctor-seo",
+            "$spec-acceptance",
+            "$stack-intake",
+            "$test-unit"
           ]
         },
         {
           "category": "Design",
           "artifact": "artifacts/production-release/categories/design.json",
           "producer_commands": [
+            "$analytics-audit",
+            "$api-audit",
+            "$browser-smoke-test",
+            "$database-audit",
+            "$design-ui-review",
+            "$docs-update",
             "$gate-score-project",
-            "$stack-intake"
+            "$observability",
+            "$project-architecture",
+            "$release-preflight",
+            "$security-review",
+            "$site-doctor-perf",
+            "$site-doctor-seo",
+            "$spec-acceptance",
+            "$stack-intake",
+            "$test-unit"
           ]
         },
         {
           "category": "Frontend",
           "artifact": "artifacts/production-release/categories/frontend.json",
           "producer_commands": [
+            "$analytics-audit",
+            "$api-audit",
+            "$browser-smoke-test",
+            "$database-audit",
+            "$design-ui-review",
+            "$docs-update",
             "$gate-score-project",
-            "$stack-intake"
+            "$observability",
+            "$project-architecture",
+            "$release-preflight",
+            "$security-review",
+            "$site-doctor-perf",
+            "$site-doctor-seo",
+            "$spec-acceptance",
+            "$stack-intake",
+            "$test-unit"
           ]
         },
         {
           "category": "Backend",
           "artifact": "artifacts/production-release/categories/backend.json",
           "producer_commands": [
+            "$analytics-audit",
+            "$api-audit",
+            "$browser-smoke-test",
+            "$database-audit",
+            "$design-ui-review",
+            "$docs-update",
             "$gate-score-project",
-            "$stack-intake"
+            "$observability",
+            "$project-architecture",
+            "$release-preflight",
+            "$security-review",
+            "$site-doctor-perf",
+            "$site-doctor-seo",
+            "$spec-acceptance",
+            "$stack-intake",
+            "$test-unit"
           ]
         },
         {
           "category": "Database",
           "artifact": "artifacts/production-release/categories/database.json",
           "producer_commands": [
+            "$analytics-audit",
+            "$api-audit",
+            "$browser-smoke-test",
+            "$database-audit",
+            "$design-ui-review",
+            "$docs-update",
             "$gate-score-project",
-            "$stack-intake"
+            "$observability",
+            "$project-architecture",
+            "$release-preflight",
+            "$security-review",
+            "$site-doctor-perf",
+            "$site-doctor-seo",
+            "$spec-acceptance",
+            "$stack-intake",
+            "$test-unit"
           ]
         },
         {
           "category": "Security",
           "artifact": "artifacts/production-release/categories/security.json",
           "producer_commands": [
+            "$analytics-audit",
+            "$api-audit",
+            "$browser-smoke-test",
+            "$database-audit",
+            "$design-ui-review",
+            "$docs-update",
             "$gate-score-project",
-            "$stack-intake"
+            "$observability",
+            "$project-architecture",
+            "$release-preflight",
+            "$security-review",
+            "$site-doctor-perf",
+            "$site-doctor-seo",
+            "$spec-acceptance",
+            "$stack-intake",
+            "$test-unit"
           ]
         },
         {
           "category": "Testing",
           "artifact": "artifacts/production-release/categories/testing.json",
           "producer_commands": [
+            "$analytics-audit",
+            "$api-audit",
+            "$browser-smoke-test",
+            "$database-audit",
+            "$design-ui-review",
+            "$docs-update",
             "$gate-score-project",
-            "$stack-intake"
+            "$observability",
+            "$project-architecture",
+            "$release-preflight",
+            "$security-review",
+            "$site-doctor-perf",
+            "$site-doctor-seo",
+            "$spec-acceptance",
+            "$stack-intake",
+            "$test-unit"
           ]
         },
         {
           "category": "Performance",
           "artifact": "artifacts/production-release/categories/performance.json",
           "producer_commands": [
+            "$analytics-audit",
+            "$api-audit",
+            "$browser-smoke-test",
+            "$database-audit",
+            "$design-ui-review",
+            "$docs-update",
             "$gate-score-project",
-            "$stack-intake"
+            "$observability",
+            "$project-architecture",
+            "$release-preflight",
+            "$security-review",
+            "$site-doctor-perf",
+            "$site-doctor-seo",
+            "$spec-acceptance",
+            "$stack-intake",
+            "$test-unit"
           ]
         },
         {
           "category": "SEO",
           "artifact": "artifacts/production-release/categories/seo.json",
           "producer_commands": [
+            "$analytics-audit",
+            "$api-audit",
+            "$browser-smoke-test",
+            "$database-audit",
+            "$design-ui-review",
+            "$docs-update",
             "$gate-score-project",
-            "$stack-intake"
+            "$observability",
+            "$project-architecture",
+            "$release-preflight",
+            "$security-review",
+            "$site-doctor-perf",
+            "$site-doctor-seo",
+            "$spec-acceptance",
+            "$stack-intake",
+            "$test-unit"
           ]
         },
         {
           "category": "Analytics",
           "artifact": "artifacts/production-release/categories/analytics.json",
           "producer_commands": [
+            "$analytics-audit",
+            "$api-audit",
+            "$browser-smoke-test",
+            "$database-audit",
+            "$design-ui-review",
+            "$docs-update",
             "$gate-score-project",
-            "$stack-intake"
+            "$observability",
+            "$project-architecture",
+            "$release-preflight",
+            "$security-review",
+            "$site-doctor-perf",
+            "$site-doctor-seo",
+            "$spec-acceptance",
+            "$stack-intake",
+            "$test-unit"
           ]
         },
         {
           "category": "Deployment",
           "artifact": "artifacts/production-release/categories/deployment.json",
           "producer_commands": [
+            "$analytics-audit",
+            "$api-audit",
+            "$browser-smoke-test",
+            "$database-audit",
+            "$design-ui-review",
+            "$docs-update",
             "$gate-score-project",
-            "$stack-intake"
+            "$observability",
+            "$project-architecture",
+            "$release-preflight",
+            "$security-review",
+            "$site-doctor-perf",
+            "$site-doctor-seo",
+            "$spec-acceptance",
+            "$stack-intake",
+            "$test-unit"
           ]
         },
         {
           "category": "Monitoring",
           "artifact": "artifacts/production-release/categories/monitoring.json",
           "producer_commands": [
+            "$analytics-audit",
+            "$api-audit",
+            "$browser-smoke-test",
+            "$database-audit",
+            "$design-ui-review",
+            "$docs-update",
             "$gate-score-project",
-            "$stack-intake"
+            "$observability",
+            "$project-architecture",
+            "$release-preflight",
+            "$security-review",
+            "$site-doctor-perf",
+            "$site-doctor-seo",
+            "$spec-acceptance",
+            "$stack-intake",
+            "$test-unit"
           ]
         },
         {
           "category": "Documentation",
           "artifact": "artifacts/production-release/categories/documentation.json",
           "producer_commands": [
+            "$analytics-audit",
+            "$api-audit",
+            "$browser-smoke-test",
+            "$database-audit",
+            "$design-ui-review",
+            "$docs-update",
             "$gate-score-project",
-            "$stack-intake"
+            "$observability",
+            "$project-architecture",
+            "$release-preflight",
+            "$security-review",
+            "$site-doctor-perf",
+            "$site-doctor-seo",
+            "$spec-acceptance",
+            "$stack-intake",
+            "$test-unit"
           ]
         },
         {
           "category": "Project profile",
           "artifact": "artifacts/production-release/project-profile.json",
           "producer_commands": [
+            "$analytics-audit",
+            "$api-audit",
+            "$browser-smoke-test",
+            "$database-audit",
+            "$design-ui-review",
+            "$docs-update",
             "$gate-score-project",
-            "$stack-intake"
+            "$observability",
+            "$project-architecture",
+            "$release-preflight",
+            "$security-review",
+            "$site-doctor-perf",
+            "$site-doctor-seo",
+            "$spec-acceptance",
+            "$stack-intake",
+            "$test-unit"
           ]
         }
       ],

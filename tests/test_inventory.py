@@ -64,8 +64,8 @@ class Inventory(unittest.TestCase):
 
     def test_versions_changelog_and_publisher_agree(self):
         version = self.release["version"]
-        self.assertEqual(version, "1.0.11")
-        self.assertEqual(self.release["previous_version"], "1.0.10")
+        self.assertEqual(version, "1.0.12")
+        self.assertEqual(self.release["previous_version"], "1.0.11")
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         top = re.search(r"^##\s+(\d+\.\d+\.\d+)", changelog, re.MULTILINE)
         self.assertIsNotNone(top)
@@ -103,6 +103,22 @@ class Inventory(unittest.TestCase):
         }
         self.assertEqual(required, actual)
         self.assertEqual(len(contract["components"]), 17)
+        for item in contract["components"]:
+            plugin = item["plugin"]
+            minimum = tuple(
+                int(part) for part in item["minimum_version"].split(".")
+            )
+            manifest = json.loads((
+                ROOT / "plugins" / plugin / ".codex-plugin/plugin.json"
+            ).read_text(encoding="utf-8"))
+            installed = tuple(
+                int(part) for part in manifest["version"].split("+", 1)[0].split(".")
+            )
+            self.assertGreaterEqual(installed, minimum, plugin)
+            self.assertTrue((
+                ROOT / "plugins" / plugin / "skills" /
+                item["representative_skill"] / "SKILL.md"
+            ).is_file(), plugin)
 
 
 if __name__ == "__main__":

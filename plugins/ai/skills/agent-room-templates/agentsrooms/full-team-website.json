@@ -759,12 +759,15 @@
         "artifacts/full-team/categories/frontend.json"
       ],
       "proposals": [
+        ".solo/bugs.md",
         ".solo/decisions.md",
         ".solo/handoff.md",
-        ".solo/tasks.md"
+        ".solo/tasks.md",
+        ".solo/tests.md"
       ],
       "commands": [
-        "$dev-implement-feature"
+        "$dev-implement-feature",
+        "$browser-smoke-test"
       ],
       "deliverable": "Frontend implementation evidence and affected-flow inventory.",
       "handoff_to": [
@@ -796,10 +799,12 @@
       "proposals": [
         ".solo/decisions.md",
         ".solo/handoff.md",
-        ".solo/tasks.md"
+        ".solo/tasks.md",
+        ".solo/tests.md"
       ],
       "commands": [
-        "$dev-implement-feature"
+        "$dev-implement-feature",
+        "$test-integration"
       ],
       "deliverable": "Backend implementation evidence plus API, data, and environment contract verification; record a profile-backed N/A for a frontend-only site.",
       "handoff_to": [
@@ -1091,7 +1096,8 @@
         ".solo/tasks.md"
       ],
       "commands": [
-        "$growth-conversion-audit"
+        "$growth-conversion-audit",
+        "$analytics-audit"
       ],
       "deliverable": "Conversion and analytics evidence, or an evidence-backed profile N/A reason.",
       "handoff_to": "before_merge_gatekeeper",
@@ -1503,7 +1509,8 @@
           "category": "Contracts",
           "artifact": "artifacts/full-team/contract-verification.json",
           "producer_commands": [
-            "$dev-implement-feature"
+            "$dev-implement-feature",
+            "$test-integration"
           ]
         },
         {
@@ -1662,7 +1669,8 @@
           "category": "Contracts",
           "artifact": "artifacts/full-team/contract-verification.json",
           "producer_commands": [
-            "$dev-implement-feature"
+            "$dev-implement-feature",
+            "$test-integration"
           ]
         },
         {
@@ -1882,6 +1890,7 @@
           "category": "Frontend",
           "artifact": "artifacts/full-team/categories/frontend.json",
           "producer_commands": [
+            "$browser-smoke-test",
             "$dev-implement-feature"
           ]
         },
@@ -1889,7 +1898,8 @@
           "category": "Backend",
           "artifact": "artifacts/full-team/categories/backend.json",
           "producer_commands": [
-            "$dev-implement-feature"
+            "$dev-implement-feature",
+            "$test-integration"
           ]
         },
         {
@@ -1951,6 +1961,7 @@
           "category": "Analytics",
           "artifact": "artifacts/full-team/categories/analytics.json",
           "producer_commands": [
+            "$analytics-audit",
             "$growth-conversion-audit"
           ]
         },

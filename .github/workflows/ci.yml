@@ -27,10 +27,12 @@ jobs:
         python-version: ["3.9", "3.12"]
     steps:
       - name: Check out source
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
@@ -48,7 +50,7 @@ jobs:
       - name: Unit and regression tests with coverage
         run: |
           coverage run --source=plugins,tools -m unittest discover -s tests -t . -v
-          coverage report --show-missing --fail-under=62
+          coverage report --show-missing --fail-under=68
 
       - name: Structural suite self-check
         run: python plugins/solo/skills/suite-integrity/scripts/self_check.py . -
@@ -66,7 +68,7 @@ jobs:
         run: python plugins/site-doctor/scripts/run_helper.py security-review/scan-secrets . --json
 
       - name: Build deterministic release package
-        run: python tools/package_release.py --output dist/solo-suite-codex-v1.0.11.zip --validation-state ci
+        run: python tools/package_release.py --output dist/solo-suite-codex-v1.0.12.zip --validation-state ci
 
       - name: Verify packaging did not rewrite tracked source
         run: |
@@ -74,4 +76,4 @@ jobs:
           python -c 'import subprocess, sys; status = subprocess.check_output(["git", "status", "--porcelain", "--untracked-files=all"], text=True); print(status, end=""); sys.exit(1 if status.strip() else 0)'
 
       - name: Packaged ZIP clean-room smoke test
-        run: python tools/smoke_package.py dist/solo-suite-codex-v1.0.11.zip
+        run: python tools/smoke_package.py dist/solo-suite-codex-v1.0.12.zip

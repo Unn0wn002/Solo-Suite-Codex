@@ -9,7 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT.parent / ".source-v1.0.10"
-VERSION = "1.0.11"
+VERSION = "1.0.12"
 AUTHOR = "Sakura Yukihira (Ayaya)"
 
 DISPLAY = {

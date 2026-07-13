@@ -8,10 +8,23 @@ systems. Codex must still create subagents stage by stage and enforce locks.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
-from validate_rooms import is_windows_safe_run_id, validate_files
+from runtime_trust import TrustError, suite_trust
+from state_journal import JournalError, registry_dir
+from validate_rooms import find_suite, is_windows_safe_run_id, validate_files
+
+
+PROFILES = (
+    "public-marketing-site",
+    "saas-application",
+    "e-commerce",
+    "internal-application",
+    "api-service",
+    "library-package",
+)
 
 
 def namespace_path(value: object, run_id: str) -> object:
@@ -62,6 +75,10 @@ def main() -> int:
     parser.add_argument("template", type=Path)
     parser.add_argument("output", type=Path)
     parser.add_argument("--run-id", required=True)
+    parser.add_argument(
+        "--profile", choices=PROFILES, required=True,
+        help="bind the prepared room to one explicitly selected project profile",
+    )
     parser.add_argument("--suite", default=None)
     parser.add_argument(
         "--project-root", type=Path, default=Path.cwd(),
@@ -83,17 +100,38 @@ def main() -> int:
     if room.get("prepared") is not False:
         print("FAIL template must declare prepared=false")
         return 1
+    template_profile = room.get("profile")
+    if (template_profile != "profile-selected-at-runtime" and
+            template_profile != args.profile):
+        print("FAIL --profile does not match the template's fixed profile")
+        return 1
     room["prepared"] = True
     room["run_id"] = args.run_id
+    room["profile"] = args.profile
     namespace_room(room, args.run_id)
-    registry = (
-        args.project_root.resolve() / "artifacts" / "runs" / ".registry"
-    )
-    registry.mkdir(parents=True, exist_ok=True)
+    detected_suite = args.suite or find_suite(str(template.parent))
+    if not detected_suite:
+        print("FAIL cannot prepare a runnable room without a suite root")
+        return 1
+    suite_root = Path(detected_suite).resolve()
+    try:
+        room["runtime_trust"] = suite_trust(suite_root)
+    except TrustError as exc:
+        print("FAIL cannot establish suite trust: %s" % exc)
+        return 1
+    try:
+        registry = registry_dir(args.project_root)
+        registry.mkdir(parents=True, exist_ok=True)
+        # Recheck after creation so a pre-existing redirected component cannot
+        # be hidden by mkdir's normal follow-link behavior.
+        registry = registry_dir(args.project_root)
+    except (JournalError, OSError) as exc:
+        print("FAIL run registry is not a controlled project path: %s" % exc)
+        return 1
     claim = registry / (args.run_id.casefold() + ".lock")
     try:
         with claim.open("x", encoding="utf-8", newline="\n") as handle:
-            handle.write(str(output) + "\n")
+            handle.write("PREPARING\n")
     except FileExistsError:
         print("FAIL run id is already registered for this project")
         return 1
@@ -101,7 +139,7 @@ def main() -> int:
         output.parent.mkdir(parents=True, exist_ok=True)
         with output.open("w", encoding="utf-8", newline="\n") as handle:
             handle.write(json.dumps(room, indent=2, ensure_ascii=False) + "\n")
-        problems = validate_files([str(output)], suite_root=args.suite)
+        problems = validate_files([str(output)], suite_root=str(suite_root))
     except Exception:
         output.unlink(missing_ok=True)
         claim.unlink(missing_ok=True)
@@ -112,6 +150,23 @@ def main() -> int:
         for problem in problems:
             print(f"FAIL {problem}")
         return 1
+    claim_data = {
+        "schema": "solo-suite/agentroom-run-claim-v1",
+        "run_id": args.run_id,
+        "profile": args.profile,
+        "plan": str(output),
+        "plan_digest": "sha256:" + hashlib.sha256(output.read_bytes()).hexdigest(),
+    }
+    claim_tmp = claim.with_suffix(claim.suffix + ".tmp")
+    try:
+        with claim_tmp.open("x", encoding="utf-8", newline="\n") as handle:
+            handle.write(json.dumps(claim_data, sort_keys=True) + "\n")
+        claim_tmp.replace(claim)
+    except Exception:
+        output.unlink(missing_ok=True)
+        claim_tmp.unlink(missing_ok=True)
+        claim.unlink(missing_ok=True)
+        raise
     print(f"Prepared {output} for run {args.run_id}")
     for stage in room["stages"]:
         active = [seat for seat in stage["seats"] if seat != "memory_steward"]

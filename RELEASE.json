@@ -1,7 +1,7 @@
 {
   "name": "solo-suite-codex",
-  "version": "1.0.11",
-  "previous_version": "1.0.10",
+  "version": "1.0.12",
+  "previous_version": "1.0.11",
   "source_archive": "solo-suite-plugin-v1.0.10.zip",
   "source_archive_sha256": "3d8989c6e201215812b00f9299b47b5da0e12a7d54f899bbd7cffcea905c438a",
   "source_archive_required_for_build": false,
@@ -9,9 +9,9 @@
     "plugins": 18,
     "skills": 157,
     "commands": 100,
-    "scripts": 15
+    "scripts": 20
   },
   "format": "codex-plugin-marketplace",
-  "top_level_folder": "solo-suite-codex-v1.0.11",
+  "top_level_folder": "solo-suite-codex-v1.0.12",
   "validation_state": "preflight"
 }

@@ -1,6 +1,7 @@
 """One-to-one legacy command to native Codex skill conversion checks."""
 
 import glob
+import hashlib
 import json
 import os
 import re
@@ -12,6 +13,9 @@ import yaml
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SOURCE_ROOT = os.path.abspath(os.path.join(REPO, "..", ".source-v1.0.10"))
 MAP_FILE = os.path.join(REPO, "command-map.json")
+LEGACY_SOURCE_PATHS_FIXTURE = os.path.join(
+    REPO, "tests", "fixtures", "legacy_command_source_paths.json"
+)
 
 LEGACY_INVOCATION = re.compile(r"/[a-z0-9-]+:[a-z0-9*-]+", re.I)
 SENSITIVE_WORKFLOW = re.compile(
@@ -35,33 +39,47 @@ def skill_frontmatter(path):
     return yaml.safe_load(match.group(1)), content
 
 
+def sorted_paths_sha256(paths):
+    """Fingerprint an exact path set using the fixture's canonical encoding."""
+    payload = "".join(path + "\n" for path in sorted(paths)).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
 class CommandSkills(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         with open(MAP_FILE, encoding="utf-8") as handle:
             cls.mapping = json.load(handle)
+        with open(LEGACY_SOURCE_PATHS_FIXTURE, encoding="utf-8") as handle:
+            cls.legacy_source_paths = json.load(handle)
 
     def test_every_source_command_has_exactly_one_mapped_skill(self):
-        if not os.path.isdir(SOURCE_ROOT):
-            self.skipTest("legacy source tree is not present beside the package")
+        fixture = self.legacy_source_paths
+        self.assertEqual(
+            fixture,
+            {
+                "schema": "solo-suite/legacy-command-source-paths-v1",
+                "algorithm": "sha256",
+                "canonicalization": (
+                    "UTF-8 forward-slash paths, ordinal sort, one LF after every path"
+                ),
+                "path_count": 100,
+                "sorted_paths_sha256": (
+                    "172d77fde128cc84d0710a9102524d47a412c730fe617efd4e0b99b3ae0b62dd"
+                ),
+            },
+        )
+        mapped_sources = [item["source_path"] for item in self.mapping]
 
-        source_files = {
-            os.path.normcase(os.path.abspath(path))
-            for path in glob.glob(
-                os.path.join(SOURCE_ROOT, "plugins", "*", "commands", "*.md")
-            )
-        }
-        mapped_sources = [
-            os.path.normcase(os.path.abspath(os.path.join(SOURCE_ROOT, item["source_path"])))
-            for item in self.mapping
-        ]
-
-        self.assertEqual(len(source_files), 100)
+        self.assertEqual(len(mapped_sources), fixture["path_count"])
         self.assertEqual(len(mapped_sources), len(set(mapped_sources)))
-        self.assertEqual(source_files, set(mapped_sources))
+        self.assertEqual(
+            sorted_paths_sha256(mapped_sources), fixture["sorted_paths_sha256"]
+        )
 
         for item in self.mapping:
             self.assertFalse(item["source_path"].startswith(("../", "/")))
+            self.assertEqual(item["source_path"], item["source_path"].replace("\\", "/"))
             expected_target = os.path.join(
                 "plugins",
                 item["plugin"],

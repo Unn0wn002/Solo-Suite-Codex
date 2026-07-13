@@ -1,6 +1,6 @@
 {
   "name": "security",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "Threat-model systems and review authorization, RLS, secrets, and abuse cases. Migrated workflows: $security-abuse-cases, $security-authz-matrix, $security-rls-test, $security-secrets-fix, $security-threat-model.",
   "author": {
     "name": "Sakura Yukihira (Ayaya)"

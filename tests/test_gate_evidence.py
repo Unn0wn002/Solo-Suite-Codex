@@ -21,6 +21,9 @@ SKILL = ROOT / "plugins/gate/skills/production-readiness-reviewer"
 VALIDATOR_PATH = SKILL / "scripts/validate_gate_evidence.py"
 SCHEMA_PATH = SKILL / "references/gate-evidence-v1.schema.json"
 PROFILE_SCHEMA_PATH = SKILL / "references/project-profile-v1.schema.json"
+ROOM_VALIDATOR_PATH = (
+    ROOT / "plugins/ai/skills/agent-room-templates/scripts/validate_rooms.py"
+)
 COMMIT = "a" * 40
 ENVIRONMENT = "staging"
 RUN_ID = "gate-test-001"
@@ -55,6 +58,20 @@ def load_module():
 
 
 gate = load_module()
+
+
+def load_room_validator():
+    spec = importlib.util.spec_from_file_location(
+        "room_validator_gate_contract_v111", ROOM_VALIDATOR_PATH
+    )
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"cannot load {ROOM_VALIDATOR_PATH}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+room_validator = load_room_validator()
 
 
 def build_evidence(
@@ -195,6 +212,10 @@ def build_contract(
         "room_digest": ROOM_DIGEST,
         "max_age_hours": 24,
         "category_artifacts": category_artifacts,
+        "category_producer_commands": {
+            category: (CANONICAL_COMMANDS[category],)
+            for category in gate.CATEGORIES
+        },
         "profile_artifact": profile_artifact,
         "required_gate_results": [{
             "gate_id": "before_deploy",
@@ -269,6 +290,7 @@ class GateEvidence(unittest.TestCase):
             [
                 sys.executable, str(prepare), str(template), str(output),
                 "--run-id", RUN_ID, "--suite", str(ROOT),
+                "--profile", "saas-application",
                 "--project-root", str(self.root),
             ],
             capture_output=True, text=True, encoding="utf-8", errors="replace",
@@ -277,12 +299,65 @@ class GateEvidence(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         contract = gate.load_room_contract(output, RUN_ID, GATE_ID)
         self.assertEqual(list(contract["category_artifacts"]), gate.CATEGORIES)
+        self.assertEqual(
+            list(contract["category_producer_commands"]), gate.CATEGORIES
+        )
+        self.assertEqual(
+            gate.producer_coverage_failures(
+                contract["category_producer_commands"]
+            ),
+            [],
+        )
+        for profile in sorted(gate.PROJECT_PROFILES):
+            for category in gate.CATEGORIES:
+                if category in gate.PROFILE_NA_ALLOWED[profile]:
+                    continue
+                with self.subTest(profile=profile, category=category):
+                    self.assertTrue(
+                        set(contract["category_producer_commands"][category]) &
+                        gate.CATEGORY_SKILLS[category]
+                    )
         self.assertTrue(contract["profile_artifact"].startswith(
             f"artifacts/runs/{RUN_ID}/"))
         self.assertTrue(any(
             item["gate_id"] == "before_deploy" and item["status"] == "GO"
             for item in contract["required_gate_results"]
         ))
+
+    def test_room_contract_rejects_an_unsatisfiable_category_producer(self):
+        template = (
+            ROOT / "plugins/ai/skills/agent-room-templates/agentsrooms/"
+            "full-team-website.json"
+        )
+        prepare = (
+            ROOT / "plugins/ai/skills/agent-room-templates/scripts/prepare_run.py"
+        )
+        output = self.root / "room.json"
+        result = subprocess.run(
+            [
+                sys.executable, str(prepare), str(template), str(output),
+                "--run-id", RUN_ID, "--suite", str(ROOT),
+                "--profile", "saas-application",
+                "--project-root", str(self.root),
+            ],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            timeout=30,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        room = json.loads(output.read_text(encoding="utf-8"))
+        production = next(
+            item for item in room["gates"] if item["id"] == GATE_ID
+        )
+        analytics = next(
+            item for item in production["prerequisites"]
+            if item["category"] == "Analytics"
+        )
+        analytics["producer_commands"] = ["$growth-conversion-audit"]
+        output.write_text(json.dumps(room), encoding="utf-8")
+        with self.assertRaisesRegex(
+            ValueError, "Analytics has no declared producer command allowed"
+        ):
+            gate.load_room_contract(output, RUN_ID, GATE_ID)
 
     def test_allowlist_only_names_real_bundled_skills(self):
         bundled = {
@@ -313,6 +388,22 @@ class GateEvidence(unittest.TestCase):
                     rule["then"]["properties"]["command_executed"]["enum"]
                 )
         self.assertEqual(schema_commands, gate.CATEGORY_SKILLS)
+        self.assertEqual(
+            room_validator.PRODUCTION_CATEGORY_SKILLS,
+            gate.CATEGORY_SKILLS,
+        )
+
+    def test_category_allowed_command_must_also_be_declared_by_room_producer(self):
+        frontend = self.evidence["categories"][3]
+        frontend["command_executed"] = "$test-e2e"
+        frontend["provenance"]["producer"] = "$test-e2e"
+        self.assertEqual(self.schema_errors(), [])
+        failures = self.validate()
+        self.assertFalse(any("not allowed for Frontend" in item for item in failures))
+        self.assertTrue(any(
+            "not declared by the room producer for Frontend" in item
+            for item in failures
+        ))
 
     def test_nonexistent_and_cross_category_skills_are_rejected(self):
         record = self.evidence["categories"][0]

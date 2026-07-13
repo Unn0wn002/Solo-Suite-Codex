@@ -1,6 +1,6 @@
 {
   "name": "solo",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "Manage shared project memory, session handoffs, synchronization, integrity checks, and orchestration. Migrated workflows: $solo-end-session, $solo-full-team-dev, $solo-handoff-memory, $solo-next-step, $solo-project-status, $solo-run-cycle, $solo-self-check, $solo-start-session, $solo-sync-grafana, $solo-sync-obsidian.",
   "author": {
     "name": "Sakura Yukihira (Ayaya)"
