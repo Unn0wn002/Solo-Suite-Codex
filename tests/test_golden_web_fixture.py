@@ -9,7 +9,7 @@ import unittest
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
-from tests.fixtures.golden_web.app import GoldenWebApp
+from tests.fixtures.golden_web.app import GoldenWebApp, is_valid_email
 
 
 def request_json(url: str, email: str):
@@ -27,6 +27,17 @@ def request_json(url: str, email: str):
 
 class GoldenWebJourney(unittest.TestCase):
     def test_accessible_frontend_api_validation_and_database_integrity(self):
+        self.assertTrue(is_valid_email("a" * 241 + "@example.test"))
+        self.assertFalse(is_valid_email("a" * 242 + "@example.test"))
+        for invalid in (
+            "not-an-email",
+            "@example.test",
+            "dev@example.",
+            "dev@@example.test",
+            "dev @example.test",
+            "a@" + "a." * 100_000 + "@",
+        ):
+            self.assertFalse(is_valid_email(invalid), invalid[:80])
         with tempfile.TemporaryDirectory() as temp:
             with GoldenWebApp(Path(temp)) as app:
                 with urlopen(app.base_url + "/", timeout=5) as response:

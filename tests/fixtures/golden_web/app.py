@@ -6,14 +6,27 @@ from contextlib import closing
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 from pathlib import Path
-import re
 import sqlite3
 import threading
 from typing import Optional, Type
 
 
-EMAIL = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 MAX_BODY = 4096
+MAX_EMAIL_LENGTH = 254
+
+
+def is_valid_email(value: str) -> bool:
+    """Validate the fixture email in bounded linear time."""
+
+    if not 3 <= len(value) <= MAX_EMAIL_LENGTH:
+        return False
+    if any(character.isspace() for character in value):
+        return False
+    local, separator, domain = value.partition("@")
+    if not separator or not local or "@" in domain:
+        return False
+    dot = domain.find(".", 1)
+    return dot != -1 and dot < len(domain) - 1
 
 
 class GoldenWebApp:
@@ -114,7 +127,7 @@ class GoldenWebApp:
                     self.json_response(400, {"message": "Invalid JSON"})
                     return
                 email = payload.get("email") if isinstance(payload, dict) else None
-                if not isinstance(email, str) or EMAIL.fullmatch(email) is None:
+                if not isinstance(email, str) or not is_valid_email(email):
                     self.json_response(400, {"message": "Enter a valid email"})
                     return
                 try:
