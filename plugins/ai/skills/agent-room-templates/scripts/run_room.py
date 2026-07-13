@@ -277,7 +277,13 @@ def exclusive(path: Path, timeout: float = 30.0) -> Iterator[None]:
     """Hold a crash-released operating-system lock for one state mutation."""
     path.parent.mkdir(parents=True, exist_ok=True)
     try:
-        handle = path.open("a+b")
+        # Windows byte-range locks must not share a buffered stream with
+        # pre-lock sentinel writes.  Under contention, another process can
+        # truncate the metadata while this handle still has a buffered byte;
+        # its later flush then fails with PermissionError before the lock is
+        # acquired.  msvcrt can lock byte zero even when the file is empty, so
+        # acquire first and touch the file only while holding the OS lock.
+        handle = path.open("a+b", buffering=0)
     except OSError as exc:
         raise RunnerError("cannot open runner lock %s: %s" % (path, exc)) from exc
     try:
@@ -286,11 +292,6 @@ def exclusive(path: Path, timeout: float = 30.0) -> Iterator[None]:
             try:
                 if os.name == "nt":
                     import msvcrt
-                    handle.seek(0)
-                    if not handle.read(1):
-                        handle.seek(0)
-                        handle.write(b"\n")
-                        handle.flush()
                     handle.seek(0)
                     msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
                 else:

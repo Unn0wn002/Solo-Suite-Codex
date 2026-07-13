@@ -847,6 +847,66 @@ class AgentRoomTrustBoundary(unittest.TestCase):
         finally:
             self.stop_process(holder)
 
+    def test_windows_lock_does_not_write_before_byte_lock(self) -> None:
+        operations = []
+
+        class FakeHandle:
+            def fileno(self) -> int:
+                return 42
+
+            def seek(self, offset: int) -> None:
+                operations.append(("seek", offset))
+
+            def read(self, size: int) -> bytes:
+                operations.append(("read", size))
+                return b""
+
+            def truncate(self) -> None:
+                operations.append(("truncate",))
+
+            def write(self, value: bytes) -> int:
+                operations.append(("write", value))
+                return len(value)
+
+            def flush(self) -> None:
+                operations.append(("flush",))
+
+            def close(self) -> None:
+                operations.append(("close",))
+
+        fake_handle = FakeHandle()
+        fake_open = mock.Mock(return_value=fake_handle)
+        fake_msvcrt = mock.Mock()
+        fake_msvcrt.LK_NBLCK = 1
+        fake_msvcrt.LK_UNLCK = 2
+        fake_msvcrt.locking.side_effect = lambda _fd, mode, size: operations.append(
+            ("locking", mode, size)
+        )
+        lock = self.root / "windows-contention.lock"
+
+        with (
+            mock.patch.object(Path, "open", fake_open),
+            mock.patch.object(runner.os, "name", "nt"),
+            mock.patch.dict(sys.modules, {"msvcrt": fake_msvcrt}),
+        ):
+            with runner.exclusive(lock, timeout=0.1):
+                operations.append(("critical",))
+
+        fake_open.assert_called_once_with("a+b", buffering=0)
+        acquired = operations.index(("locking", fake_msvcrt.LK_NBLCK, 1))
+        file_mutations = [
+            index for index, operation in enumerate(operations)
+            if operation[0] in {"truncate", "write", "flush"}
+        ]
+        critical = operations.index(("critical",))
+        unlocked = operations.index(("locking", fake_msvcrt.LK_UNLCK, 1))
+        closed = operations.index(("close",))
+        self.assertLess(acquired, min(file_mutations))
+        self.assertLess(max(file_mutations), critical)
+        self.assertLess(critical, unlocked)
+        self.assertLess(unlocked, closed)
+        self.assertFalse(any(operation[0] == "read" for operation in operations))
+
     def test_status_recovers_a_crashed_adapter_lease_fail_closed(self) -> None:
         harness = self.harness("crashed-adapter-001")
         task = self.worker_task(harness)

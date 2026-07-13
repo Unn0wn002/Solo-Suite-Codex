@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-## 1.0.12 — 2026-07-12
+## 1.0.12 — 2026-07-13
 
 - Added an executable, resumable AgentRoom state machine with explicit profile binding, task/result contracts, workspace and artifact-lock enforcement, recorded command provenance, validator-backed gate routing, adapter write detection, and bounded repair-loop exhaustion.
 - Hardened the AgentRoom runtime trust boundary with complete skill/runner/validator fingerprints, run-owned trusted copies, digest-chained state journals, strict cross-registry validation, filtered-byte Git manifests, hidden-index-flag and Gitlink rejection, immutable task contracts, unredirected lease-private staging, live promoted-artifact verification, verified promotion rollback, frozen transitive gate bundles, runner/adapter process-identity-aware recovery, rollback-safe control roots, and concurrent same-stage adapter execution. The local journal guarantee explicitly excludes a coordinated rollback of every same-user authority without an OS/remote monotonic anchor.
@@ -11,7 +11,8 @@
 - Added a local accessible frontend/API/SQLite golden journey and real detached Git-worktree materialization, plus commit rebind/revalidation that accepts only integrated clean worker commits.
 - Added a deterministic Full Team preflight for all 17 component minimum versions, representative skills, every selected-room command, and the complete AgentRoom semantic contract.
 - Added Dependabot, least-privilege checkout behavior, private-plan-safe CodeQL and artifact-attestation opt-ins, and an immutable future-release asset workflow.
-- Expanded the suite to 245 tests and 69% measured coverage, raised the CI floor from 62% to 68%, and lifted the phase-gate validator from 55% to 67% coverage.
+- Replaced CodeQL's flagged email regular expression with bounded linear validation and fixed a Windows AgentRoom lock race by acquiring the byte lock before touching its unbuffered metadata stream.
+- Expanded the suite to 246 tests and 69% measured coverage, raised the CI floor from 62% to 68%, and lifted the phase-gate validator from 55% to 67% coverage.
 
 ## 1.0.11 — 2026-07-11
 
