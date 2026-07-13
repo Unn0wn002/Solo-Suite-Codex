@@ -1,6 +1,6 @@
 {
   "name": "full-team",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "Meta-plugin that coordinates every Solo Suite role, verifies that all 17 component plugins are available, and runs profile-aware full-team delivery with evidence-based gates.",
   "author": {
     "name": "Sakura Yukihira (Ayaya)"

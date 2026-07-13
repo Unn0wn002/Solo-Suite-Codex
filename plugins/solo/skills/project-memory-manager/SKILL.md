@@ -152,7 +152,7 @@ Execute and checkpoint these phases:
 11. `$gate-before-deploy`, then the 14-category `$gate-production-ready` evidence review.
 12. Memory-steward merge and `$solo-handoff-memory`.
 
-Instantiate the AgentRoom with a unique Windows-safe run ID and keep runner-owned worktrees and evidence inside that run namespace. Hard-stop on any failed or invalid gate. Follow only the status-matched transition; never use a gatekeeper handoff. Production requires the latest before-deploy `GO` from the same run, commit, and environment. Resume from the last completed evidence checkpoint rather than rerunning completed phases. Production-ready uses only BLOCKED, SAFE WITH WARNINGS, or SAFE TO LAUNCH; reserve GO/NO-GO for before-code, before-merge, and before-deploy.
+Run the Full Team component/version/selected-command preflight, then instantiate the AgentRoom with an explicit profile and unique Windows-safe run ID. Initialize `run_room.py` at the clean current Git HEAD so it materializes the declared run-owned worktrees. Create only tasks from `next`, record their digest-bound results, and let `advance` validate every gate and choose the transition. When integrated worker commits change HEAD, use `rebind`; it verifies ancestry, rebuilds worktrees, and restarts exact-commit evidence without resetting loop exhaustion. Never use a gatekeeper handoff or hand-edit runner state. Production requires the latest before-deploy `GO` from the same room, run, commit, and environment. Production-ready uses only BLOCKED, SAFE WITH WARNINGS, or SAFE TO LAUNCH; reserve GO/NO-GO for before-code, before-merge, and before-deploy.
 
 ## Working with other skills & plugins
 

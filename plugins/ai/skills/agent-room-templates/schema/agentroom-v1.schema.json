@@ -68,6 +68,63 @@
         "profile-selected-at-runtime"
       ]
     },
+    "runtime_trust": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "suite_digest",
+        "skill_count",
+        "validators",
+        "runtime"
+      ],
+      "properties": {
+        "schema": {
+          "const": "solo-suite/agentroom-runtime-trust-v2"
+        },
+        "suite_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "skill_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "validators": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["phase", "production"],
+          "properties": {
+            "phase": {
+              "$ref": "#/$defs/phaseValidatorTrust"
+            },
+            "production": {
+              "$ref": "#/$defs/productionValidatorTrust"
+            }
+          }
+        },
+        "runtime": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "git_trust",
+            "prepare_run",
+            "run_room",
+            "runtime_trust",
+            "state_journal",
+            "validate_rooms"
+          ],
+          "properties": {
+            "git_trust": {"$ref": "#/$defs/runtimeFileTrust"},
+            "prepare_run": {"$ref": "#/$defs/runtimeFileTrust"},
+            "run_room": {"$ref": "#/$defs/runtimeFileTrust"},
+            "runtime_trust": {"$ref": "#/$defs/runtimeFileTrust"},
+            "state_journal": {"$ref": "#/$defs/runtimeFileTrust"},
+            "validate_rooms": {"$ref": "#/$defs/runtimeFileTrust"}
+          }
+        }
+      }
+    },
     "memory_dir": {
       "const": ".solo/"
     },
@@ -146,7 +203,65 @@
       "$ref": "#/$defs/loop"
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "prepared": {"const": true}
+        },
+        "required": ["prepared"]
+      },
+      "then": {
+        "required": ["runtime_trust"]
+      },
+      "else": {
+        "not": {
+          "required": ["runtime_trust"]
+        }
+      }
+    }
+  ],
   "$defs": {
+    "runtimeFileTrust": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "digest"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "phaseValidatorTrust": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "digest"],
+      "properties": {
+        "path": {
+          "const": "plugins/gate/skills/quality-gatekeeper/scripts/validate_phase_gate_evidence.py"
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "productionValidatorTrust": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "digest"],
+      "properties": {
+        "path": {
+          "const": "plugins/gate/skills/production-readiness-reviewer/scripts/validate_gate_evidence.py"
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
     "identifier": {
       "type": "string",
       "pattern": "^[a-z][a-z0-9_-]{1,63}$"

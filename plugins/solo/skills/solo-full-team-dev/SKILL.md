@@ -5,7 +5,7 @@ description: "Run the explicit, profile-aware Solo Suite full-team workflow acro
 
 # Run full-team development
 
-Use `$project-memory-manager` in full-team-dev mode and the strict `full-team-website` template from `$agent-room-templates` when parallel seats help. Instantiate the template with one unique Windows-safe run ID and use only its run-scoped worktree and artifact paths. Start with `$stack-intake`, then record one profile: public marketing site, SaaS application, e-commerce, internal application, API/service, or library/package. Do not infer providers, environments, data stores, forms, authentication, or deployment targets that the stack intake did not establish.
+Use `$project-memory-manager` in full-team-dev mode and the strict `full-team-website` template from `$agent-room-templates` when parallel seats help. Select one profile before preparation: public marketing site, SaaS application, e-commerce, internal application, API/service, or library/package. Pass that profile with a unique Windows-safe run ID to `prepare_run.py`, then initialize `run_room.py` with the exact commit and environment. Use only tasks emitted by `next`, their run-scoped worktrees, and their declared artifacts. Do not infer providers, environments, data stores, forms, authentication, or deployment targets that stack intake did not establish.
 
 Staff Product Manager, Software Architect, UI/UX Designer, Frontend Developer, Backend Developer, Database Engineer, QA Engineer, Browser QA Engineer, Security Engineer, DevOps Engineer, Release Manager, Documentation Writer, Git/PR Manager, Repo Analyst, AI Agent Reviewer, Growth/Conversion Reviewer, and Site Doctor. Route shared `.solo/` proposals through one memory steward.
 
@@ -35,8 +35,10 @@ Lint/type, contract, migration, browser, and environment evidence must name the 
 
 Default browser work to localhost, staging, or a dedicated test tenant with synthetic data. Do not invoke `$browser-form-submit-test` or another state-changing browser workflow without explicit confirmation and a cleanup plan.
 
-For every skipped role or category, record evidence and a concrete N/A reason. Stop immediately on a `$gate-before-code` NO-GO. A `$gate-before-merge` or `$gate-before-deploy` NO-GO enters the template's bounded repair/retest loop: assign the smallest owner-specific fixes, return to implementation, rerun every invalidated check, and regenerate exact-commit evidence. Allow at most three iterations. On exhaustion, mark the run BLOCKED and do not merge, deploy, or publish.
+For every skipped role or category, record evidence and a concrete N/A reason. Submit each seat's result contract to the runner, including exact artifact digests and only commands that seat actually executed. Stop immediately on a validator-backed `$gate-before-code` NO-GO. A `$gate-before-merge` or `$gate-before-deploy` NO-GO follows only the runner-selected bounded repair/retest route: assign the smallest owner-specific fixes, rerun invalidated checks, and regenerate exact-commit evidence. On exhaustion, preserve the persisted BLOCKED state and do not merge, deploy, or publish.
 
 Finish with the 14-category `$gate-production-ready` status; production uses only BLOCKED, SAFE WITH WARNINGS, or SAFE TO LAUNCH. The strict room completes only on SAFE TO LAUNCH; SAFE WITH WARNINGS stops for explicit human direction. SAFE TO LAUNCH is not deployment authorization.
 
-Report the current stage, artifacts produced, N/A decisions, unresolved blockers, verification evidence, and exact next `$skill`. Resume from the latest valid evidence checkpoint rather than restarting the cycle.
+When integrated worker commits change the project HEAD, use the runner's explicit `rebind --commit <new-head>` before starting the next stage. Rebind must verify every clean worker HEAD was integrated and then restart evidence collection at discovery for the new commit; never relabel old evidence or reset the bounded repair counter.
+
+Report the runner's current stage, profile, active commit, attempt and loop counters, artifacts produced, N/A decisions, unresolved blockers, validator transcripts, and exact next `$skill`. Resume with `status` and `next` from the persisted checkpoint rather than reconstructing state by hand.

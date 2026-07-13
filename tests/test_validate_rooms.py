@@ -70,6 +70,7 @@ class BundledTemplates(unittest.TestCase):
                 [
                     sys.executable, str(prepare), str(BUG_ROOM), str(output),
                     "--run-id", "external-run-001", "--suite", str(ROOT),
+                    "--profile", "saas-application",
                 ],
                 cwd=temp, capture_output=True, text=True, encoding="utf-8",
                 errors="replace", timeout=30,
@@ -103,6 +104,7 @@ class BundledTemplates(unittest.TestCase):
                 [
                     sys.executable, str(prepare), str(BUG_ROOM), str(output),
                     "--run-id", "external-run-002", "--suite", str(ROOT),
+                    "--profile", "saas-application",
                 ],
                 cwd=temp, capture_output=True, text=True, encoding="utf-8",
                 errors="replace", timeout=30,
@@ -118,7 +120,7 @@ class BundledTemplates(unittest.TestCase):
                 [
                     sys.executable, str(prepare), str(BUG_ROOM),
                     str(duplicate_output), "--run-id", "external-run-001",
-                    "--suite", str(ROOT),
+                    "--profile", "saas-application", "--suite", str(ROOT),
                 ],
                 cwd=temp, capture_output=True, text=True, encoding="utf-8",
                 errors="replace", timeout=30,
@@ -134,6 +136,18 @@ class BundledTemplates(unittest.TestCase):
             ROOM_ROOT / "agentsrooms/site-doctor-audit.json",
         ]
         before = {path: path.read_bytes() for path in generated}
+        builder = load_module(
+            "agentroom_builder_coverage", ROOT / "tools/build_agentrooms.py"
+        )
+        in_process = [
+            builder.full_team(),
+            builder.production_release(),
+            builder.site_doctor_audit(),
+        ]
+        self.assertEqual(
+            [json.loads(before[path].decode("utf-8")) for path in generated],
+            in_process,
+        )
         result = subprocess.run(
             [sys.executable, str(ROOT / "tools/build_agentrooms.py")],
             cwd=ROOT, capture_output=True, text=True, encoding="utf-8",
@@ -355,12 +369,120 @@ class SemanticRules(unittest.TestCase):
         room["run_id"] = "Live-Run-001"
         self.check(room, "Windows-safe")
 
+    def test_prepared_room_must_bind_a_concrete_profile(self):
+        room = full_team_fixture()
+        room["prepared"] = True
+        room["run_id"] = "live-run-001"
+        self.check(room, "bind a concrete project profile")
+
+    def test_prepared_room_rejects_malformed_runtime_trust(self):
+        digest = "sha256:" + "0" * 64
+        valid = {
+            "schema": "solo-suite/agentroom-runtime-trust-v2",
+            "suite_digest": digest,
+            "skill_count": 1,
+            "validators": {
+                "phase": {
+                    "path": (
+                        "plugins/gate/skills/quality-gatekeeper/scripts/"
+                        "validate_phase_gate_evidence.py"
+                    ),
+                    "digest": digest,
+                },
+                "production": {
+                    "path": (
+                        "plugins/gate/skills/production-readiness-reviewer/"
+                        "scripts/validate_gate_evidence.py"
+                    ),
+                    "digest": digest,
+                },
+            },
+            "runtime": {
+                name: {
+                    "path": (
+                        "plugins/ai/skills/agent-room-templates/scripts/" +
+                        name + ".py"
+                    ),
+                    "digest": digest,
+                }
+                for name in (
+                    "git_trust", "prepare_run", "run_room", "runtime_trust",
+                    "state_journal", "validate_rooms",
+                )
+            },
+        }
+        malformed = []
+
+        extra_key = copy.deepcopy(valid)
+        extra_key["unexpected"] = True
+        malformed.append(("extra key", extra_key))
+
+        zero_skills = copy.deepcopy(valid)
+        zero_skills["skill_count"] = 0
+        malformed.append(("empty skill inventory", zero_skills))
+
+        bad_suite_digest = copy.deepcopy(valid)
+        bad_suite_digest["suite_digest"] = "sha256:not-a-digest"
+        malformed.append(("bad suite digest", bad_suite_digest))
+
+        missing_validator = copy.deepcopy(valid)
+        del missing_validator["validators"]["phase"]
+        malformed.append(("missing validator", missing_validator))
+
+        wrong_validator_path = copy.deepcopy(valid)
+        wrong_validator_path["validators"]["phase"]["path"] = (
+            "plugins/attacker/validate.py"
+        )
+        malformed.append(("substituted validator path", wrong_validator_path))
+
+        bad_validator_digest = copy.deepcopy(valid)
+        bad_validator_digest["validators"]["production"]["digest"] = "bad"
+        malformed.append(("bad validator digest", bad_validator_digest))
+
+        wrong_runtime_path = copy.deepcopy(valid)
+        wrong_runtime_path["runtime"]["run_room"]["path"] = (
+            "plugins/attacker/run_room.py"
+        )
+        malformed.append(("substituted runtime path", wrong_runtime_path))
+
+        for label, trust in malformed:
+            with self.subTest(case=label):
+                room = full_team_fixture()
+                room["prepared"] = True
+                room["run_id"] = "live-run-001"
+                room["profile"] = "saas-application"
+                room["runtime_trust"] = trust
+                self.check(room, "runtime_trust is malformed")
+
+    def test_unprepared_room_rejects_runtime_trust(self):
+        room = full_team_fixture()
+        room["runtime_trust"] = {}
+        self.check(room, "unprepared rooms must not bind runtime_trust")
+
     def test_gate_prerequisite_commands_are_bound_to_the_real_producer(self):
         room = full_team_fixture()
         room["gates"][0]["prerequisites"][0]["producer_commands"] = [
             "$invented-skill"
         ]
         self.check(room, "producer_commands do not match")
+
+    def test_production_category_requires_an_allowed_producer_command(self):
+        room = full_team_fixture()
+        frontend = next(
+            seat for seat in room["seats"]
+            if seat["id"] == "frontend_developer"
+        )
+        frontend["commands"] = ["$dev-implement-feature"]
+        production = next(
+            gate for gate in room["gates"]
+            if gate["command"] == "$gate-production-ready"
+        )
+        prerequisite = next(
+            item for item in production["prerequisites"]
+            if item["category"] == "Frontend"
+        )
+        prerequisite["producer_commands"] = ["$dev-implement-feature"]
+        self.check(room, "no producer command allowed")
 
     def test_gate_cannot_reuse_one_artifact_for_multiple_prerequisites(self):
         room = full_team_fixture()

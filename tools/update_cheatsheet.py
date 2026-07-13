@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Apply the minimal Codex v1.0.11 OOXML edits to the release cheat sheet."""
+"""Apply the minimal Codex v1.0.12 OOXML edits to the release cheat sheet."""
 
 from __future__ import annotations
 
@@ -15,7 +15,11 @@ COMMAND = re.compile(r"(?<![<\w])/([a-z][a-z0-9-]*):([a-z][a-z0-9-]*)")
 
 
 def patch_document(xml: str) -> str:
-    xml = xml.replace("v1.0.10", "v1.0.11").replace("v3.3.0", "v1.0.11")
+    xml = (
+        xml.replace("v1.0.11", "v1.0.12")
+        .replace("v1.0.10", "v1.0.12")
+        .replace("v3.3.0", "v1.0.12")
+    )
     xml = xml.replace("Claude", "Codex")
     replacements = {
         "site-doctor Command &amp; Prompt Cheat Sheet":
@@ -129,7 +133,7 @@ def patch_core(xml: str) -> str:
     )
     replacements = {
         "dc:title": "Site Doctor for Codex - Cheat Sheet",
-        "dc:subject": "Solo Suite Codex v1.0.11",
+        "dc:subject": "Solo Suite Codex v1.0.12",
         "cp:lastModifiedBy": "",
     }
     for tag, value in replacements.items():

@@ -26,7 +26,7 @@ import zipfile
 
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "1.0.11"
+VERSION = "1.0.12"
 FOLDER = f"solo-suite-codex-v{VERSION}"
 HISTORICAL_SOURCE_NAME = "solo-suite-plugin-v1.0.10.zip"
 HISTORICAL_SOURCE_SHA256 = (
@@ -258,7 +258,7 @@ def write_release(root: Path, validation_state: str) -> None:
     dump_json(root / "RELEASE.json", {
         "name": "solo-suite-codex",
         "version": VERSION,
-        "previous_version": "1.0.10",
+        "previous_version": "1.0.11",
         "source_archive": HISTORICAL_SOURCE_NAME,
         "source_archive_sha256": HISTORICAL_SOURCE_SHA256,
         "source_archive_required_for_build": False,

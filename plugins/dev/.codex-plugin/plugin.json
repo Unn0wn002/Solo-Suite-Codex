@@ -1,6 +1,6 @@
 {
   "name": "dev",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "Implement features, diagnose bugs, refactor code, and perform evidence-based code review. Migrated workflows: $dev-code-review, $dev-fix-bug, $dev-implement-feature, $dev-refactor-code.",
   "author": {
     "name": "Sakura Yukihira (Ayaya)"

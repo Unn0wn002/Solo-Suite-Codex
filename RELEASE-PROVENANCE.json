@@ -1,16 +1,16 @@
 {
   "schema": "solo-suite/release-provenance-v1",
   "subject": {
-    "name": "solo-suite-codex-v1.0.11.zip",
-    "version": "1.0.11"
+    "name": "solo-suite-codex-v1.0.12.zip",
+    "version": "1.0.12"
   },
   "builder": {
     "id": "local-codex-workspace",
     "tool": "tools/package_release.py"
   },
   "build_type": "source-tree-preflight-metadata",
-  "build_timestamp": "2026-07-11T00:00:00Z",
-  "source_date_epoch": 1783728000,
+  "build_timestamp": "2026-07-12T00:00:00Z",
+  "source_date_epoch": 1783814400,
   "materials": [
     {
       "uri": "solo-suite-plugin-v1.0.10.zip",

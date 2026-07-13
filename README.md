@@ -2,7 +2,7 @@
 
 Solo Suite is a Codex-native plugin marketplace for planning, designing, building, testing, auditing, and releasing software with shared `.solo/` project memory. This edition preserves the 100 workflows from Solo Suite v1.0.10 by migrating each legacy command to an explicit Codex skill.
 
-**18 plugins** · **157 skills** · **100 migrated commands** · **15 helper scripts**
+**18 plugins** · **157 skills** · **100 migrated commands** · **20 helper scripts**
 
 The 157 skills comprise 56 specialist skills, 100 command-derived skills, and the new `full-team-orchestrator` meta-skill. The authoritative one-to-one migration is in [`command-map.json`](command-map.json) and the readable table is in [`COMMAND-MAP.md`](COMMAND-MAP.md).
 
@@ -22,10 +22,10 @@ The legacy names are documentation-only migration keys. There is no Claude comma
 
 ## Install
 
-Unpack the release so it has one enclosing `solo-suite-codex-v1.0.11/` folder, then register that folder as a local marketplace:
+Unpack the release so it has one enclosing `solo-suite-codex-v1.0.12/` folder, then register that folder as a local marketplace:
 
 ```powershell
-codex plugin marketplace add "C:\path\to\solo-suite-codex-v1.0.11"
+codex plugin marketplace add "C:\path\to\solo-suite-codex-v1.0.12"
 codex plugin add solo@solo-suite-codex
 codex plugin add project@solo-suite-codex
 codex plugin add dev@solo-suite-codex
@@ -75,7 +75,7 @@ Codex's current plugin manifest contract has no plugin-dependency field. Consequ
 
 `$full-team-orchestrator` and `$solo-full-team-dev` coordinate these roles when the project profile makes them relevant: Product Manager, Software Architect, UI/UX Designer, Frontend Developer, Backend Developer, Database Engineer, QA Engineer, Browser QA Engineer, Security Engineer, DevOps Engineer, Release Manager, Documentation Writer, Git/PR Manager, Repo Analyst, AI Agent Reviewer, Growth/Conversion Reviewer, and Site Doctor.
 
-The flow begins with `$stack-intake` before `$stack-connector-check`, orders architecture before database architecture and design, performs `$ai-review-output` between major phases, includes `$test-edge-cases`, and runs `$design-ui-review` after implementation. The advanced-website room requires accessibility, visual/cross-browser, forms/privacy, dependency/SBOM, performance/load, lint/type, contract, migration, browser-QA, environment, and release evidence before its dedicated pre-deploy gate. Every gate consumes the prepared-room digest and evidence bound to the exact run, gate, commit, environment, declared prerequisite, producer command, artifact digest, and maximum age. A failed gate enters a status-driven, bounded three-iteration repair/retest loop; only a freshly revalidated before-deploy `GO` can reach production, and the strict room completes only with `SAFE TO LAUNCH`. Growth and provider-specific reviews run only when the project profile and `.solo/stack.md` make them applicable. Every skipped category needs a digest-bound profile reason permitted by the selected profile's narrow N/A policy.
+The flow begins with `$stack-intake` before `$stack-connector-check`, orders architecture before database architecture and design, performs `$ai-review-output` between major phases, includes `$test-edge-cases`, and runs `$design-ui-review` after implementation. The advanced-website room requires accessibility, visual/cross-browser, forms/privacy, dependency/SBOM, performance/load, lint/type, contract, migration, browser-QA, environment, and release evidence before its dedicated pre-deploy gate. Every gate consumes the prepared-room digest and evidence bound to the exact run, gate, commit, environment, declared prerequisite, producer command, artifact digest, and maximum age. `run_room.py` additionally binds cited evidence to commands recorded for the actual producing task. A failed gate enters a status-driven, bounded three-iteration repair/retest loop; only a freshly revalidated before-deploy `GO` can reach production, and the strict room completes only with `SAFE TO LAUNCH`. Growth and provider-specific reviews run only when the project profile and `.solo/stack.md` make them applicable. Every skipped category needs a digest-bound profile reason permitted by the selected profile's narrow N/A policy.
 
 Supported profiles include public marketing site, SaaS application, e-commerce, internal application, API/service, and library/package.
 
@@ -113,9 +113,9 @@ The `ai` plugin ships four schema-checked declarative room plans:
 - `site-doctor-audit.json`
 - `bug-fix-loop.json`
 
-The v1 schema and validator enforce bounded loops with machine-readable trigger/exit statuses, reachable stages, artifact locks, unique task allocation, one memory steward, implicit `.solo/` effects, gate prerequisites, producer-command bindings, evidence declarations, gatekeeper read coverage, contract-specific gate schemas, exact-run freshness, status-driven transitions, and fail-closed gate routing. `prepare_run.py` reserves a lowercase, case-folded run ID per project. Instantiated work is isolated under `artifacts/runs/<run-id>/` and `worktrees/runs/<run-id>/`; production additionally requires the same room, run, commit, and environment's before-deploy `GO` evidence.
+The v1 schema and validator enforce bounded loops with machine-readable trigger/exit statuses, reachable stages, artifact locks, unique task allocation, one memory steward, implicit `.solo/` effects, gate prerequisites, producer-command bindings, evidence declarations, gatekeeper read coverage, contract-specific gate schemas, exact-run freshness, status-driven transitions, and fail-closed gate routing. `prepare_run.py` requires an explicit profile, reserves a lowercase case-folded run ID per project, and binds the prepared-plan digest into that claim. Instantiated work is isolated under `artifacts/runs/<run-id>/` and `worktrees/runs/<run-id>/`; production additionally requires the same room, run, commit, and environment's before-deploy `GO` evidence.
 
-These JSON files are plans, not a hidden executable multi-agent runtime. `prepare_run.py` creates a validated, run-namespaced plan; Codex or another runner must still create workers stage by stage and enforce the declared workspaces, locks, status transitions, evidence contracts, handoffs, and confirmations. See `references/codex-runner-adapter.md` in the AgentRooms skill.
+These JSON files remain declarative contracts rather than hidden autonomous agents. The bundled runner fingerprints every suite skill, gate validator, and imported runtime file; pins exact filtered Git working-tree bytes; rejects hidden index flags, unsupported Git submodules, and redirected/preseeded control paths; and stores state in a digest-chained journal whose projection cannot be forged or rolled back independently of its project-registry head. `next` creates immutable baseline-bound leases with unredirected private artifact roots, and record promotes only the declaring seat's verified files with verified rollback while preserving safe same-stage concurrency. Promoted current-commit artifacts are rehashed at their live project paths before status, issue, and advance. Gate validation and routing consume one frozen transitive evidence bundle, closing live-file swap races. Adapter crashes retain runner and adapter process creation identities so the recorded process tree is terminated and drift blocks retry. Rebind still requires a clean integrated HEAD and restarts exact-commit evidence collection. Coordinated rollback of every same-user journal authority, independent command receipts, and containment of same-user hostile executables require an OS/remote monotonic anchor, trusted receipt mechanism, and OS/container sandbox respectively. See `references/codex-runner-adapter.md` in the AgentRooms skill.
 
 ## Runtime and security guarantees
 
@@ -152,8 +152,8 @@ python plugins/ai/skills/agent-room-templates/scripts/validate_rooms.py --suite 
 Publication-grade packages are built only from a clean Git commit. The packager snapshots `HEAD`, generates release metadata in a disposable staging directory, and leaves tracked source files unchanged:
 
 ```powershell
-python tools/package_release.py --output ..\solo-suite-codex-v1.0.11.zip --validation-state validated
-python tools/smoke_package.py ..\solo-suite-codex-v1.0.11.zip
+python tools/package_release.py --output ..\solo-suite-codex-v1.0.12.zip --validation-state validated
+python tools/smoke_package.py ..\solo-suite-codex-v1.0.12.zip
 git diff --exit-code
 git status --short --untracked-files=all
 ```

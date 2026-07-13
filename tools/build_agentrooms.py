@@ -353,13 +353,13 @@ def full_team() -> dict[str, Any]:
         "GO or NO-GO tied to product, architecture, and design evidence.",
         kind="gatekeeper", model="deep-reasoning")
     frontend = worker("frontend_developer", "Frontend Developer",
-                      ["$dev-implement-feature"],
+                      ["$dev-implement-feature", "$browser-smoke-test"],
                       [category["Architecture"], f"{base}/design-spec.json"],
                       [category["Frontend"]],
                       "Frontend implementation evidence and affected-flow inventory.",
                       model="strong-coding")
     backend = worker("backend_developer", "Backend Developer",
-                     ["$dev-implement-feature"],
+                     ["$dev-implement-feature", "$test-integration"],
                      [category["Architecture"], category["Database"],
                       ".solo/api-contract.md", ".solo/data-contract.md",
                       ".solo/env-contract.md"],
@@ -414,7 +414,7 @@ def full_team() -> dict[str, Any]:
                      f"{base}/rollback.json", web["environment"]],
                     "Exact-environment readiness, deployment, monitoring, backup, and rollback evidence without launching.")
     growth = worker("growth_conversion_reviewer", "Growth/Conversion Reviewer",
-                    ["$growth-conversion-audit"],
+                    ["$growth-conversion-audit", "$analytics-audit"],
                     [category["Product"], category["Frontend"], f"{base}/project-profile.json"],
                     [category["Analytics"]],
                     "Conversion and analytics evidence, or an evidence-backed profile N/A reason.")
@@ -622,7 +622,14 @@ def production_release() -> dict[str, Any]:
                   for name in PRODUCTION_CATEGORIES]
     collector = worker(
         "evidence_collector", "Release Evidence Collector",
-        ["$stack-intake", "$gate-score-project"],
+        [
+            "$stack-intake", "$spec-acceptance", "$project-architecture",
+            "$design-ui-review", "$browser-smoke-test", "$api-audit",
+            "$database-audit", "$security-review", "$test-unit",
+            "$site-doctor-perf", "$site-doctor-seo", "$analytics-audit",
+            "$release-preflight", "$observability", "$docs-update",
+            "$gate-score-project",
+        ],
         [".solo/project.md", ".solo/stack.md", ".solo/tests.md", ".solo/release.md"],
         [artifact for _, artifact in categories] + [profile_artifact],
         "A project-profile applicability contract and fourteen normalized category evidence records tied to run, commit, and environment.")

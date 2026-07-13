@@ -1,6 +1,6 @@
 {
   "name": "docs",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "Create and maintain accurate API, setup, runbook, and repository documentation. Migrated workflows: $docs-api, $docs-runbook, $docs-setup-guide, $docs-update.",
   "author": {
     "name": "Sakura Yukihira (Ayaya)"

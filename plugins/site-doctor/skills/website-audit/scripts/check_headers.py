@@ -18,7 +18,7 @@ try:
 except ImportError:
     sys.exit("url_guard.py not found - run from an intact site-doctor plugin")
 
-UA = "solo-suite-site-doctor/1.0.11"
+UA = "solo-suite-site-doctor/1.0.12"
 TIMEOUT = 15
 MAX_HTTPS_REDIRECTS = 5
 REDIRECT_STATUSES = (301, 302, 303, 307, 308)

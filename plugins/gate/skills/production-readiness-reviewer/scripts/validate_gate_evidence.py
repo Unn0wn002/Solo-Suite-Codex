@@ -120,6 +120,33 @@ EVIDENCE_SOURCE_KINDS = {
 }
 
 
+def producer_coverage_failures(
+    category_producer_commands: dict[str, object],
+) -> list[str]:
+    """Return categories whose declared producers cannot satisfy any profile."""
+
+    failures = []
+    for category in CATEGORIES:
+        applicable_profiles = sorted(
+            profile for profile in PROJECT_PROFILES
+            if category not in PROFILE_NA_ALLOWED[profile]
+        )
+        commands = category_producer_commands.get(category)
+        declared = (
+            set(commands)
+            if (isinstance(commands, (list, tuple, frozenset)) and
+                all(isinstance(command, str) for command in commands))
+            else set()
+        )
+        if applicable_profiles and not declared & CATEGORY_SKILLS[category]:
+            failures.append(
+                f"{category} has no declared producer command allowed by the "
+                "production evidence contract for applicable profiles: "
+                f"{', '.join(applicable_profiles)}"
+            )
+    return failures
+
+
 def parse_time(value: object, field: str, failures: list[str]) -> datetime | None:
     if not isinstance(value, str):
         failures.append(f"{field} must be an ISO-8601 string")
@@ -166,8 +193,13 @@ def load_room_contract(path: Path, run_id: str, gate_id: str) -> dict:
         raise ValueError("production gate has no prerequisite contract")
     for prerequisite in prerequisites:
         commands = prerequisite.get("producer_commands") if isinstance(prerequisite, dict) else None
-        if not isinstance(commands, list) or not commands:
-            raise ValueError("production prerequisite has no producer_commands")
+        if (not isinstance(commands, list) or not commands or
+                not all(isinstance(command, str) and SKILL_INVOCATION.fullmatch(command)
+                        for command in commands) or
+                len(commands) != len(set(commands))):
+            raise ValueError(
+                "production prerequisite has malformed producer_commands"
+            )
     category_prerequisites = [
         item for item in prerequisites if isinstance(item, dict)
         and item.get("category") in CATEGORIES
@@ -176,11 +208,18 @@ def load_room_contract(path: Path, run_id: str, gate_id: str) -> dict:
         item.get("category"): item.get("artifact")
         for item in category_prerequisites
     }
+    category_producer_commands = {
+        item.get("category"): tuple(item["producer_commands"])
+        for item in category_prerequisites
+    }
     if (len(category_prerequisites) != 14 or
             [item.get("category") for item in category_prerequisites] != CATEGORIES):
         raise ValueError("production gate must predeclare all 14 category artifacts in order")
     if len(set(category_artifacts.values())) != 14:
         raise ValueError("production gate category artifacts must be unique")
+    coverage_failures = producer_coverage_failures(category_producer_commands)
+    if coverage_failures:
+        raise ValueError("; ".join(coverage_failures))
     profiles = [item for item in prerequisites if isinstance(item, dict)
                 and item.get("category") == "Project profile"]
     if len(profiles) != 1:
@@ -234,6 +273,7 @@ def load_room_contract(path: Path, run_id: str, gate_id: str) -> dict:
         "room_digest": f"sha256:{hashlib.sha256(room_bytes).hexdigest()}",
         "max_age_hours": max_age,
         "category_artifacts": category_artifacts,
+        "category_producer_commands": category_producer_commands,
         "profile_artifact": profiles[0]["artifact"],
         "required_gate_results": required_results,
     }
@@ -505,6 +545,19 @@ def validate(data: object, root: Path, commit: str, environment: str,
             contract = {}
         else:
             max_age_hours = contract.get("max_age_hours", max_age_hours)
+        category_producer_commands = contract.get("category_producer_commands")
+        if (not isinstance(category_producer_commands, dict) or
+                list(category_producer_commands) != CATEGORIES):
+            failures.append(
+                "prepared-room contract must preserve producer_commands for all "
+                "14 categories in canonical order"
+            )
+            category_producer_commands = {}
+        else:
+            failures.extend(
+                f"prepared-room contract {failure}"
+                for failure in producer_coverage_failures(category_producer_commands)
+            )
         if (not isinstance(max_age_hours, int) or isinstance(max_age_hours, bool) or
                 max_age_hours < 1):
             failures.append("prepared-room max_age_hours must be a positive integer")
@@ -678,6 +731,13 @@ def validate(data: object, root: Path, commit: str, environment: str,
         elif command not in CATEGORY_SKILLS.get(record.get("category"), frozenset()):
             failures.append(
                 f"{prefix}.command_executed is not allowed for {record.get('category')}"
+            )
+        if (mode == "production" and isinstance(command, str) and
+                command not in category_producer_commands.get(
+                    record.get("category"), ())):
+            failures.append(
+                f"{prefix}.command_executed was not declared by the room producer "
+                f"for {record.get('category')}"
             )
         exit_code = record.get("exit_code")
         if not isinstance(exit_code, int) or isinstance(exit_code, bool):

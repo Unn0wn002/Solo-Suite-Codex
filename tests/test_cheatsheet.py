@@ -33,7 +33,7 @@ class Cheatsheet(unittest.TestCase):
     def test_content_uses_codex_invocations_and_current_version(self):
         document = ET.fromstring(self.archive.read("word/document.xml"))
         text = "".join(node.text or "" for node in document.iter(W + "t"))
-        self.assertIn("v1.0.11", text)
+        self.assertIn("v1.0.12", text)
         self.assertIn("site-doctor@solo-suite-codex", text)
         self.assertIn("<resolved-plugin-root>/scripts/run_helper.py", text)
         self.assertNotIn("v3.3.0", text)

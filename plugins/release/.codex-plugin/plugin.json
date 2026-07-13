@@ -1,6 +1,6 @@
 {
   "name": "release",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "Prepare CI, release preflight, recoverable deployment plans, and rollback plans. Migrated workflows: $release-ci-setup, $release-deploy-plan, $release-preflight, $release-rollback-plan.",
   "author": {
     "name": "Sakura Yukihira (Ayaya)"

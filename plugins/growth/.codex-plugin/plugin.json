@@ -1,6 +1,6 @@
 {
   "name": "growth",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "Audit conversion journeys and activation only when the project profile makes growth review relevant. Migrated workflows: $growth-conversion-audit.",
   "author": {
     "name": "Sakura Yukihira (Ayaya)"

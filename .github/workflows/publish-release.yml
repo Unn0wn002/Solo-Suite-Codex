@@ -1,0 +1,164 @@
+name: publish-attested-release
+
+"on":
+  release:
+    types: [published]
+
+permissions: {}
+
+concurrency:
+  group: release-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+env:
+  PYTHONUTF8: "1"
+  PYTHONDONTWRITEBYTECODE: "1"
+
+jobs:
+  build:
+    name: Validate and package immutable assets
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    outputs:
+      archive: ${{ steps.release.outputs.archive }}
+    steps:
+      - name: Check out the immutable release tag
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-dev.lock
+
+      - name: Validate tag and release metadata
+        id: release
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          import re
+
+          version = json.loads(Path("RELEASE.json").read_text(encoding="utf-8"))["version"]
+          if not isinstance(version, str) or re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version) is None:
+              raise SystemExit("RELEASE.json contains an invalid semantic version")
+          expected_tag = f"v{version}"
+          if os.environ["RELEASE_TAG"] != expected_tag:
+              raise SystemExit(
+                  f"release tag {os.environ['RELEASE_TAG']!r} does not match {expected_tag!r}"
+              )
+          archive = f"solo-suite-codex-v{version}.zip"
+          with Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8", newline="\n") as output:
+              output.write(f"version={version}\narchive={archive}\n")
+          PY
+
+      - name: Install hash-locked validation dependencies
+        run: python -m pip install --require-hashes --requirement requirements-dev.lock
+
+      - name: Compile Python sources
+        run: python -m compileall -q plugins tests tools
+
+      - name: Validate every Codex plugin directory
+        run: python tools/validate_plugins.py --official-if-available
+
+      - name: Run unit and regression tests with coverage
+        run: |
+          coverage run --source=plugins,tools -m unittest discover -s tests -t . -v
+          coverage report --show-missing --fail-under=68
+
+      - name: Run structural and AgentRooms validation
+        run: |
+          python plugins/solo/skills/suite-integrity/scripts/self_check.py . -
+          python plugins/ai/skills/agent-room-templates/scripts/validate_rooms.py --suite .
+
+      - name: Scan repository for secrets
+        run: python plugins/site-doctor/scripts/run_helper.py security-review/scan-secrets . --json
+
+      - name: Build and smoke-test deterministic release package
+        env:
+          ARCHIVE_NAME: ${{ steps.release.outputs.archive }}
+        run: |
+          python tools/package_release.py --output "dist/${ARCHIVE_NAME}" --validation-state validated
+          python tools/smoke_package.py "dist/${ARCHIVE_NAME}"
+          python - <<'PY'
+          import hashlib
+          import os
+          from pathlib import Path
+
+          archive = Path("dist") / os.environ["ARCHIVE_NAME"]
+          digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+          sidecar = archive.with_name(f"{archive.name}.sha256")
+          sidecar.write_text(f"{digest} *{archive.name}\n", encoding="ascii", newline="\n")
+          PY
+
+      - name: Verify packaging did not rewrite tracked source
+        run: |
+          git diff --exit-code
+          python -c 'import subprocess, sys; status = subprocess.check_output(["git", "status", "--porcelain", "--untracked-files=all"], text=True); print(status, end=""); sys.exit(1 if status.strip() else 0)'
+
+      - name: Transfer validated assets to privileged jobs
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-assets-${{ github.run_id }}
+          path: |
+            dist/${{ steps.release.outputs.archive }}
+            dist/${{ steps.release.outputs.archive }}.sha256
+          if-no-files-found: error
+          retention-days: 1
+
+  attest:
+    name: Generate GitHub build provenance
+    needs: build
+    if: github.event.repository.private == false || vars.ENABLE_PRIVATE_ATTESTATIONS == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      attestations: write
+      contents: read
+      id-token: write
+    steps:
+      - name: Download validated assets
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-assets-${{ github.run_id }}
+          path: dist
+
+      - name: Generate GitHub build provenance
+        uses: actions/attest@f6bf1532d7d6793fce74eac584813a8eee607999 # v4
+        with:
+          subject-path: |
+            dist/${{ needs.build.outputs.archive }}
+            dist/${{ needs.build.outputs.archive }}.sha256
+
+  publish:
+    name: Upload immutable release assets
+    needs: [build, attest]
+    if: >-
+      always() && needs.build.result == 'success' &&
+      (needs.attest.result == 'success' || needs.attest.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Download validated assets
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-assets-${{ github.run_id }}
+          path: dist
+
+      - name: Upload immutable release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          ARCHIVE_PATH: dist/${{ needs.build.outputs.archive }}
+        run: gh release upload "$RELEASE_TAG" "$ARCHIVE_PATH" "$ARCHIVE_PATH.sha256" --repo "$GITHUB_REPOSITORY"

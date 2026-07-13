@@ -1,6 +1,6 @@
 {
   "name": "gate",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "Run before-code, before-merge, before-deploy, project-scoring, and 14-category production-readiness gates. Migrated workflows: $gate-before-code, $gate-before-deploy, $gate-before-merge, $gate-production-ready, $gate-score-project.",
   "author": {
     "name": "Sakura Yukihira (Ayaya)"
