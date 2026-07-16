@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import hashlib
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -42,6 +43,27 @@ def repository_text_files() -> list[Path]:
 
 
 class RepositoryHygiene(unittest.TestCase):
+    def test_secret_environment_files_are_ignored(self):
+        for name in (".env", ".env.local", ".env.production"):
+            with self.subTest(name=name):
+                result = subprocess.run(
+                    ["git", "check-ignore", "--no-index", "--", name],
+                    cwd=ROOT,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+
+        example = subprocess.run(
+            ["git", "check-ignore", "--no-index", "--", ".env.example"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertNotEqual(example.returncode, 0, example.stdout)
+
     def test_generated_runtime_state_is_not_release_input(self):
         from tools import package_release
 
