@@ -57,10 +57,10 @@ class SecretScannerRegression(unittest.TestCase):
         )
         with tempfile.TemporaryDirectory() as temp:
             fixture = Path(temp) / "config.txt"
+            # codeql[py/clear-text-storage-sensitive-data]
             # Intentional synthetic credential-shaped data in an auto-deleted
             # temporary directory; this test verifies that the scanner never
             # emits the plaintext values.  It is not production storage.
-            # codeql[py/clear-text-storage-sensitive-data]
             fixture.write_text(
                 "\n".join([
                     secrets[0], secrets[1], secrets[2], secrets[3], secrets[4],
