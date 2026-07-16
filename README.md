@@ -224,9 +224,11 @@ validated; AgentRoom, gate, security, network, parity, packaging, and install
 smoke code is never omitted to make the percentage pass.
 
 The scanner redaction regression intentionally writes credential-shaped values
-to an auto-deleted temporary fixture. That one test statement carries a
-line-local CodeQL `py/clear-text-storage-sensitive-data` suppression with its
-reason; production secret-handling code has no such suppression.
+to an auto-deleted temporary fixture so it can prove that plaintext never
+reaches scanner output. In the release repository, CodeQL alert #2 is audited
+and dismissed as **used in tests** with that exact rationale. No query
+suppression is embedded in source, and no production secret-handling finding is
+dismissed by this exception.
 
 The source builder verifies the supplied v1.0.26 base digest, applies 19 disclosed replacements (eight Site Doctor helpers, eight command sources, and three gate-policy files), adds three generated verification/provenance files, regenerates both sides' `capabilities.json` contract, and runs the complete parity check before emitting a deterministic archive. The independent overlay verifier then rejects any byte difference not listed in `parity/source-overlay-manifest.json`. Repeating the build with the pinned inputs must reproduce the archive digest in `parity/canonical-source.json`.
 

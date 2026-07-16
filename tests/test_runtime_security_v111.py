@@ -57,7 +57,8 @@ class SecretScannerRegression(unittest.TestCase):
         )
         with tempfile.TemporaryDirectory() as temp:
             fixture = Path(temp) / "config.txt"
-            # codeql[py/clear-text-storage-sensitive-data]
+            # GitHub CodeQL alert #2 is audited as "used in tests" rather than
+            # hidden by an ineffective source-level query suppression.
             # Intentional synthetic credential-shaped data in an auto-deleted
             # temporary directory; this test verifies that the scanner never
             # emits the plaintext values.  It is not production storage.
