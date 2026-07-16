@@ -2,7 +2,7 @@
 
 ## Supported release
 
-Solo Suite Codex `1.0.12` is the supported release in this package. The original `1.0.10` archive is optional external historical material: only its verified SHA-256 digest is pinned here, and the archive is neither bundled nor required to build v1.0.12. It must not be treated as containing the v1.0.12 hardening.
+Solo Suite Codex `1.0.27` is the supported release in this package. Its reconstructed Claude v1.0.26 parity baseline is a separately attested validation asset: the source checkout pins it under `parity/artifacts/`, while the deterministic install ZIP intentionally omits nested archives. It is not required to build v1.0.27, but its exact SHA-256 is required for full parity validation and it must not be described as byte parity with a later Claude v1.0.27 source release.
 
 ## Reporting a vulnerability
 

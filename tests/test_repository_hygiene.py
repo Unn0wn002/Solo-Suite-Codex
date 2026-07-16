@@ -9,6 +9,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import yaml
+
 
 ROOT = Path(__file__).resolve().parents[1]
 BINARY_SUFFIXES = {
@@ -143,6 +145,70 @@ class RepositoryHygiene(unittest.TestCase):
         ci = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
         self.assertIn("--require-hashes", ci)
         self.assertIn("requirements-dev.lock", ci)
+
+        audit_input = [
+            line.strip()
+            for line in (ROOT / "requirements-audit.txt").read_text(
+                encoding="utf-8"
+            ).splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        ]
+        self.assertEqual(audit_input[0], "-c requirements-dev.txt")
+        self.assertEqual(
+            set(audit_input[1:]),
+            {"pip==26.1.2", "pip-audit==2.10.1"},
+        )
+        audit_lock = (ROOT / "requirements-audit.lock").read_text(
+            encoding="utf-8"
+        )
+        self.assertNotIn("WARNING", audit_lock.upper())
+        self.assertNotIn("not pinned", audit_lock.lower())
+        audit_blocks = re.split(r"(?m)(?=^[A-Za-z0-9_.-]+==)", audit_lock)
+        audit_requirement_blocks = [
+            block for block in audit_blocks if PIN.match(block.split(" \\", 1)[0])
+        ]
+        self.assertTrue(audit_requirement_blocks)
+        for block in audit_requirement_blocks:
+            self.assertIn("--hash=sha256:", block, block.splitlines()[0])
+        self.assertIn("pip==26.1.2", audit_lock)
+        self.assertIn("pip-audit==2.10.1", audit_lock)
+
+        ci_payload = yaml.safe_load(ci)
+        ci_steps = ci_payload["jobs"]["test"]["steps"]
+        ci_audit_steps = [
+            step for step in ci_steps
+            if "audit" in step.get("name", "").lower()
+        ]
+        self.assertEqual(len(ci_audit_steps), 2)
+        self.assertTrue(all(
+            step.get("if") == "matrix.python-version == '3.12'"
+            for step in ci_audit_steps
+        ))
+
+        publish_text = (ROOT / ".github/workflows/publish-release.yml").read_text(
+            encoding="utf-8"
+        )
+        publish_payload = yaml.safe_load(publish_text)
+        publish_steps = publish_payload["jobs"]["build"]["steps"]
+        publish_audit_steps = [
+            step for step in publish_steps
+            if "audit" in step.get("name", "").lower()
+        ]
+        self.assertEqual(len(publish_audit_steps), 2)
+        self.assertTrue(all("if" not in step for step in publish_audit_steps))
+        for workflow in (ci, publish_text):
+            self.assertIn("requirements-audit.lock", workflow)
+            self.assertIn("python -m pip_audit --strict", workflow)
+            self.assertIn("--disable-pip --no-deps --require-hashes", workflow)
+            package_step = (
+                "Build deterministic release package"
+                if "Build deterministic release package" in workflow
+                else "Build and smoke-test deterministic release package"
+            )
+            self.assertLess(
+                workflow.index("Audit hash-locked Python dependencies"),
+                workflow.index(package_step),
+            )
 
     def test_release_workflow_writers_support_python39(self):
         workflow = (ROOT / ".github/workflows/publish-release.yml").read_text(

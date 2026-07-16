@@ -96,6 +96,13 @@ class GitHubSecurityPolicy(unittest.TestCase):
         )
         self.assertIn("subject-path", attestation.get("with", {}))
         source = path.read_text(encoding="utf-8")
+        self.assertEqual(source.count("tools/verify_release_ref.py"), 2)
+        self.assertEqual(source.count('--expected-commit "$RELEASE_COMMIT"'), 2)
+        self.assertEqual(
+            source.count("${{ github.event.repository.default_branch }}"), 2
+        )
+        self.assertIn("${{ github.ref_protected }}", source)
+        self.assertIn("release tag is not protected by an active ruleset", source)
         self.assertIn("release tag", source)
         self.assertIn("--validation-state validated", source)
         self.assertIn("gh release create", source)
@@ -108,7 +115,16 @@ class GitHubSecurityPolicy(unittest.TestCase):
             "authenticated historical Claude v1.0.26 overlay", source
         )
         self.assertIn("does not claim current Claude v1.0.27 byte parity", source)
+        for report in (
+            "dependency-audit-dev-v1.0.27.json",
+            "dependency-audit-tools-v1.0.27.json",
+        ):
+            self.assertGreaterEqual(source.count(report), 3, report)
         self.assertNotIn("--clobber", source)
+        self.assertLess(
+            source.index("Reverify the remote tag and default branch"),
+            source.index("gh release create"),
+        )
         self.assertLess(source.index("gh release create"), source.index("gh release upload"))
         self.assertLess(source.index("gh release upload"), source.index("gh release edit"))
 

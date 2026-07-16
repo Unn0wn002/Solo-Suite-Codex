@@ -1,6 +1,6 @@
 # Solo Suite for Codex
 
-Solo Suite is a Codex-native plugin marketplace for planning, designing, building, testing, auditing, and releasing software with shared `.solo/` project memory. This adapter synchronizes 102 workflows from the reconstructed Claude baseline paired with Codex v1.0.27, migrating each legacy command to an explicit Codex skill. That source is checked in under `parity/artifacts/` and published as the release asset `solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip`; its identity, reconstruction inputs, exact byte overlay, and provenance caveat are pinned under [`parity/`](parity/README.md).
+Solo Suite is a Codex-native plugin marketplace for planning, designing, building, testing, auditing, and releasing software with shared `.solo/` project memory. This adapter synchronizes 102 workflows from the reconstructed Claude baseline paired with Codex v1.0.27, migrating each legacy command to an explicit Codex skill. The source checkout pins that baseline under `parity/artifacts/`. The deterministic install ZIP intentionally omits nested archives and checksum sidecars, so the release publishes the separately attested asset `solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip` beside it; identity, reconstruction inputs, exact byte overlay, and provenance caveat are pinned under [`parity/`](parity/README.md).
 
 **18 plugins** · **159 skills** · **102 migrated commands** · **24 helper scripts**
 
@@ -191,28 +191,62 @@ Pure text-only skills can be copied to `~/.codex/skills/`, but copy every refere
 
 ## Validation
 
-From the release root:
+### Full contributor test suite (source checkout only)
+
+The full unit suite requires a Git checkout and the checked-in canonical parity
+archive. Run it from the source root:
 
 ```powershell
 python -m pip install --require-hashes -r requirements-dev.lock
 python -m unittest discover -s tests -t . -v
 python plugins/solo/skills/suite-integrity/scripts/self_check.py . -
 python plugins/ai/skills/agent-room-templates/scripts/validate_rooms.py --suite .
+python tools/validate_plugins.py --official-if-available
 ```
 
 `self_check.py` performs structural consistency checks; it is not proof of security or launch readiness. Release provenance, dependency inventory/SBOM, checksums, and exact validation state are shipped at the package root.
 
+Run the current vulnerability audit under Python 3.12. The audit-tool lock is
+separate because the current `pip-audit` does not support Python 3.9:
+
+```powershell
+python -m pip install --require-hashes -r requirements-audit.lock
+python -m pip check
+python -m pip_audit --strict --progress-spinner off --disable-pip --no-deps --require-hashes -r requirements-dev.lock
+python -m pip_audit --strict --progress-spinner off --disable-pip --no-deps --require-hashes -r requirements-audit.lock
+```
+
 Publication-grade packages are built only from a clean Git commit. The packager snapshots `HEAD`, generates release metadata in a disposable staging directory, and leaves tracked source files unchanged:
 
 ```powershell
+$canonical = Resolve-Path "parity\artifacts\solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip"
 python tools/build_canonical_source.py --base-archive ..\solo-suite-plugin-v1.0.26.zip --output ..\solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip
-python tools/verify_source_overlay.py --base-archive ..\solo-suite-plugin-v1.0.26.zip --canonical-source-archive parity\artifacts\solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip --target .
-python tools/verify_source_overlay.py --canonical-only --canonical-source-archive parity\artifacts\solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip --target .
-python tools/package_release.py --output ..\solo-suite-codex-v1.0.27.zip --validation-state validated --canonical-source-archive ..\solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip
-python tools/smoke_package.py ..\solo-suite-codex-v1.0.27.zip --canonical-source-archive ..\solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip
+python tools/verify_source_overlay.py --base-archive ..\solo-suite-plugin-v1.0.26.zip --canonical-source-archive $canonical --target .
+python tools/verify_source_overlay.py --canonical-only --canonical-source-archive $canonical --target .
+python tools/package_release.py --output ..\solo-suite-codex-v1.0.27.zip --validation-state validated --canonical-source-archive $canonical
+python tools/smoke_package.py ..\solo-suite-codex-v1.0.27.zip --canonical-source-archive $canonical
 git diff --exit-code
 git status --short --untracked-files=all
 ```
+
+### Extracted release package validation
+
+Download the install ZIP and its `.sha256` sidecar plus the separately attested
+canonical parity ZIP and its sidecar. Keep all four files together, verify both
+sidecars, extract the install ZIP, and run these commands from the extracted
+`solo-suite-codex-v1.0.27` folder:
+
+```powershell
+python -m pip install --require-hashes -r requirements-dev.lock
+python plugins/solo/skills/suite-integrity/scripts/self_check.py . -
+python plugins/ai/skills/agent-room-templates/scripts/validate_rooms.py --suite .
+python tools/validate_plugins.py --official-if-available
+python tools/smoke_package.py ..\solo-suite-codex-v1.0.27.zip --canonical-source-archive ..\solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip
+```
+
+The contributor unit suite and Git cleanliness commands are deliberately not
+package-mode checks: the install ZIP has no `.git` directory and does not embed
+the separately attested canonical archive.
 
 CI collects coverage from the validation commands and their child Python
 processes, then writes the complete `plugins/` + `tools/` report to

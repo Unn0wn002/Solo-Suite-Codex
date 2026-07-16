@@ -64,6 +64,12 @@ DEPENDENCY_LICENSES = {
     "referencing": "MIT",
     "rpds-py": "MIT",
     "typing-extensions": "PSF-2.0",
+    "pip": "MIT",
+    "pip-audit": "Apache-2.0",
+}
+REQUIREMENT_INPUTS = {
+    "requirements-dev.txt": "release-validation",
+    "requirements-audit.txt": "vulnerability-audit",
 }
 REGULAR_GIT_MODES = {"100644", "100755"}
 WINDOWS_RESERVED_NAMES = {
@@ -355,16 +361,39 @@ def counts(root: Path = ROOT) -> dict[str, int]:
     }
 
 
-def requirements(root: Path = ROOT) -> list[tuple[str, str]]:
-    result = []
-    for line in (root / "requirements-dev.txt").read_text(
-        encoding="utf-8"
-    ).splitlines():
-        line = line.strip()
-        if line and not line.startswith("#"):
-            name, version = line.split("==", 1)
-            result.append((name, version))
-    return result
+def requirements(root: Path = ROOT) -> list[tuple[str, str, str]]:
+    """Read direct, exact validation-tool pins without resolving a new graph."""
+
+    result: dict[str, tuple[str, str, set[str]]] = {}
+    for filename, role in REQUIREMENT_INPUTS.items():
+        path = root / filename
+        if not path.is_file():
+            continue
+        for raw_line in path.read_text(encoding="utf-8").splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith("#") or line.startswith("-"):
+                continue
+            match = re.fullmatch(r"([A-Za-z0-9_.-]+)==([^\s]+)", line)
+            if match is None:
+                raise RuntimeError(f"{filename} contains a non-exact pin: {line}")
+            name, version = match.groups()
+            normalized = name.lower().replace("_", "-")
+            existing = result.get(normalized)
+            if existing is not None and existing[1] != version:
+                raise RuntimeError(
+                    f"conflicting direct dependency pins for {normalized}: "
+                    f"{existing[1]} and {version}"
+                )
+            if existing is None:
+                result[normalized] = (name, version, {role})
+            else:
+                existing[2].add(role)
+    return [
+        (name, version, "+".join(sorted(roles)))
+        for name, version, roles in (
+            result[key] for key in sorted(result)
+        )
+    ]
 
 
 def write_release(root: Path, validation_state: str) -> None:
@@ -409,7 +438,7 @@ def write_sbom(root: Path, context: BuildContext) -> None:
             "relatedSpdxElement": spdx_id,
         })
     dependency_packages = []
-    for name, version in requirements(root):
+    for name, version, dependency_role in requirements(root):
         spdx_id = "SPDXRef-Python-" + re_safe(name)
         runtime = name.lower() == "pyyaml"
         normalized_name = name.lower().replace("_", "-")
@@ -417,6 +446,8 @@ def write_sbom(root: Path, context: BuildContext) -> None:
         comment = (
             "Runtime dependency of the structural self-check."
             if runtime else
+            "Pinned vulnerability-audit tooling dependency."
+            if "vulnerability-audit" in dependency_role else
             "Pinned development and release-validation dependency."
         )
         dependency_packages.append({
@@ -533,7 +564,21 @@ def write_provenance(
         "publisher": "Sakura Yukihira (Ayaya)",
         "validation_state": validation_state,
         "validation_commands": [
+            "python plugins/solo/skills/suite-integrity/scripts/self_check.py . -",
+            "python plugins/ai/skills/agent-room-templates/scripts/validate_rooms.py --suite .",
+            "python tools/validate_plugins.py --official-if-available",
+            "python tools/smoke_package.py <release.zip> --canonical-source-archive "
+            f"<{CANONICAL_SOURCE_NAME}>",
+        ],
+        "source_checkout_validation_commands": [
             "python -m unittest discover -s tests -t . -v",
+            "python tools/verify_source_overlay.py --canonical-only "
+            f"--canonical-source-archive parity/artifacts/{CANONICAL_SOURCE_NAME} "
+            "--target .",
+            "git diff --exit-code",
+            "git status --short --untracked-files=all",
+        ],
+        "installed_package_validation_commands": [
             "python plugins/solo/skills/suite-integrity/scripts/self_check.py . -",
             "python plugins/ai/skills/agent-room-templates/scripts/validate_rooms.py --suite .",
             "python tools/validate_plugins.py --official-if-available",

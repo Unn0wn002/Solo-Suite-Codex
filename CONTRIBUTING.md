@@ -14,13 +14,26 @@ Use the interpreter from the virtual environment for all checks.
 
 ## Required checks
 
+Run the full contributor suite from a Git checkout; it is not an
+installed-package validation profile:
+
 ```text
 python -m unittest discover -s tests -t . -v
 python plugins/solo/skills/suite-integrity/scripts/self_check.py . -
 python plugins/ai/skills/agent-room-templates/scripts/validate_rooms.py --suite .
 ```
 
+Under Python 3.12, install `requirements-audit.lock` with `--require-hashes`
+and run `pip-audit --strict` against both `requirements-dev.lock` and
+`requirements-audit.lock`. The audit toolchain requires Python 3.10+, while
+the main validation matrix continues to cover Python 3.9 and 3.12.
+
 Also validate every `plugins/<name>` directory with the current Codex plugin validator when the CLI exposes one. A `validated` or `ci` package must come from a clean repository with a resolvable `HEAD`; write the ZIP outside tracked source (for example, ignored `dist/` or the parent directory), smoke-test it, and require both `git diff --exit-code` and `git status --short --untracked-files=all` to be empty. The packager snapshots the committed tree and generates archive metadata in a disposable staging directory, so it must not rewrite tracked or create unexpected untracked source files.
+
+Release tags must resolve to the exact reviewed default-branch head. The active
+`v*` tag rulesets restrict creation to the release owner and prohibit updates
+or deletion; published GitHub releases are immutable. Never weaken those
+controls to make a release pass.
 
 ## Change rules
 

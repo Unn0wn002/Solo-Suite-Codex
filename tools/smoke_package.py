@@ -141,6 +141,15 @@ def main() -> int:
             names = safe_members(archive)
             archive.extractall(extract_root)
         suite = extract_root / EXPECTED_FOLDER
+        nested_release_assets = [
+            name for name in names
+            if name.startswith(f"{EXPECTED_FOLDER}/parity/artifacts/")
+            and (name.endswith(".zip") or name.endswith(".sha256"))
+        ]
+        if nested_release_assets:
+            raise RuntimeError(
+                "install ZIP must not duplicate separately attested parity assets"
+            )
         canonical_source = extract_canonical_source(
             canonical_source_path, source_extract_root
         )
@@ -185,6 +194,18 @@ def main() -> int:
         )
         if provenance.get("record_kind") != "generated-build-provenance":
             raise RuntimeError("package contains unbound or unknown provenance")
+        source_commands = provenance.get("source_checkout_validation_commands")
+        package_commands = provenance.get("installed_package_validation_commands")
+        if not isinstance(source_commands, list) or not isinstance(package_commands, list):
+            raise RuntimeError("package provenance does not separate validation profiles")
+        if not any("unittest discover" in command for command in source_commands):
+            raise RuntimeError("source-checkout test command is missing from provenance")
+        if any("unittest discover" in command for command in package_commands):
+            raise RuntimeError("installed-package commands incorrectly require source tests")
+        if not any("smoke_package.py" in command for command in package_commands):
+            raise RuntimeError("installed-package smoke command is missing from provenance")
+        if provenance.get("validation_commands") != package_commands:
+            raise RuntimeError("legacy validation commands are not package-safe")
         if provenance.get("build_type") != "reproducible-zip-from-git-tree":
             raise RuntimeError("package provenance does not identify the reproducible build")
         materials = provenance.get("materials", [])
@@ -239,6 +260,17 @@ def main() -> int:
             if len(git_materials) != 1:
                 raise RuntimeError("validated package lacks its Git material identity")
 
+        readme = (suite / "README.md").read_text(encoding="utf-8")
+        parity_readme = (suite / "parity/README.md").read_text(encoding="utf-8")
+        if "Full contributor test suite (source checkout only)" not in readme:
+            raise RuntimeError("README does not identify source-checkout-only tests")
+        if "Extracted release package validation" not in readme:
+            raise RuntimeError("README does not document installed-package validation")
+        if "From the release root:" in readme:
+            raise RuntimeError("README retains the ambiguous release-root validation claim")
+        if "intentionally omits nested archives" not in parity_readme:
+            raise RuntimeError("parity docs do not disclose the install-ZIP asset boundary")
+
         python = sys.executable
         parity = run(
             [
@@ -276,6 +308,7 @@ def main() -> int:
         print("PASS adjacent ZIP digest and internal content checksums")
         print(parity.stdout.strip())
         print("PASS pinned canonical Claude source archive")
+        print("PASS source-checkout and installed-package validation profiles")
         print("PASS source-checkout and installed-cache self-checks")
         print("PASS helper executed from disposable external working directory")
     return 0

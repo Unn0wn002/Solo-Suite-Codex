@@ -88,6 +88,12 @@ def write_fixture(root: Path) -> None:
         "typing_extensions==4.15.0\n",
         encoding="utf-8",
     )
+    (root / "requirements-audit.txt").write_text(
+        "-c requirements-dev.txt\n"
+        "pip==26.1.2\n"
+        "pip-audit==2.10.1\n",
+        encoding="utf-8",
+    )
     (root / "payload.txt").write_text("portable payload\n", encoding="utf-8")
 
 
@@ -124,6 +130,26 @@ class ReleaseArtifacts(unittest.TestCase):
         self.assertIsNone(provenance["source_git_commit"])
         self.assertIsNone(provenance["source_git_dirty"])
         self.assertEqual(provenance["validation_state"], "unbound")
+        source_sbom = json.loads(
+            (ROOT / "SBOM.spdx.json").read_text(encoding="utf-8")
+        )
+        self.assertTrue(
+            source_sbom["documentNamespace"].endswith("unbound-source-template")
+        )
+        source_packages = {item["name"] for item in source_sbom["packages"]}
+        self.assertTrue({"pip", "pip-audit"}.issubset(source_packages))
+        self.assertEqual(
+            provenance["validation_commands"],
+            provenance["installed_package_validation_commands"],
+        )
+        self.assertTrue(any(
+            "unittest discover" in command
+            for command in provenance["source_checkout_validation_commands"]
+        ))
+        self.assertFalse(any(
+            "unittest discover" in command
+            for command in provenance["installed_package_validation_commands"]
+        ))
         materials = {item["role"]: item for item in provenance["materials"]}
         self.assertNotIn("release-source", materials)
         canonical = materials["canonical-parity-source"]
@@ -466,6 +492,8 @@ class ReleaseArtifacts(unittest.TestCase):
                 "referencing": "MIT",
                 "rpds-py": "MIT",
                 "typing_extensions": "PSF-2.0",
+                "pip": "MIT",
+                "pip-audit": "Apache-2.0",
             }
             self.assertTrue({"demo", *expected_licenses}.issubset(packages))
             for name, license_id in expected_licenses.items():

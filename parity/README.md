@@ -6,8 +6,10 @@ Codex v1.0.27 adapter is published as
 `solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip`. Its SHA-256,
 base archive, source commits, top-level folder, and manifest digest are pinned
 in `canonical-source.json`. The exact archive and sidecar are checked in under
-`parity/artifacts/`; the release workflow publishes and attests both alongside
-the Codex package.
+`parity/artifacts/` in the source checkout. The deterministic install ZIP
+intentionally omits nested archives and checksum sidecars; the release workflow
+publishes and attests the canonical archive and sidecar as separate assets
+alongside the Codex package.
 
 **Provenance scope:** the v1.0.26 base is independently reproducible from the
 public immutable Solo Suite release, its annotated tag, and its published
@@ -36,7 +38,7 @@ Verify the byte overlay independently from the builder, then rerun full parity:
 ```text
 python tools/verify_source_overlay.py \
   --base-archive <solo-suite-plugin-v1.0.26.zip> \
-  --canonical-source-archive parity/artifacts/solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip \
+  --canonical-source-archive <path-to-canonical-parity-source.zip> \
   --target .
 ```
 
@@ -47,7 +49,7 @@ not a substitute for the networked public-base provenance check:
 
 ```text
 python tools/verify_source_overlay.py --canonical-only \
-  --canonical-source-archive parity/artifacts/solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip \
+  --canonical-source-archive <path-to-canonical-parity-source.zip> \
   --target .
 ```
 

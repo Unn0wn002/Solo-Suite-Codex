@@ -38,7 +38,18 @@
   "publisher": "Sakura Yukihira (Ayaya)",
   "validation_state": "unbound",
   "validation_commands": [
+    "python plugins/solo/skills/suite-integrity/scripts/self_check.py . -",
+    "python plugins/ai/skills/agent-room-templates/scripts/validate_rooms.py --suite .",
+    "python tools/validate_plugins.py --official-if-available",
+    "python tools/smoke_package.py <release.zip> --canonical-source-archive <solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip>"
+  ],
+  "source_checkout_validation_commands": [
     "python -m unittest discover -s tests -t . -v",
+    "python tools/verify_source_overlay.py --canonical-only --canonical-source-archive parity/artifacts/solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip --target .",
+    "git diff --exit-code",
+    "git status --short --untracked-files=all"
+  ],
+  "installed_package_validation_commands": [
     "python plugins/solo/skills/suite-integrity/scripts/self_check.py . -",
     "python plugins/ai/skills/agent-room-templates/scripts/validate_rooms.py --suite .",
     "python tools/validate_plugins.py --official-if-available",
