@@ -61,9 +61,13 @@ class RepositoryHygiene(unittest.TestCase):
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_bytes(b"generated\r\n")
 
-            packaged = set(package_release.included_files(root))
-            self.assertIn(included, packaged)
-            self.assertFalse(packaged.intersection(runtime_paths))
+            # ``Path`` equality is case-sensitive on some Windows Python
+            # builds, while temporary paths can mix long and 8.3 spellings.
+            # Compare canonical resolved paths so this test checks packaging
+            # policy rather than the runner's temp-path spelling.
+            packaged = {path.resolve() for path in package_release.included_files(root)}
+            self.assertIn(included.resolve(), packaged)
+            self.assertFalse(packaged.intersection(path.resolve() for path in runtime_paths))
 
     def test_repository_text_is_lf_normalized(self):
         offenders = []
@@ -117,6 +121,15 @@ class RepositoryHygiene(unittest.TestCase):
         ci = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
         self.assertIn("--require-hashes", ci)
         self.assertIn("requirements-dev.lock", ci)
+
+    def test_release_workflow_writers_support_python39(self):
+        workflow = (ROOT / ".github/workflows/publish-release.yml").read_text(
+            encoding="utf-8"
+        )
+        # Path.write_text(..., newline=...) is unavailable on Python 3.9;
+        # keep the embedded release-sidecar writer on the portable byte path.
+        self.assertNotIn("sidecar.write_text", workflow)
+        self.assertIn("sidecar.write_bytes", workflow)
 
 
 if __name__ == "__main__":

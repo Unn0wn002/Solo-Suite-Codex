@@ -11,6 +11,8 @@
 - Made `$full-team-orchestrator` and `full-team-website.json` the single authoritative full-team flow; `$solo-full-team-dev` now delegates to it instead of maintaining a divergent phase list.
 - Added explicit stack-conditional Vercel, Supabase, Cloudflare, tag, and payments tasks and gate artifacts to the full-team room, aligned the specification/CI/Git/handoff commands, and generated its 15-stage/25-seat documentation from the JSON contract.
 - Made `$full-team-verify` delegate to the native preflight, enforce the v1.0.27 component floor, and report Codex-native `codex plugin add ...@solo-suite-codex` repair commands.
+- Repaired cross-platform CI evidence: coverage now includes the real validator/build/smoke commands and child Python processes, publishes a complete full-tree report, and gates 68% only after an explicit six-file authoring-helper scope declaration; Windows temporary-path assertions now canonicalize 8.3 aliases.
+- Documented the narrow CodeQL exception for the auto-deleted synthetic secret-redaction fixture; production secret-handling paths remain unsuppressed.
 
 ## 1.0.27 — 2026-07-15
 

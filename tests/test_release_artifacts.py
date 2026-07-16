@@ -422,7 +422,10 @@ class ReleaseArtifacts(unittest.TestCase):
             write_fixture(root)
             commit = initialize_git(root)
             context = PACKAGE.resolve_build_context(root, "ci", {})
-            stage = Path(temp) / "stage"
+            # Windows runners may expose the same temp directory through an
+            # 8.3 alias (for example ``RUNNER~1``) while os.walk returns the
+            # long path.  Resolve both sides before computing relative paths.
+            stage = (Path(temp) / "stage").resolve()
             PACKAGE.stage_source(root, stage, context)
             PACKAGE.generate_metadata(stage, "ci", context)
 
@@ -444,7 +447,7 @@ class ReleaseArtifacts(unittest.TestCase):
                 self.assertEqual(sha256(target), digest, relative)
                 declared[relative] = digest
             actual = {
-                path.relative_to(stage).as_posix()
+                path.resolve().relative_to(stage).as_posix()
                 for path in PACKAGE.included_files(stage)
                 if path.name != "RELEASE-CHECKSUMS.txt"
             }

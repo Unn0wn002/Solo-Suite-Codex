@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
+import sys
 import unittest
 
 
@@ -162,6 +163,62 @@ class UnifiedProductionPolicy(unittest.TestCase):
             scores, "saas-application", warnings=("accepted risk",)
         )
         self.assertEqual(warned["launch_status"], "SAFE WITH WARNINGS")
+
+    def test_score_and_status_contracts_fail_closed(self) -> None:
+        for value, count in ((True, 14), (140, True), (-1, 14), (141, 14),
+                             (10, -1), (10, 15)):
+            with self.subTest(value=value, count=count):
+                with self.assertRaises(ValueError):
+                    policy.normalized_score(value, count)
+        self.assertEqual(policy.normalized_score(0, 0), 0)
+        with self.assertRaises(ValueError):
+            policy.expected_launch_status(101, (10,))
+        with self.assertRaises(ValueError):
+            policy.expected_launch_status(80, ())
+        with self.assertRaises(ValueError):
+            policy.expected_launch_status(80, (True,))
+        self.assertEqual(
+            policy.expected_launch_status(80, (8,), blockers=("open",)),
+            "BLOCKED",
+        )
+
+    def test_evaluator_rejects_profile_matrix_and_score_shape_drift(self) -> None:
+        scores = {category: 10 for category in policy.CATEGORY_ORDER}
+        with self.assertRaises(ValueError):
+            policy.evaluate_production_gate(scores, "unknown")
+        with self.assertRaises(ValueError):
+            policy.evaluate_production_gate({}, "saas-application")
+        with self.assertRaises(ValueError):
+            policy.evaluate_production_gate(
+                scores, "saas-application", not_applicable=("unknown",)
+            )
+        with self.assertRaises(ValueError):
+            policy.evaluate_production_gate(
+                scores, "saas-application", not_applicable=("design",)
+            )
+        scores["testing"] = 11
+        with self.assertRaises(ValueError):
+            policy.evaluate_production_gate(scores, "saas-application")
+
+    def test_command_policy_helpers_reject_unsafe_shapes(self) -> None:
+        self.assertEqual(
+            policy._safe_http_url_shape("https://example.test/a"),
+            (True, None),
+        )
+        for unsafe in (
+            "ftp://example.test/a",
+            "https://user:pass@example.test/a",
+            "https://example.test/a#fragment",
+            "https://example.test/a?api_key=secret",
+        ):
+            with self.subTest(url=unsafe):
+                self.assertFalse(policy._safe_http_url_shape(unsafe)[0])
+        self.assertEqual(policy._norm_exe("python"), "python")
+        self.assertEqual(policy._norm_exe("PYTHON.EXE"), "python")
+        self.assertTrue(policy._is_py(sys.executable, ROOT))
+        self.assertTrue(policy.resolve_executable(sys.executable, ROOT)[0])
+        self.assertIsNotNone(policy.canonical_helper("check_headers.py"))
+        self.assertIsNone(policy.canonical_helper("does-not-exist"))
 
 
 if __name__ == "__main__":

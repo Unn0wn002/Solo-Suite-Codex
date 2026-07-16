@@ -14,6 +14,10 @@ concurrency:
 env:
   PYTHONUTF8: "1"
   PYTHONDONTWRITEBYTECODE: "1"
+  COVERAGE_FILE: ${{ github.workspace }}/dist/.coverage
+  COVERAGE_PROCESS_START: ${{ github.workspace }}/.coveragerc
+  COVERAGE_SOURCE_ROOT: ${{ github.workspace }}
+  PYTHONPATH: ${{ github.workspace }}/.github/coverage-bootstrap
 
 jobs:
   build:
@@ -71,40 +75,52 @@ jobs:
       - name: Validate every Codex plugin directory
         run: |
           python -c "from pathlib import Path; Path('dist').mkdir(exist_ok=True)"
-          python tools/validate_plugins.py --official-if-available --report dist/plugin-validation-v1.0.27.json
+          coverage erase
+          coverage run --parallel-mode --source=plugins,tools tools/validate_plugins.py --official-if-available --report dist/plugin-validation-v1.0.27.json
 
       - name: Verify checked-in canonical overlay offline
         run: >-
-          python tools/verify_source_overlay.py --canonical-only
+          coverage run --parallel-mode --source=plugins,tools
+          tools/verify_source_overlay.py --canonical-only
           --canonical-source-archive
           parity/artifacts/solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip
           --target .
 
       - name: Rebuild and verify the public canonical source overlay
         run: >-
-          python tools/build_canonical_source.py --fetch-public-base
+          coverage run --parallel-mode --source=plugins,tools
+          tools/build_canonical_source.py --fetch-public-base
           --output dist/rebuilt-canonical-source.zip
 
-      - name: Run unit and regression tests with coverage
+      - name: Run checked-in parity and authoring-contract validators
         run: |
-          coverage run --source=plugins,tools -m unittest discover -s tests -t . -v
-          coverage report --show-missing --fail-under=68
+          python -m zipfile -e parity/artifacts/solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip dist/parity-source
+          coverage run --parallel-mode --source=plugins,tools tools/parity.py --check --source dist/parity-source/solo-suite-plugin-v1.0.26 --target .
+          coverage run --parallel-mode --source=plugins,tools tools/build_agentrooms.py --check-docs
+          coverage run --parallel-mode --source=plugins,tools tools/normalize_skill_contracts.py --check
+          coverage run --parallel-mode --source=plugins,tools tools/native_install_smoke.py --suite-root . --if-available --no-self-check --report dist/native-install-validation.json
+
+      - name: Run unit and regression tests
+        run: coverage run --parallel-mode --source=plugins,tools -m unittest discover -s tests -t . -v
 
       - name: Run structural and AgentRooms validation
         run: |
-          python plugins/solo/skills/suite-integrity/scripts/self_check.py . -
-          python plugins/ai/skills/agent-room-templates/scripts/validate_rooms.py --suite .
+          coverage run --parallel-mode --source=plugins,tools plugins/solo/skills/suite-integrity/scripts/self_check.py . -
+          coverage run --parallel-mode --source=plugins,tools plugins/ai/skills/agent-room-templates/scripts/validate_rooms.py --suite .
 
       - name: Scan repository for secrets
-        run: python plugins/site-doctor/scripts/run_helper.py security-review/scan-secrets . --json
+        run: >-
+          coverage run --parallel-mode --source=plugins,tools
+          plugins/site-doctor/scripts/run_helper.py
+          security-review/scan-secrets . --json
 
       - name: Build and smoke-test deterministic release package
         env:
           ARCHIVE_NAME: ${{ steps.release.outputs.archive }}
           CANONICAL_SOURCE: solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip
         run: |
-          python tools/package_release.py --output "dist/${ARCHIVE_NAME}" --validation-state validated --canonical-source-archive "parity/artifacts/${CANONICAL_SOURCE}"
-          python tools/smoke_package.py "dist/${ARCHIVE_NAME}" --canonical-source-archive "parity/artifacts/${CANONICAL_SOURCE}"
+          coverage run --parallel-mode --source=plugins,tools tools/package_release.py --output "dist/${ARCHIVE_NAME}" --validation-state validated --canonical-source-archive "parity/artifacts/${CANONICAL_SOURCE}"
+          coverage run --parallel-mode --source=plugins,tools tools/smoke_package.py "dist/${ARCHIVE_NAME}" --canonical-source-archive "parity/artifacts/${CANONICAL_SOURCE}"
           cp "parity/artifacts/${CANONICAL_SOURCE}" "dist/${CANONICAL_SOURCE}"
           cp "parity/artifacts/${CANONICAL_SOURCE}.sha256" "dist/${CANONICAL_SOURCE}.sha256"
           cp parity/source-overlay-manifest.json dist/source-overlay-manifest-v1.0.27.json
@@ -116,8 +132,16 @@ jobs:
           archive = Path("dist") / os.environ["ARCHIVE_NAME"]
           digest = hashlib.sha256(archive.read_bytes()).hexdigest()
           sidecar = archive.with_name(f"{archive.name}.sha256")
-          sidecar.write_text(f"{digest} *{archive.name}\n", encoding="ascii", newline="\n")
+          # ``Path.write_text`` has no ``newline`` parameter on Python 3.9.
+          sidecar.write_bytes(f"{digest} *{archive.name}\n".encode("ascii"))
           PY
+
+      - name: Combine executed-command coverage and enforce floor
+        run: |
+          coverage combine
+          coverage report --show-missing > dist/coverage-full.txt
+          coverage json -o dist/coverage-full.json
+          coverage report --show-missing --omit='tools/build_codex_metadata.py,tools/generate_skill_metadata.py,tools/normalize_skill_contracts.py,tools/sync_from_claude.py,tools/translate_references.py,tools/update_cheatsheet.py' --fail-under=68
 
       - name: Verify packaging did not rewrite tracked source
         run: |

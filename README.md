@@ -214,6 +214,20 @@ git diff --exit-code
 git status --short --untracked-files=all
 ```
 
+CI collects coverage from the validation commands and their child Python
+processes, then writes the complete `plugins/` + `tools/` report to
+`dist/coverage-full.txt` and `dist/coverage-full.json`. The checked-in
+`coverage-policy.json` makes the gate scope explicit: only six authoring or
+migration/documentation generators are omitted from the 68% gated runtime
+floor. They remain visible in the full report and are still compiled and
+validated; AgentRoom, gate, security, network, parity, packaging, and install
+smoke code is never omitted to make the percentage pass.
+
+The scanner redaction regression intentionally writes credential-shaped values
+to an auto-deleted temporary fixture. That one test statement carries a
+line-local CodeQL `py/clear-text-storage-sensitive-data` suppression with its
+reason; production secret-handling code has no such suppression.
+
 The source builder verifies the supplied v1.0.26 base digest, applies 19 disclosed replacements (eight Site Doctor helpers, eight command sources, and three gate-policy files), adds three generated verification/provenance files, regenerates both sides' `capabilities.json` contract, and runs the complete parity check before emitting a deterministic archive. The independent overlay verifier then rejects any byte difference not listed in `parity/source-overlay-manifest.json`. Repeating the build with the pinned inputs must reproduce the archive digest in `parity/canonical-source.json`.
 
 The public Claude v1.0.26 release asset, annotated tag, source tree, and
