@@ -156,10 +156,8 @@ def _unavailable(reason: str, report_path: Path | None, *, exit_code: int) -> in
     }
     if report_path:
         report_path.parent.mkdir(parents=True, exist_ok=True)
-        report_path.write_text(
-            json.dumps(payload, indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
-            newline="\n",
+        report_path.write_bytes(
+            (json.dumps(payload, indent=2, sort_keys=True) + "\n").encode("utf-8")
         )
     print("UNVERIFIED native Codex install smoke: %s" % reason)
     return exit_code
@@ -338,18 +336,14 @@ def main(argv: list[str] | None = None) -> int:
         print("FAIL native Codex install smoke: %s" % exc)
         if args.report:
             args.report.parent.mkdir(parents=True, exist_ok=True)
-            args.report.write_text(
-                json.dumps(payload, indent=2, sort_keys=True) + "\n",
-                encoding="utf-8",
-                newline="\n",
+            args.report.write_bytes(
+                (json.dumps(payload, indent=2, sort_keys=True) + "\n").encode("utf-8")
             )
         return 1
     if args.report:
         args.report.parent.mkdir(parents=True, exist_ok=True)
-        args.report.write_text(
-            json.dumps(payload, indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
-            newline="\n",
+        args.report.write_bytes(
+            (json.dumps(payload, indent=2, sort_keys=True) + "\n").encode("utf-8")
         )
     print(
         "PASS native Codex install smoke: %d plugin(s), exact installed trees"

@@ -21,7 +21,7 @@
     "canonical_checker": "3d16f56fd4a924bd56da3b57de69b4dc3f52f684"
   },
   "canonical_archive": "solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip",
-  "canonical_archive_sha256": "49a0eab223d2014506fade29189419e7d096f3b935be35078d1a46e58d6db652",
+  "canonical_archive_sha256": "6e4da1b2eb3d4880057c35611699cf1fed241d0f25c644d741ea7b9fa5522d83",
   "target_sync_commit": "3d16f56fd4a924bd56da3b57de69b4dc3f52f684",
   "capabilities_sha256": "f1ea0261f28de025d0626f5d1bdc4ded6667b4167d1dc310e74c79349cf9ec6a",
   "provenance_status": "public-release-reproducible-overlay",
@@ -203,7 +203,7 @@
       "change": "add",
       "category": "generated-verifier",
       "base_sha256": null,
-      "result_sha256": "a07a7d7bbad468068430b558f22aa8e0041f59403f4858786f0b2de2b600aa18",
+      "result_sha256": "9f5e3bb91d8c97166f058422792aed212e6b026849b19d5968d07fb44577a936",
       "origin": "tools/parity.py",
       "provenance_role": "canonical-parity-checker"
     },
@@ -220,7 +220,7 @@
       "change": "add",
       "category": "generated-provenance",
       "base_sha256": null,
-      "result_sha256": "a512545af055f43545e340b8ec8bb62dc54fd9909db3cfa6b7b9e510ab4f8bdb",
+      "result_sha256": "646156a1a0c40338109696849ffb711e12f5c9079754d725c930ee8ea5ba0680",
       "origin": null
     }
   ],

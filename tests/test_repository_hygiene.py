@@ -49,7 +49,7 @@ class RepositoryHygiene(unittest.TestCase):
             root = Path(temp)
             included = root / "plugins" / "demo" / "SKILL.md"
             included.parent.mkdir(parents=True)
-            included.write_text("release input\n", encoding="utf-8", newline="\n")
+            included.write_bytes(b"release input\n")
             runtime_paths = (
                 root / ".solo" / "project.md",
                 root / ".solo" / "gate-evidence" / "product.json",

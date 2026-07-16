@@ -3,7 +3,7 @@
   "target_release": "solo-suite-codex-v1.0.27",
   "archive": "solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip",
   "repository_path": "parity/artifacts/solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip",
-  "archive_sha256": "49a0eab223d2014506fade29189419e7d096f3b935be35078d1a46e58d6db652",
+  "archive_sha256": "6e4da1b2eb3d4880057c35611699cf1fed241d0f25c644d741ea7b9fa5522d83",
   "top_level_folder": "solo-suite-plugin-v1.0.26",
   "capabilities_sha256": "f1ea0261f28de025d0626f5d1bdc4ded6667b4167d1dc310e74c79349cf9ec6a",
   "base_archive": "solo-suite-plugin-v1.0.26.zip",
@@ -27,7 +27,7 @@
   "provenance_status": "public-release-reproducible-overlay",
   "provenance_caveat": "The v1.0.26 base is independently reproducible from the public immutable Solo Suite release and its provenance record. This overlay is the historical v1.0.26 baseline paired to this Codex adapter; it is not a claim of byte parity with any later Claude v1.0.27 source release.",
   "overlay_manifest": "parity/source-overlay-manifest.json",
-  "overlay_manifest_sha256": "e3e8eb70863549d1f892d3f0a550e8dbbb88b5a15563ce39b0016c5484868d61",
+  "overlay_manifest_sha256": "bddf3928594cec55ccd03049febc611e0dc7c1d403e8b202b32f24af70b9a51a",
   "overlay_verifier": "tools/verify_source_overlay.py",
   "target_sync_commit": "3d16f56fd4a924bd56da3b57de69b4dc3f52f684",
   "builder": "tools/build_canonical_source.py"

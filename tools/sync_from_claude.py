@@ -161,13 +161,12 @@ def copy_specialists(source: Path, target: Path) -> int:
             body = translate_text(body, plugin, skill)
             if path.name == "SKILL.md":
                 body = normalize_skill_frontmatter(body)
-            path.write_text(body, encoding="utf-8", newline="\n")
+            path.write_bytes(body.encode("utf-8"))
         openai = target_skill / "agents" / "openai.yaml"
         openai.parent.mkdir(parents=True, exist_ok=True)
-        openai.write_text(
-            explicit_policy(interface) if interface else generated_openai(skill),
-            encoding="utf-8",
-            newline="\n",
+        openai.write_bytes(
+            (explicit_policy(interface) if interface else generated_openai(skill))
+            .encode("utf-8")
         )
         count += 1
     return count
@@ -204,7 +203,7 @@ def run_converter(source: Path, target: Path, node: str) -> None:
         skill_md = target / entry["target_path"]
         body = skill_md.read_text(encoding="utf-8")
         body = translate_text(body, entry["plugin"], entry["skill_name"], command_skill=True)
-        skill_md.write_text(body, encoding="utf-8", newline="\n")
+        skill_md.write_bytes(body.encode("utf-8"))
 
 
 def make_all_explicit(target: Path) -> None:
@@ -213,7 +212,7 @@ def make_all_explicit(target: Path) -> None:
         openai = skill_md.parent / "agents" / "openai.yaml"
         openai.parent.mkdir(parents=True, exist_ok=True)
         content = openai.read_text(encoding="utf-8") if openai.is_file() else generated_openai(skill)
-        openai.write_text(explicit_policy(content), encoding="utf-8", newline="\n")
+        openai.write_bytes(explicit_policy(content).encode("utf-8"))
 
 
 def copy_parity(source: Path, target: Path) -> None:

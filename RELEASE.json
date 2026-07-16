@@ -3,7 +3,7 @@
   "version": "1.0.27",
   "previous_version": "1.0.12",
   "source_archive": "solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip",
-  "source_archive_sha256": "49a0eab223d2014506fade29189419e7d096f3b935be35078d1a46e58d6db652",
+  "source_archive_sha256": "6e4da1b2eb3d4880057c35611699cf1fed241d0f25c644d741ea7b9fa5522d83",
   "source_archive_required_for_build": false,
   "source_archive_required_for_validation": true,
   "historical_source_archive": "solo-suite-plugin-v1.0.26.zip",

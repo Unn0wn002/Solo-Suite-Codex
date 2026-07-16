@@ -184,9 +184,7 @@ class PublishedOverlayTests(unittest.TestCase):
                 ],
             }
             manifest_path = root / "manifest.json"
-            manifest_path.write_text(
-                json.dumps(manifest), encoding="utf-8", newline="\n"
-            )
+            manifest_path.write_bytes(json.dumps(manifest).encode("utf-8"))
             count, parity_output = VERIFY.verify(
                 base, canonical, manifest_path, target=None
             )
@@ -196,9 +194,7 @@ class PublishedOverlayTests(unittest.TestCase):
             canonical_files["undeclared.txt"] = b"surprise\n"
             write_zip(canonical, top, canonical_files)
             manifest["canonical_archive_sha256"] = sha256_file(canonical)
-            manifest_path.write_text(
-                json.dumps(manifest), encoding="utf-8", newline="\n"
-            )
+            manifest_path.write_bytes(json.dumps(manifest).encode("utf-8"))
             with self.assertRaisesRegex(
                 VERIFY.VerificationError, "unexpected=.*undeclared.txt"
             ):

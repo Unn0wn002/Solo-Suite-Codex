@@ -150,7 +150,8 @@ def write_json(path: Path, value: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     # sort_keys and a final newline make the file reproducible across hosts.
     text = json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
-    path.write_text(text, encoding="utf-8", newline="\n")
+    # ``Path.write_text`` has no ``newline`` parameter on Python 3.9.
+    path.write_bytes(text.encode("utf-8"))
 
 
 def parse_frontmatter(text: str) -> tuple[dict[str, str], str] | None:

@@ -95,7 +95,7 @@ class CommandBodyParityTests(unittest.TestCase):
                 "Drive an unverified browser/automation tool",
                 1,
             )
-            target_path.write_text(changed, encoding="utf-8", newline="\n")
+            target_path.write_bytes(changed.encode("utf-8"))
             self.assertEqual(
                 PARITY._target_frontmatter_name(target_path), original_name
             )
