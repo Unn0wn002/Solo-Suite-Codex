@@ -46,6 +46,12 @@ class CoveragePolicy(unittest.TestCase):
             for relative in omit:
                 self.assertIn(relative, text)
 
+    def test_child_process_bootstrap_is_valid_without_coverage_installed(self):
+        bootstrap = ROOT / ".github/coverage-bootstrap/sitecustomize.py"
+        compile(bootstrap.read_text(encoding="utf-8"), str(bootstrap), "exec")
+        self.assertIn("except ImportError", bootstrap.read_text(encoding="utf-8"))
+        self.assertIn("    pass", bootstrap.read_text(encoding="utf-8"))
+
 
 if __name__ == "__main__":
     unittest.main()
