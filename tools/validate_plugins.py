@@ -208,10 +208,12 @@ def official_validation(paths: list[Path]) -> tuple[bool, list[str], dict[str, A
 
 def write_report(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
-        encoding="utf-8",
-        newline="\n",
+    # ``Path.write_text`` did not accept ``newline`` on Python 3.9, which is
+    # still part of the CI matrix.  Encode explicitly so report bytes remain
+    # UTF-8 with deterministic LF endings across every supported interpreter.
+    path.write_bytes(
+        (json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False) + "\n")
+        .encode("utf-8")
     )
 
 
