@@ -11,7 +11,12 @@ import yaml
 
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SOURCE_ROOT = os.path.abspath(os.path.join(REPO, "..", ".source-v1.0.10"))
+SOURCE_ROOT = os.path.abspath(
+    os.environ.get(
+        "SOLO_SUITE_SOURCE_ROOT",
+        os.path.join(REPO, "..", "solo-suite-v1.0.26-work"),
+    )
+)
 MAP_FILE = os.path.join(REPO, "command-map.json")
 LEGACY_SOURCE_PATHS_FIXTURE = os.path.join(
     REPO, "tests", "fixtures", "legacy_command_source_paths.json"
@@ -63,9 +68,9 @@ class CommandSkills(unittest.TestCase):
                 "canonicalization": (
                     "UTF-8 forward-slash paths, ordinal sort, one LF after every path"
                 ),
-                "path_count": 100,
+                "path_count": 102,
                 "sorted_paths_sha256": (
-                    "172d77fde128cc84d0710a9102524d47a412c730fe617efd4e0b99b3ae0b62dd"
+                    "3509a2739da5bf59ad1e90c3db8111b38df73537944168248454c87f532c6582"
                 ),
             },
         )
@@ -91,7 +96,7 @@ class CommandSkills(unittest.TestCase):
             self.assertTrue(os.path.isfile(os.path.join(REPO, item["target_path"])))
 
     def test_mapping_keys_are_unique_and_invocations_are_native(self):
-        self.assertEqual(len(self.mapping), 100)
+        self.assertEqual(len(self.mapping), 102)
         for key in (
             "legacy_invocation",
             "skill_invocation",

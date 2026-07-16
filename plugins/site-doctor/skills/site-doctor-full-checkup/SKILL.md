@@ -29,3 +29,7 @@ Never just "good" or "bad" — every finding names its proof (file, config, page
 - **Suggested `.solo/tasks.md` entries** (stable T-IDs)
 - **Whether release is blocked**
 - **Next skill** — the exact next skill invocation
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

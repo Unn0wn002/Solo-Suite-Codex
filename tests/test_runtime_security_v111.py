@@ -79,10 +79,15 @@ class SecretScannerRegression(unittest.TestCase):
             self.fail("scanner leaked a complete private-key fixture")
         payload = json.loads(result.stdout)
         self.assertGreaterEqual(len(payload["findings"]), 7)
-        allowed = {"path", "line", "rule", "redacted", "fingerprint"}
+        allowed = {
+            "path", "line", "rule", "preview", "fingerprint",
+            "placeholder_hint",
+        }
         for finding in payload["findings"]:
             self.assertEqual(set(finding), allowed)
-            self.assertRegex(finding["fingerprint"], r"^[0-9a-f]{64}$")
+            self.assertRegex(
+                finding["fingerprint"], r"^hmac-sha256:[0-9a-f]{64}$"
+            )
 
     def test_scanner_does_not_flag_its_own_rule_source(self):
         module = load("scan_secrets_self", SECRETS)
@@ -104,7 +109,7 @@ class InstalledPathRegression(unittest.TestCase):
                 cwd=outside, capture_output=True, text=True, encoding="utf-8",
                 errors="replace", timeout=30,
             )
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(result.returncode, 3, result.stdout + result.stderr)
         self.assertIn("Node / npm", result.stdout)
 
     def test_documented_helper_refs_are_plugin_root_aware(self):
@@ -116,7 +121,8 @@ class InstalledPathRegression(unittest.TestCase):
         for name in affected:
             text = (SITE / "skills" / name / "SKILL.md").read_text(encoding="utf-8")
             self.assertNotRegex(text, r"\bpython3\s+scripts[/\\]")
-            self.assertIn("run_helper.py", text)
+            self.assertIn("<skill-root>", text)
+            self.assertNotIn("${CLAUDE_PLUGIN_ROOT}", text)
 
 
 class ReadOnlyDatabasePolicy(unittest.TestCase):
@@ -131,7 +137,10 @@ class ReadOnlyDatabasePolicy(unittest.TestCase):
             re.IGNORECASE,
         )
         for block in blocks:
-            self.assertIsNone(forbidden.search(block), "write-capable SQL in audit block")
+            executable = re.sub(r"(?m)^\s*--.*$", "", block)
+            self.assertIsNone(
+                forbidden.search(executable), "write-capable SQL in audit block"
+            )
 
 
 class HeaderAndLinkRegression(unittest.TestCase):
@@ -210,10 +219,13 @@ class HeaderAndLinkRegression(unittest.TestCase):
 
 class ParserRegression(unittest.TestCase):
     def test_dmarc_sp_does_not_masquerade_as_base_policy(self):
-        tags, duplicates = EMAIL.parse_tag_record("v=DMARC1; sp=reject; rua=mailto:x@example.test")
+        tags, duplicates, invalid = EMAIL.parse_tag_record(
+            "v=DMARC1; sp=reject; rua=mailto:x@example.test"
+        )
         self.assertEqual(tags.get("sp"), "reject")
         self.assertNotIn("p", tags)
         self.assertFalse(duplicates)
+        self.assertFalse(invalid)
 
     def test_dmarc_version_tag_requires_an_exact_value(self):
         with mock.patch.object(
@@ -296,7 +308,7 @@ class SideEffectPolicy(unittest.TestCase):
         text = (ROOT / "plugins/solo/skills/memory-sync/SKILL.md").read_text(
             encoding="utf-8"
         )
-        self.assertIn("grafana_token_env", text)
+        self.assertIn("token_env: GRAFANA_API_TOKEN", text)
         self.assertNotRegex(text, r"(?m)^\s*(?:token|api_key|password):")
         self.assertIn("preview", text.lower())
         self.assertIn("explicit confirmation", text.lower())
@@ -321,6 +333,21 @@ class SideEffectPolicy(unittest.TestCase):
         self.assertIn("stop before the final", text)
         self.assertIn("synthetic", text)
         self.assertIn("do not trigger real", text)
+
+    def test_release_planning_skills_cannot_execute_production_actions(self):
+        for skill, forbidden_action in (
+            ("release-deploy-plan", "must not deploy"),
+            ("release-rollback-plan", "must not revert a deployment"),
+        ):
+            text = (
+                ROOT / "plugins/release/skills" / skill / "SKILL.md"
+            ).read_text(encoding="utf-8").lower()
+            with self.subTest(skill=skill):
+                self.assertIn("plan only", text)
+                self.assertIn(forbidden_action, text)
+                self.assertIn("plan approval is not execution authorization", text)
+                self.assertIn("distinct explicit user confirmation", text)
+                self.assertIn("separately authorized execution workflow", text)
 
 
 if __name__ == "__main__":

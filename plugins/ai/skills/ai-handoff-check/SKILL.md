@@ -12,4 +12,7 @@ Use $ai-output-auditor in handoff-check mode. Apply it to the user's supplied ar
 Check the intent is clear, changed files and decisions are stated, nothing critical is assumed-but-unstated, and there's enough to continue without re-deriving. Say exactly what to add — ideally into `.solo/handoff.md`.
 
 ## Output
-End with the 7-part contract: **Summary · Findings/Work done · Risks · Required fixes · Suggested tasks** (→ `.solo/tasks.md`, stable T-IDs) **· Verification · Next skill** (exact skill invocation).
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

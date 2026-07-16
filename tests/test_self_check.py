@@ -14,6 +14,13 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 SELF = ROOT / "plugins/solo/skills/suite-integrity/scripts/self_check.py"
+OUTPUT_CONTRACT = (
+    "## User-facing output contract\n\n"
+    "Outside required machine-readable artifacts, end every response with exactly "
+    "these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, "
+    "**Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), "
+    "**Verification**, and **Next skill** (the exact `$skill` invocation).\n"
+)
 
 
 def run_self_check(root: Path) -> subprocess.CompletedProcess[str]:
@@ -70,7 +77,8 @@ def make_fixture(root: Path) -> None:
     write(root / "plugins/foo/.codex-plugin/plugin.json", json.dumps(manifest))
     write(
         root / "plugins/foo/skills/foo-go/SKILL.md",
-        "---\nname: foo-go\ndescription: Run the fixture workflow.\n---\n\n# Go\n\nRead only.\n",
+        "---\nname: foo-go\ndescription: Run the fixture workflow.\n---\n\n"
+        "# Go\n\nRead only.\n\n" + OUTPUT_CONTRACT,
     )
     write(
         root / "plugins/foo/skills/foo-go/agents/openai.yaml",
@@ -149,6 +157,26 @@ class SourceBreakageDetection(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("does not resolve", result.stdout)
 
+    def test_missing_output_contract_fails(self):
+        skill = self.root / "plugins/foo/skills/foo-go/SKILL.md"
+        skill.write_text(
+            skill.read_text(encoding="utf-8").replace("\n" + OUTPUT_CONTRACT, "\n"),
+            encoding="utf-8",
+        )
+        result = run_self_check(self.root)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("seven-part user-facing output contract", result.stdout)
+
+    def test_stale_next_command_fails(self):
+        skill = self.root / "plugins/foo/skills/foo-go/SKILL.md"
+        skill.write_text(
+            skill.read_text(encoding="utf-8").replace("Next skill", "Next command"),
+            encoding="utf-8",
+        )
+        result = run_self_check(self.root)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("stale 'Next command' wording", result.stdout)
+
     def test_manifest_version_drift_fails(self):
         path = self.root / "plugins/foo/.codex-plugin/plugin.json"
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -189,6 +217,22 @@ class InstalledPluginMode(unittest.TestCase):
             )
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertIn("MODE  installed-plugin", result.stdout)
+
+    def test_agentrooms_plugin_defers_cross_plugin_validation(self):
+        with tempfile.TemporaryDirectory(prefix="codex-cache-ai-") as temp:
+            root = Path(temp) / "cache" / "ai" / "1.0.27"
+            shutil.copytree(ROOT / "plugins/ai", root)
+            result = subprocess.run(
+                [sys.executable, str(SELF), str(root), "-"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=30,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("AgentRooms validation skipped in installed-plugin mode", result.stdout)
+            self.assertIn("0 fail", result.stdout)
 
 
 if __name__ == "__main__":

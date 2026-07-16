@@ -1,13 +1,14 @@
 name: publish-attested-release
 
 "on":
-  release:
-    types: [published]
+  push:
+    tags:
+      - "v*"
 
 permissions: {}
 
 concurrency:
-  group: release-${{ github.event.release.tag_name }}
+  group: release-${{ github.ref_name }}
   cancel-in-progress: false
 
 env:
@@ -40,7 +41,7 @@ jobs:
       - name: Validate tag and release metadata
         id: release
         env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_TAG: ${{ github.ref_name }}
         run: |
           python - <<'PY'
           import json
@@ -68,7 +69,21 @@ jobs:
         run: python -m compileall -q plugins tests tools
 
       - name: Validate every Codex plugin directory
-        run: python tools/validate_plugins.py --official-if-available
+        run: |
+          python -c "from pathlib import Path; Path('dist').mkdir(exist_ok=True)"
+          python tools/validate_plugins.py --official-if-available --report dist/plugin-validation-v1.0.27.json
+
+      - name: Verify checked-in canonical overlay offline
+        run: >-
+          python tools/verify_source_overlay.py --canonical-only
+          --canonical-source-archive
+          parity/artifacts/solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip
+          --target .
+
+      - name: Rebuild and verify the public canonical source overlay
+        run: >-
+          python tools/build_canonical_source.py --fetch-public-base
+          --output dist/rebuilt-canonical-source.zip
 
       - name: Run unit and regression tests with coverage
         run: |
@@ -86,9 +101,13 @@ jobs:
       - name: Build and smoke-test deterministic release package
         env:
           ARCHIVE_NAME: ${{ steps.release.outputs.archive }}
+          CANONICAL_SOURCE: solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip
         run: |
-          python tools/package_release.py --output "dist/${ARCHIVE_NAME}" --validation-state validated
-          python tools/smoke_package.py "dist/${ARCHIVE_NAME}"
+          python tools/package_release.py --output "dist/${ARCHIVE_NAME}" --validation-state validated --canonical-source-archive "parity/artifacts/${CANONICAL_SOURCE}"
+          python tools/smoke_package.py "dist/${ARCHIVE_NAME}" --canonical-source-archive "parity/artifacts/${CANONICAL_SOURCE}"
+          cp "parity/artifacts/${CANONICAL_SOURCE}" "dist/${CANONICAL_SOURCE}"
+          cp "parity/artifacts/${CANONICAL_SOURCE}.sha256" "dist/${CANONICAL_SOURCE}.sha256"
+          cp parity/source-overlay-manifest.json dist/source-overlay-manifest-v1.0.27.json
           python - <<'PY'
           import hashlib
           import os
@@ -112,6 +131,10 @@ jobs:
           path: |
             dist/${{ steps.release.outputs.archive }}
             dist/${{ steps.release.outputs.archive }}.sha256
+            dist/solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip
+            dist/solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip.sha256
+            dist/source-overlay-manifest-v1.0.27.json
+            dist/plugin-validation-v1.0.27.json
           if-no-files-found: error
           retention-days: 1
 
@@ -138,9 +161,13 @@ jobs:
           subject-path: |
             dist/${{ needs.build.outputs.archive }}
             dist/${{ needs.build.outputs.archive }}.sha256
+            dist/solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip
+            dist/solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip.sha256
+            dist/source-overlay-manifest-v1.0.27.json
+            dist/plugin-validation-v1.0.27.json
 
   publish:
-    name: Upload immutable release assets
+    name: Publish validated immutable release
     needs: [build, attest]
     if: >-
       always() && needs.build.result == 'success' &&
@@ -156,9 +183,39 @@ jobs:
           name: release-assets-${{ github.run_id }}
           path: dist
 
-      - name: Upload immutable release assets
+      - name: Create private draft release
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: >-
+          gh release create "$RELEASE_TAG"
+          --repo "$GITHUB_REPOSITORY"
+          --verify-tag
+          --draft
+          --title "Solo Suite Codex $RELEASE_TAG"
+          --generate-notes
+          --notes "Codex v1.0.27 is paired with the authenticated historical Claude v1.0.26 overlay; it does not claim current Claude v1.0.27 byte parity."
+
+      - name: Upload immutable release assets to draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
           ARCHIVE_PATH: dist/${{ needs.build.outputs.archive }}
-        run: gh release upload "$RELEASE_TAG" "$ARCHIVE_PATH" "$ARCHIVE_PATH.sha256" --repo "$GITHUB_REPOSITORY"
+          CANONICAL_SOURCE_PATH: dist/solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip
+        run: >-
+          gh release upload "$RELEASE_TAG"
+          "$ARCHIVE_PATH" "$ARCHIVE_PATH.sha256"
+          "$CANONICAL_SOURCE_PATH" "$CANONICAL_SOURCE_PATH.sha256"
+          "dist/source-overlay-manifest-v1.0.27.json"
+          "dist/plugin-validation-v1.0.27.json"
+          --repo "$GITHUB_REPOSITORY"
+
+      - name: Publish release after every gate and upload succeeds
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: >-
+          gh release edit "$RELEASE_TAG"
+          --repo "$GITHUB_REPOSITORY"
+          --draft=false
+          --latest

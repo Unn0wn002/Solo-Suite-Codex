@@ -65,11 +65,11 @@ class GitHubSecurityPolicy(unittest.TestCase):
         self.assertTrue(any(action.startswith("github/codeql-action/init@") for action in actions))
         self.assertTrue(any(action.startswith("github/codeql-action/analyze@") for action in actions))
 
-    def test_release_publication_is_tag_bound_attested_and_non_overwriting(self):
+    def test_release_publication_is_tag_bound_attested_draft_first_and_non_overwriting(self):
         path = WORKFLOWS / "publish-release.yml"
         payload = load_yaml(path)
         self.assertEqual(payload.get("permissions"), {})
-        self.assertEqual(payload["on"], {"release": {"types": ["published"]}})
+        self.assertEqual(payload["on"], {"push": {"tags": ["v*"]}})
         build = payload["jobs"]["build"]
         self.assertEqual(
             build.get("permissions"), {"contents": "read"},
@@ -98,8 +98,19 @@ class GitHubSecurityPolicy(unittest.TestCase):
         source = path.read_text(encoding="utf-8")
         self.assertIn("release tag", source)
         self.assertIn("--validation-state validated", source)
+        self.assertIn("gh release create", source)
+        self.assertIn("--verify-tag", source)
+        self.assertIn("--draft", source)
         self.assertIn("gh release upload", source)
+        self.assertIn("gh release edit", source)
+        self.assertIn("--draft=false", source)
+        self.assertIn(
+            "authenticated historical Claude v1.0.26 overlay", source
+        )
+        self.assertIn("does not claim current Claude v1.0.27 byte parity", source)
         self.assertNotIn("--clobber", source)
+        self.assertLess(source.index("gh release create"), source.index("gh release upload"))
+        self.assertLess(source.index("gh release upload"), source.index("gh release edit"))
 
 
 if __name__ == "__main__":

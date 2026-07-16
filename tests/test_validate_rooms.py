@@ -156,6 +156,71 @@ class BundledTemplates(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(before, {path: path.read_bytes() for path in generated})
 
+    def test_full_team_vendor_tasks_and_generated_docs_stay_in_sync(self):
+        room = full_team_fixture()
+        commands = {
+            command
+            for seat in room["seats"]
+            for command in seat["commands"]
+        }
+        self.assertTrue({
+            "$stack-audit-vercel",
+            "$stack-audit-supabase",
+            "$stack-audit-cloudflare",
+            "$stack-audit-tags",
+            "$stack-audit-payments",
+        } <= commands)
+        self.assertTrue({
+            "$spec-feature-brief",
+            "$spec-acceptance",
+            "$git-commit-plan",
+            "$release-ci-setup",
+            "$solo-handoff-memory",
+        } <= commands)
+        self.assertTrue(all(
+            seat["handoff_check"] == "$ai-handoff-check"
+            for seat in room["seats"]
+            if seat["kind"] != "memory-steward"
+        ))
+        vendor_artifacts = {
+            artifact["artifact"]
+            for artifact in room["artifact_locks"]
+            if "/vendor-audits/" in artifact["artifact"]
+        }
+        self.assertEqual(len(vendor_artifacts), 5)
+        for gate_id in ("before_merge", "before_deploy"):
+            gate = next(item for item in room["gates"] if item["id"] == gate_id)
+            prerequisites = {
+                item["artifact"] for item in gate["prerequisites"]
+            }
+            self.assertTrue(vendor_artifacts <= prerequisites, gate_id)
+        docs = (
+            ROOT / "plugins/full-team/skills/full-team-orchestrator/references"
+        )
+        seat_map = (docs / "seat-stage-map.md").read_text(encoding="utf-8")
+        flow = (docs / "authoritative-flow.md").read_text(encoding="utf-8")
+        for stage in room["stages"]:
+            self.assertIn(f"`{stage['id']}`", seat_map)
+            for seat_id in stage["seats"]:
+                self.assertIn(f"`{seat_id}`", seat_map)
+        for command in {
+            "$stack-audit-vercel",
+            "$stack-audit-supabase",
+            "$stack-audit-cloudflare",
+            "$stack-audit-tags",
+            "$stack-audit-payments",
+        }:
+            self.assertIn(command, seat_map)
+            self.assertIn(command, flow)
+        self.assertNotIn("room-*", seat_map)
+        self.assertNotIn("room-*", flow)
+        result = subprocess.run(
+            [sys.executable, str(ROOT / "tools/build_agentrooms.py"), "--check-docs"],
+            cwd=ROOT, capture_output=True, text=True, encoding="utf-8",
+            errors="replace", timeout=30,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_full_team_website_has_advanced_delivery_controls(self):
         room = full_team_fixture()
         stage_ids = [stage["id"] for stage in room["stages"]]

@@ -1,6 +1,6 @@
 ---
 name: content-audit
-description: "Audit the content of a website — broken or missing media, stale and outdated content, readability and clarity, tone and terminology consistency, placeholder/lorem-ipsum left in production, spelling and grammar, duplicate content, and content structure. Use whenever the user wants a content review, editorial audit, \"check my copy\", find outdated or broken content, readability check, or wants site content polished and consistent before or after launch. Complements seo-optimization (search-facing content) with an editorial lens."
+description: Audit the content of a website — broken or missing media, stale and outdated content, readability and clarity, tone and terminology consistency, placeholder/lorem-ipsum left in production, spelling and grammar, duplicate content, and content structure. Use whenever the user wants a content review, editorial audit, "check my copy", find outdated or broken content, readability check, or wants site content polished and consistent before or after launch. Complements seo-optimization (search-facing content) with an editorial lens.
 ---
 
 # Content Audit
@@ -67,3 +67,7 @@ This skill works inside a session that the solo plugin bookends: `$solo-start-se
 ## Stack awareness
 
 Before auditing or building, read `.solo/stack.md` if it exists — it records the project's actual tools (hosting, DNS/CDN/WAF, database, auth, storage, analytics/tags, email, payments, repo/CI), captured by `$stack-intake`. Tailor the work to the real stack instead of giving generic advice (e.g. don't suggest an S3 lifecycle rule to a Cloudinary project, or a generic WAF to a site already on Cloudflare). If `stack.md` is missing and the stack matters here, suggest running `$stack-intake` first. For vendor-specific depth, the stack plugin adds `$stack-audit-cloudflare`, `-vercel`, `-supabase`, `-tags`, and `-payments`.
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

@@ -11,8 +11,6 @@ Use $quality-gatekeeper in before-deploy mode. Apply it to the user's supplied a
 
 **Block the deploy if ANY is true:** env vars missing in the target (check `.solo/env-contract.md`) · stack audits not done for this release — Vercel/Supabase/Cloudflare, plus tags/payments where `.solo/stack.md` says they're in play · no backup with a tested restore · no monitoring live (`.solo/monitoring.md`) · no rollback plan (`.solo/release.md`). One missing item = NO-GO; record blockers in `.solo/risks.md`.
 
-When an AgentRoom declares an evidence path, also emit and validate `solo-suite/phase-gate-evidence-v1` through the sibling `$quality-gatekeeper` validator using the prepared room. Bind its digest, exact ordered prerequisites, producer commands, run, gate, commit, environment, artifact digests, and maximum age; missing, substituted, over-age, or invalid evidence is `NO-GO` and must never route to production.
-
 ## Output
 End with exactly:
 - **Verdict** — GO / NO-GO (one missing blocker = NO-GO; never averaged away)
@@ -21,3 +19,7 @@ End with exactly:
 - **Nits** — non-blocking improvements
 - **Suggested tasks** → `.solo/tasks.md` (stable T-IDs); record open blockers in `.solo/risks.md`
 - **Next skill** — what clears the top blocker, or the next phase command on GO
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

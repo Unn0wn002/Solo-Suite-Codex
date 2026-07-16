@@ -1,6 +1,6 @@
 ---
 name: cloudflare-audit
-description: "Audit a Cloudflare setup for a site — DNS records, SSL/TLS mode, redirect and cache rules, page/transform rules, WAF and bot protection, security headers, origin exposure, and proxy (orange-cloud) status. Use when the user wants a Cloudflare review, \"check my Cloudflare\", DNS/SSL/WAF/cache configuration on Cloudflare, or asks if their Cloudflare is set up safely. Vendor-specific front end to site-doctor's infrastructure-audit and website-audit; reads .solo/stack.md; uses a Cloudflare connector for live config when available."
+description: Audit a Cloudflare setup for a site — DNS records, SSL/TLS mode, redirect and cache rules, page/transform rules, WAF and bot protection, security headers, origin exposure, and proxy (orange-cloud) status. Use when the user wants a Cloudflare review, "check my Cloudflare", DNS/SSL/WAF/cache configuration on Cloudflare, or asks if their Cloudflare is set up safely. Vendor-specific front end to site-doctor's infrastructure-audit and website-audit; reads .solo/stack.md; uses a Cloudflare connector for live config when available.
 ---
 
 # Cloudflare Audit
@@ -60,3 +60,7 @@ Either way, every finding must name its evidence (which setting, file, screensho
 ## Session lifecycle
 
 This skill works inside a session that the solo plugin bookends: `$solo-start-session` restores project context at the start (reading `.solo/`), and `$solo-end-session` saves progress, blockers, decisions, and the next task at the end. `$solo-run-cycle` may invoke this skill as one step of a complete task cycle. Keep `.solo/` current as you go so those session commands stay accurate.
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

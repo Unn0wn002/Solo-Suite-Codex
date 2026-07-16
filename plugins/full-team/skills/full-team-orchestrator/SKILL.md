@@ -1,22 +1,72 @@
 ---
 name: full-team-orchestrator
-description: "Coordinate all 17 Solo Suite component plugins as one profile-aware Codex delivery team, detect missing capabilities, enforce centralized project memory and evidence gates, and route work from discovery through production readiness. Use for full-team development, whole-product delivery, or checking that the complete Solo Suite team is installed."
+description: "Coordinate all 17 Solo Suite component plugins as one profile-aware Codex delivery team, using the authoritative AgentRoom contract, centralized project memory, and evidence gates. Use when the user explicitly invokes $full-team-orchestrator or asks for full-team development, whole-product delivery, or a complete team installation check."
 ---
 
-# Coordinate the full team
+# Full Team Orchestrator
 
-Read `references/component-plugins.json`. Enforce each component's `minimum_version`, treat its representative skill as the discovery minimum, then preflight every command declared by the selected AgentRoom against the skills actually available for this run. Report missing or version-skewed capabilities before starting; do not claim a hard plugin dependency was installed automatically because Codex plugin manifests do not expose dependency metadata.
+This is the authoritative full-team entrypoint. The executable contract is
+`plugins/ai/skills/agent-room-templates/agentsrooms/full-team-website.json`;
+the durable lifecycle is implemented by its `run_room.py` runner. Read the
+generated [`authoritative-flow.md`](references/authoritative-flow.md) and
+[`seat-stage-map.md`](references/seat-stage-map.md) for the current stage and
+seat map. Do not maintain or follow a second hand-written phase schedule.
 
-Run the deterministic preflight before preparation:
+## Fail-closed preflight
+
+Run the native preflight before preparing or starting a room. Use the same
+Python interpreter that will run the room:
 
 ```text
-<python> <skill-root>/scripts/preflight.py <room.json> --suite-root <suite-root>
+<python> <skill-root>/scripts/preflight.py \
+  <suite-root>/plugins/ai/skills/agent-room-templates/agentsrooms/full-team-website.json \
+  --suite-root <suite-root>
 ```
 
-Do not start when it reports `FAIL`; repair the missing component, version, skill, or room contract first.
+The preflight enforces every component's `minimum_version`, representative
+skill, every skill invocation declared by the selected room, and the complete
+AgentRoom validator contract. A `FAIL` result stops the run; report the exact
+missing plugin, version, skill, or room command and the Codex install command
+needed to repair it. `$full-team-verify` is only the reporting wrapper around
+this same script.
 
-If all required capabilities are available, invoke `$solo-full-team-dev` and follow `$project-memory-manager` plus `$agent-room-templates`. Choose the project profile explicitly when preparing the room, initialize `run_room.py` with the exact commit and environment, and create only tasks emitted by its `next` command. Record each seat result, route shared-memory proposals through one steward, and call `advance` only after all current-stage tasks are recorded. The runner's validator-backed transition is authoritative; never substitute a prose handoff or self-reported gate status.
+## One authoritative execution path
 
-If components are missing, continue only with an explicit degraded-mode plan that lists the missing role, the lost checks, and the installation needed to restore coverage. Never silently replace security, database, browser, deployment, or production-gate evidence with model judgment.
+After a passing preflight:
 
-Keep mutation-capable work explicit. Preview external sync, deployment, migration, browser submission, Git publication, and production operations; require confirmation before acting. This orchestrator does not publish, deploy, merge, or submit merely because the full-team workflow reaches that stage.
+1. Select exactly one recognized project profile and run `prepare_run.py`.
+2. Initialize the prepared room with `run_room.py init` using the exact commit,
+   environment, and prepared-room digest.
+3. Create only tasks emitted by `run_room.py next`. Execute seats through Codex
+   collaboration tooling or an explicit `run_room.py execute --seat <seat>
+   --adapter ...` adapter.
+4. Record every result, route shared-memory proposals through the single
+   `memory_steward`, and call `advance` only after all current-stage tasks are
+   recorded and validated.
+5. Let the runner validate gate evidence and route transitions. Before-merge
+   or before-deploy `NO-GO` enters the bounded repair/retest loop declared in
+   the JSON; prose handoffs cannot bypass it.
+6. Stop unless the exact-run, exact-commit, exact-environment production result
+   is `SAFE TO LAUNCH`.
+
+`$solo-full-team-dev` is a compatibility invocation. When it is invoked, it
+delegates to this orchestrator and reports this room's state; it must not run a
+parallel schedule or claim a different authoritative phase order.
+
+## Conditional provider work
+
+The Site Doctor seat declares tasks for Vercel, Supabase, Cloudflare, analytics
+tags, and payments. Each `$stack-audit-*` task runs only when `.solo/stack.md`
+records that provider. If the provider is absent, record a provider-specific,
+profile/stack-backed N/A artifact and explain why; never silently skip the task
+or turn an inapplicable check into a pass. Growth and other profile-conditional
+work follows the same evidence-backed N/A rule.
+
+Keep mutation-capable work explicit: preview external sync, deployment,
+migration, browser submission, Git publication, and production operations;
+require confirmation before acting. This orchestrator does not publish,
+deploy, merge, or submit merely because the room reaches that stage.
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

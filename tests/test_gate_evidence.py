@@ -447,21 +447,23 @@ class GateEvidence(unittest.TestCase):
             any("digest does not match" in item for item in self.validate())
         )
 
-    def test_fixed_140_point_formula_is_enforced(self):
+    def test_applicable_denominator_formula_is_enforced(self):
         self.evidence["categories"][0]["score"] = 7
         failures = self.validate()
-        self.assertIn("total_score does not equal the 14 category scores", failures)
         self.assertIn(
-            "normalized_score does not equal round(total/140*100)", failures
+            "total_score does not equal the applicable category scores", failures
+        )
+        self.assertIn(
+            "normalized_score does not equal "
+            "round(total/(10*applicable_category_count)*100)", failures
         )
 
-    def test_na_requires_reason_and_satisfied_fixed_denominator(self):
+    def test_na_requires_reason_and_zero_score(self):
         record = self.evidence["categories"][0]
         record["applicability"] = "not-applicable"
-        record["score"] = 0
         failures = self.validate()
         self.assertTrue(any("na_reason is required" in item for item in failures))
-        self.assertTrue(any("verified N/A must score 10" in item for item in failures))
+        self.assertTrue(any("N/A must score 0" in item for item in failures))
 
     def test_verified_na_uses_an_applicability_record(self):
         record = self.evidence["categories"][9]
@@ -480,13 +482,71 @@ class GateEvidence(unittest.TestCase):
             "sha256:" + hashlib.sha256(profile_path.read_bytes()).hexdigest()
         )
         record["applicability"] = "not-applicable"
+        record["score"] = 0
         record["na_reason"] = reason
         record["evidence_type"] = "applicability-record"
         record["provenance"]["source_kind"] = "repository-record"
         record["provenance"]["producer"] = "project-profile-v1"
         record["provenance"]["source_reference"] = self.evidence["profile_artifact"]
+        self.evidence["total_score"] = 130
+        self.evidence["normalized_score"] = 100
         self.assertEqual(self.schema_errors(), [])
         self.assertEqual(self.validate(), [])
+
+    def test_agentroom_profile_cells_match_the_canonical_matrix(self):
+        cases = (
+            ("saas-application", "SEO", False),
+            ("api-service", "Database", False),
+            ("library-package", "Monitoring", False),
+            ("library-package", "Performance", True),
+        )
+        for profile_name, category, allowed in cases:
+            evidence = build_evidence(self.root)
+            evidence["project_profile"] = profile_name
+            profile_path = self.root / evidence["profile_artifact"]
+            profile = json.loads(profile_path.read_text(encoding="utf-8"))
+            profile["profile"] = profile_name
+            index = gate.CATEGORIES.index(category)
+            reason = f"The {profile_name} fixture has no applicable {category} surface."
+            profile["categories"][index] = {
+                "category": category,
+                "applicability": "not-applicable",
+                "reason": reason,
+            }
+            profile_path.write_text(
+                json.dumps(profile, indent=2) + "\n", encoding="utf-8"
+            )
+            evidence["profile_artifact_digest"] = (
+                "sha256:" + hashlib.sha256(profile_path.read_bytes()).hexdigest()
+            )
+            record = evidence["categories"][index]
+            record.update({
+                "score": 0,
+                "applicability": "not-applicable",
+                "na_reason": reason,
+                "evidence_type": "applicability-record",
+            })
+            record["provenance"].update({
+                "source_kind": "repository-record",
+                "producer": "project-profile-v1",
+                "source_reference": evidence["profile_artifact"],
+            })
+            evidence["total_score"] = 130
+            evidence["normalized_score"] = 100
+            failures = gate.validate(
+                evidence, self.root, COMMIT, ENVIRONMENT, now=self.now,
+                run_id=RUN_ID, gate_id=GATE_ID, contract=self.contract,
+            )
+            with self.subTest(
+                profile=profile_name, category=category, allowed=allowed
+            ):
+                if allowed:
+                    self.assertEqual(failures, [])
+                else:
+                    self.assertTrue(any(
+                        "cannot mark" in item or "does not permit N/A" in item
+                        for item in failures
+                    ), failures)
 
     def test_all_na_or_profile_forbidden_na_cannot_launch(self):
         for record in self.evidence["categories"]:
@@ -598,8 +658,10 @@ class GateEvidence(unittest.TestCase):
             },
         }]
         failures = self.validate()
-        self.assertTrue(any("every category score" in item for item in failures))
-        self.assertTrue(any("empty blockers and warnings" in item for item in failures))
+        self.assertTrue(any(
+            "launch_status must be SAFE WITH WARNINGS under the shared"
+            in item for item in failures
+        ))
 
 
 if __name__ == "__main__":

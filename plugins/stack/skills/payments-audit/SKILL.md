@@ -1,6 +1,6 @@
 ---
 name: payments-audit
-description: "Audit a payment integration — Stripe, PayPal, Xendit, Midtrans, or any provider — for webhook security, payment status handling, duplicate-payment protection, refund flow, test vs live key separation, exposed secret keys, and checkout success/failure pages. Use when the user wants a payments review, \"check my Stripe/payments\", webhook verification, double-charge or duplicate payment concerns, refund handling, payment key safety, or checkout flow correctness. Vendor-aware front end to site-doctor's security-review, api-audit, and forms-audit; reads .solo/stack.md."
+description: Audit a payment integration — Stripe, PayPal, Xendit, Midtrans, or any provider — for webhook security, payment status handling, duplicate-payment protection, refund flow, test vs live key separation, exposed secret keys, and checkout success/failure pages. Use when the user wants a payments review, "check my Stripe/payments", webhook verification, double-charge or duplicate payment concerns, refund handling, payment key safety, or checkout flow correctness. Vendor-aware front end to site-doctor's security-review, api-audit, and forms-audit; reads .solo/stack.md.
 ---
 
 # Payments Audit
@@ -69,3 +69,7 @@ Either way, every finding must name its evidence (which setting, file, screensho
 ## Session lifecycle
 
 This skill works inside a session that the solo plugin bookends: `$solo-start-session` restores project context at the start (reading `.solo/`), and `$solo-end-session` saves progress, blockers, decisions, and the next task at the end. `$solo-run-cycle` may invoke this skill in its audit step when a task touches payments. Keep `.solo/` current as you go so those session commands stay accurate.
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

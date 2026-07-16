@@ -1,11 +1,11 @@
 ---
 name: connector-auditor
-description: "Use live Vercel, Supabase, GitHub, and Cloudflare data when a connector or MCP is available, instead of guessing from local files. Use when auditing those services, testing RLS against the real schema, or syncing issues, and you want real configuration rather than assumptions. Three tiers — live (connector/MCP/API) → local config files → neither. Read-only for audits; writes only via an explicit command with confirmation."
+description: Use live Vercel, Supabase, GitHub, and Cloudflare data when a connector or MCP is available, instead of guessing from local files. Use when auditing those services, testing RLS against the real schema, or syncing issues, and you want real configuration rather than assumptions. Three tiers — live (connector/MCP/API) → local config files → neither. Vendor probes are read-only; local project-memory updates are allowed, while external writes require an explicit command with confirmation.
 ---
 
 # Connector Auditor
 
-Audits are only as good as their inputs. This skill gets the *real* configuration when it can, and is honest about which tier it used. **Read-only when auditing** — it inspects, it doesn't change infrastructure; the one write path (creating/closing GitHub issues via `$git-sync-issues`) always confirms first.
+Audits are only as good as their inputs. This skill gets the *real* configuration when it can, and is honest about which tier it used. **Read-only toward vendor infrastructure when auditing** — it inspects, it does not change remote services. `$stack-connector-check` may update only the local `.solo/stack.md` connector section. The external write path (creating/closing GitHub issues via `$git-sync-issues`) always confirms first.
 
 ## The three tiers (try in order, state which you used)
 1. **Live** — a connector / MCP / API is available: pull real data read-only.
@@ -33,10 +33,14 @@ End every run with these seven sections:
 4. **Required fixes** — must-fix items before moving forward.
 5. **Suggested tasks** — concrete entries for `.solo/tasks.md`, each with a stable T-ID.
 6. **Verification** — how to prove the result works.
-7. **Next skill** — the exact next Codex skill invocation to run.
+7. **Next skill** — the exact next skill invocation to run.
 
 ## Session lifecycle
-Runs inside a session the solo plugin bookends: `$solo-start-session` restores `.solo/` context at the start and `$solo-end-session` saves it at the end. Read `.solo/` before acting; write findings, decisions, and tasks back (stable T-IDs) so the next command — or the next agent — picks up cleanly.
+Runs inside a session the solo plugin bookends: `$solo-start-session` restores `.solo/` context at the start and `$solo-end-session` saves it at the end. Read `.solo/` before acting; write findings, decisions, and tasks back (stable T-IDs) so the next skill — or the next agent — picks up cleanly.
 
 ## Stack awareness
 Check `.solo/stack.md` first and tailor everything to the real stack. For vendor depth the `$stack-audit-*` skills go further: Cloudflare, Vercel, Supabase, analytics/tags, payments. If a sibling skill or connector isn't installed, do a lighter inline version and say so.
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

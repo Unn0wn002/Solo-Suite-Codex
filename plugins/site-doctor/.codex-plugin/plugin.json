@@ -1,6 +1,6 @@
 {
   "name": "site-doctor",
-  "version": "1.0.12",
+  "version": "1.0.27",
   "description": "Audit websites, services, databases, infrastructure, security, performance, SEO, and operations. Migrated workflows: $site-doctor-a11y, $site-doctor-audit-analytics, $site-doctor-audit-api, $site-doctor-audit-content, $site-doctor-audit-db, $site-doctor-audit-deps, $site-doctor-audit-forms, $site-doctor-audit-infra, $site-doctor-audit-mobile, $site-doctor-audit-site, $site-doctor-backups, $site-doctor-compliance, $site-doctor-cost, $site-doctor-debug, $site-doctor-email-check, $site-doctor-full-checkup, $site-doctor-incident, $site-doctor-load-test, $site-doctor-migrate-data, $site-doctor-monitoring, $site-doctor-perf, $site-doctor-review-deploy, $site-doctor-security-scan, $site-doctor-seo.",
   "author": {
     "name": "Sakura Yukihira (Ayaya)"

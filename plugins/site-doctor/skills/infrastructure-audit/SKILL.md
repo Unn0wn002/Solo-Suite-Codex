@@ -1,6 +1,6 @@
 ---
 name: infrastructure-audit
-description: "Audit the infrastructure a website or app runs on — servers, containers (Docker/Kubernetes), cloud configuration (AWS/GCP/Azure), TLS certificates, DNS, reverse proxy/load balancer setup, firewall and network exposure, secrets management, and resource limits. Use whenever the user wants an infrastructure review, hosting/server audit, cloud config check, \"is my server set up right\", container hardening, TLS/DNS review, or is preparing infrastructure for production traffic. Complements security-review (app layer) and observability (monitoring)."
+description: Audit the infrastructure a website or app runs on — servers, containers (Docker/Kubernetes), cloud configuration (AWS/GCP/Azure), TLS certificates, DNS, reverse proxy/load balancer setup, firewall and network exposure, secrets management, and resource limits. Use whenever the user wants an infrastructure review, hosting/server audit, cloud config check, "is my server set up right", container hardening, TLS/DNS review, or is preparing infrastructure for production traffic. Complements security-review (app layer) and observability (monitoring).
 ---
 
 # Infrastructure Audit
@@ -72,3 +72,7 @@ This skill works inside a session that the solo plugin bookends: `$solo-start-se
 ## Stack awareness
 
 Before auditing or building, read `.solo/stack.md` if it exists — it records the project's actual tools (hosting, DNS/CDN/WAF, database, auth, storage, analytics/tags, email, payments, repo/CI), captured by `$stack-intake`. Tailor the work to the real stack instead of giving generic advice (e.g. don't suggest an S3 lifecycle rule to a Cloudinary project, or a generic WAF to a site already on Cloudflare). If `stack.md` is missing and the stack matters here, suggest running `$stack-intake` first. For vendor-specific depth, the stack plugin adds `$stack-audit-cloudflare`, `-vercel`, `-supabase`, `-tags`, and `-payments`.
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

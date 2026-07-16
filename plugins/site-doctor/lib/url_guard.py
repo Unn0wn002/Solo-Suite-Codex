@@ -26,12 +26,14 @@ in principle rebind between our check and the connection (TOCTOU). This is an
 operator-run audit tool, not a multi-tenant proxy — do not reuse this module
 as a security boundary for untrusted callers.
 
-Test seam: URL_GUARD_EXTRA_ALLOWED (comma-separated IPs) is honored ONLY when
-URL_GUARD_TEST_MODE=1 is also set — the offline test suite sets both to reach
-its loopback fixture server. Without the explicit test-mode flag the allowlist
-is ignored and a RuntimeWarning is emitted, so a stray production environment
-variable cannot silently re-admit private addresses. In-process callers should
-prefer dependency injection via the extra_allowed parameter.
+Test seam: the loopback fixture addresses 127.0.0.1 and ::1 can be admitted
+only when *both* ``URL_GUARD_TEST_MODE=1`` and
+``URL_GUARD_EXTRA_ALLOWED=<loopback>`` are present. Either variable by itself
+is ignored with a RuntimeWarning, and the environment seam never admits a
+non-loopback address. In-process tests should still prefer dependency
+injection through ``extra_allowed``. Ambient HTTP(S) proxy variables are also
+ignored so a caller's process environment cannot redirect guarded requests
+outside the validated route.
 """
 import ipaddress
 import os
@@ -56,6 +58,8 @@ _EXPLICIT_BLOCKED = [ipaddress.ip_network(n) for n in (
 )]
 _BLOCKED_HOSTS = {"localhost", "metadata", "metadata.google.internal", "wpad"}
 _BLOCKED_HOST_SUFFIXES = (".localhost", ".local", ".internal")
+_TEST_LOOPBACKS = frozenset((ipaddress.ip_address("127.0.0.1"),
+                             ipaddress.ip_address("::1")))
 
 SafeResponse = namedtuple("SafeResponse",
                           "status headers body url hops truncated")
@@ -70,22 +74,41 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
         return None  # 3xx surfaces as HTTPError; safe_get validates each hop
 
 
-def _env_extra_allowed():
-    if os.environ.get("URL_GUARD_TEST_MODE") != "1":
-        if os.environ.get("URL_GUARD_EXTRA_ALLOWED"):
-            warnings.warn(
-                "URL_GUARD_EXTRA_ALLOWED is ignored without URL_GUARD_TEST_MODE=1 "
-                "(test-only seam; use the extra_allowed parameter for injection)",
-                RuntimeWarning, stacklevel=3)
+def _env_test_loopbacks():
+    """Return an explicitly enabled, loopback-only fixture allowlist.
+
+    Requiring two independently named variables prevents one stray ambient
+    setting from weakening the guard. The seam is intentionally incapable of
+    admitting RFC1918, link-local, metadata, or any other non-loopback target.
+    """
+    mode = os.environ.get("URL_GUARD_TEST_MODE")
+    raw = os.environ.get("URL_GUARD_EXTRA_ALLOWED")
+    if mode is None and raw is None:
         return set()
+    if mode != "1" or not raw:
+        warnings.warn(
+            "loopback fixture access requires both URL_GUARD_TEST_MODE=1 "
+            "and URL_GUARD_EXTRA_ALLOWED; incomplete test seam ignored",
+            RuntimeWarning, stacklevel=3)
+        return set()
+
     out = set()
-    for part in os.environ.get("URL_GUARD_EXTRA_ALLOWED", "").split(","):
+    for part in raw.split(","):
         part = part.strip()
-        if part:
-            try:
-                out.add(ipaddress.ip_address(part))
-            except ValueError:
-                pass
+        if not part:
+            continue
+        try:
+            address = ipaddress.ip_address(part)
+        except ValueError:
+            warnings.warn("invalid URL_GUARD_EXTRA_ALLOWED address %r ignored"
+                          % part, RuntimeWarning, stacklevel=3)
+            continue
+        if address not in _TEST_LOOPBACKS:
+            warnings.warn(
+                "URL_GUARD_EXTRA_ALLOWED admits loopback fixtures only; %s ignored"
+                % address, RuntimeWarning, stacklevel=3)
+            continue
+        out.add(address)
     return out
 
 
@@ -134,7 +157,7 @@ def check_url(url, allow_http=False, extra_allowed=()):
     if host in _BLOCKED_HOSTS or host.endswith(_BLOCKED_HOST_SUFFIXES):
         raise BlockedUrlError("hostname %r is a blocked internal/metadata name" % host)
 
-    allow = _env_extra_allowed()
+    allow = _env_test_loopbacks()
     for a in extra_allowed:
         try:
             allow.add(ipaddress.ip_address(a) if isinstance(a, str) else a)
@@ -179,6 +202,12 @@ def _read_capped(resp, max_bytes):
     return buf[:max_bytes], True
 
 
+def _build_direct_opener():
+    """Return an opener that never consumes HTTP(S)_PROXY from the environment."""
+    return urllib.request.build_opener(urllib.request.ProxyHandler({}),
+                                       _NoRedirect())
+
+
 def safe_get(url, headers=None, timeout=DEFAULT_TIMEOUT, allow_http=False,
              follow_redirects=True, max_redirects=DEFAULT_MAX_REDIRECTS,
              max_bytes=DEFAULT_MAX_BYTES, method="GET", read_body=True,
@@ -191,7 +220,7 @@ def safe_get(url, headers=None, timeout=DEFAULT_TIMEOUT, allow_http=False,
     * 4xx/5xx come back as normal SafeResponses, not exceptions
     * raises BlockedUrlError for policy refusals; network errors propagate
     """
-    opener = urllib.request.build_opener(_NoRedirect())
+    opener = _build_direct_opener()
     current, hops = url, 0
     while True:
         check_url(current, allow_http=allow_http, extra_allowed=extra_allowed)

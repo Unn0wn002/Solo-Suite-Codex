@@ -1,6 +1,6 @@
 ---
 name: acceptance-criteria-writer
-description: "Turn rough product ideas into a clear feature brief and testable, pass/fail acceptance criteria. Use when the user says feature brief, acceptance criteria, \"define done\", user stories, or is starting a feature and needs crisp requirements before design or code. Produces criteria concrete enough to drive E2E tests and a quality gate."
+description: Turn rough product ideas into a clear feature brief and testable, pass/fail acceptance criteria. Use when the user says feature brief, acceptance criteria, "define done", user stories, or is starting a feature and needs crisp requirements before design or code. Produces criteria concrete enough to drive E2E tests and a quality gate.
 ---
 
 # Acceptance Criteria Writer
@@ -30,10 +30,14 @@ End every run with these seven sections:
 4. **Required fixes** — must-fix items before moving forward.
 5. **Suggested tasks** — concrete entries for `.solo/tasks.md`, each with a stable T-ID.
 6. **Verification** — how to prove the result works.
-7. **Next skill** — the exact next Codex skill invocation to run.
+7. **Next skill** — the exact next skill invocation to run.
 
 ## Session lifecycle
-Runs inside a session the solo plugin bookends: `$solo-start-session` restores `.solo/` context at the start and `$solo-end-session` saves it at the end. Read `.solo/` before acting; write findings, decisions, and tasks back (stable T-IDs) so the next command — or the next agent — picks up cleanly.
+Runs inside a session the solo plugin bookends: `$solo-start-session` restores `.solo/` context at the start and `$solo-end-session` saves it at the end. Read `.solo/` before acting; write findings, decisions, and tasks back (stable T-IDs) so the next skill — or the next agent — picks up cleanly.
 
 ## Stack awareness
 Check `.solo/stack.md` first and tailor everything to the real stack. For vendor depth the `$stack-audit-*` skills go further: Cloudflare, Vercel, Supabase, analytics/tags, payments. If a sibling skill or connector isn't installed, do a lighter inline version and say so.
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

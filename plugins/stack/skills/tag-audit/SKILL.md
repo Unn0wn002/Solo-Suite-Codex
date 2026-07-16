@@ -1,6 +1,6 @@
 ---
 name: tag-audit
-description: "Audit a site's analytics tags and pixels — Google Tag Manager installation, GA4 firing correctly (no double-counting), conversion events, consent mode, Meta Pixel / TikTok Pixel, PII leakage into tags, form tracking, and checkout/sign-up funnel tracking. Use when the user wants a tag/pixel/tracking review, \"check my GTM/GA4/pixels\", conversion tracking, consent mode, or asks why their analytics data looks wrong. Vendor-specific front end to site-doctor's analytics-audit and compliance-check; reads .solo/stack.md; reuses the tracker scanner."
+description: Audit a site's analytics tags and pixels — Google Tag Manager installation, GA4 firing correctly (no double-counting), conversion events, consent mode, Meta Pixel / TikTok Pixel, PII leakage into tags, form tracking, and checkout/sign-up funnel tracking. Use when the user wants a tag/pixel/tracking review, "check my GTM/GA4/pixels", conversion tracking, consent mode, or asks why their analytics data looks wrong. Vendor-specific front end to site-doctor's analytics-audit and compliance-check; reads .solo/stack.md; reuses the tracker scanner.
 ---
 
 # Tag Audit
@@ -46,7 +46,10 @@ A connector / MCP / API for the tag platform is available (GTM/GA4 API or a cont
 
 ### Mode 2 — Manual mode (user-supplied evidence)
 No connector: ask the user for the evidence instead of guessing — and audit exactly what they provide.
-- ask for a GTM container export (JSON) — it contains no secrets
+- ask for a **locally reviewed/redacted** GTM container export (JSON). Treat
+  every export as potentially sensitive: custom HTML, variables, identifiers,
+  endpoints, and embedded configuration can contain credentials or personal
+  data. Prefer a local file path and never paste or reproduce sensitive values.
 - ask for screenshots of GA4 events/key events and Tag Assistant output
 - ask for the site URL to check tag firing from the outside
 - ask which conversions are supposed to be tracked (the intent)
@@ -56,3 +59,7 @@ Either way, every finding must name its evidence (which setting, file, screensho
 ## Session lifecycle
 
 This skill works inside a session that the solo plugin bookends: `$solo-start-session` restores project context at the start (reading `.solo/`), and `$solo-end-session` saves progress, blockers, decisions, and the next task at the end. `$solo-run-cycle` may invoke this skill as one step of a complete task cycle. Keep `.solo/` current as you go so those session commands stay accurate.
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

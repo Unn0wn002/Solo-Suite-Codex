@@ -1,6 +1,6 @@
 {
   "name": "project",
-  "version": "1.0.12",
+  "version": "1.0.27",
   "description": "Turn product ideas into a PRD, architecture, and executable task breakdown. Migrated workflows: $project-architecture, $project-prd, $project-task-breakdown.",
   "author": {
     "name": "Sakura Yukihira (Ayaya)"

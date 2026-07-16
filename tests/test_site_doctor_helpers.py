@@ -134,8 +134,8 @@ class SecretScannerBehavior(unittest.TestCase):
             clean = io.StringIO()
             with redirect_stdout(clean):
                 clean_code = SECRETS.main([str(root)])
-            self.assertEqual(clean_code, 0)
-            self.assertIn("No obvious hardcoded secrets", clean.getvalue())
+            self.assertEqual(clean_code, 3)
+            self.assertIn("INCOMPLETE COVERAGE", clean.getvalue())
 
             (root / "config.txt").write_text(
                 "password='" + "runtime-fixture" + "'", encoding="utf-8"
@@ -148,9 +148,8 @@ class SecretScannerBehavior(unittest.TestCase):
             self.assertEqual(payload["findings"][0]["rule"],
                              "Hardcoded password assignment")
 
-        with self.assertRaises(SystemExit) as raised, redirect_stdout(io.StringIO()):
-            SECRETS.main([str(ROOT / "does-not-exist")])
-        self.assertEqual(raised.exception.code, 2)
+        with redirect_stdout(io.StringIO()):
+            self.assertEqual(SECRETS.main([str(ROOT / "does-not-exist")]), 2)
 
 
 class DependencyInventoryBehavior(unittest.TestCase):
@@ -290,7 +289,7 @@ class TrackerScannerBehavior(unittest.TestCase):
                 "malformed-cookie",
             ], html),
         ), redirect_stdout(output):
-            self.assertEqual(TRACKERS.main("https://example.test"), 0)
+            self.assertEqual(TRACKERS.main("https://example.test"), 1)
         text = output.getvalue()
         self.assertIn("Google Tag Manager  (x1)", text)
         self.assertIn("cdn.example.net", text)
@@ -365,7 +364,7 @@ class SeoMetadataBehavior(unittest.TestCase):
              mock.patch.object(META, "fetch", side_effect=lambda url: calls[url]), \
              mock.patch.object(META.time, "sleep", return_value=None), \
              redirect_stdout(output):
-            self.assertEqual(META.main(), 0)
+            self.assertEqual(META.main(), 1)
         text = output.getvalue()
         self.assertIn("DUPLICATE TITLES", text)
         self.assertIn("DUPLICATE DESCRIPTIONS", text)

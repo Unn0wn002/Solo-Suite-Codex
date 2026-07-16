@@ -15,6 +15,8 @@ batch strategy, validation checks (counts + checksums + spot checks), and
 rollback at each stage. The source stays authoritative until the target is
 validated.
 
+SAFETY: manual-only (data migration). Require a verified, restore-tested backup and explicit user confirmation before any migration step; state the rollback plan first; dry-run/preview where the engine allows it.
+
 ## Output — evidence-based audit format
 Never just "good" or "bad" — every claim names its proof. If nothing was actually inspected for an area, say "not checked", don't guess. End with exactly:
 
@@ -48,5 +50,9 @@ Low / Medium / High / Critical
 1. …
 
 ## Next Recommended Skill
-$data-migration — use it to plan and validate approved migration work.
+No follow-up skill is implied here; choose the next validated skill for the current workflow.
 ```
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

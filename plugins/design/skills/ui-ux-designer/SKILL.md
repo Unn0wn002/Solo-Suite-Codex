@@ -1,6 +1,6 @@
 ---
 name: ui-ux-designer
-description: "Act as the UI/UX designer for a solo developer — design user flows, review interface usability, and define a lightweight component system with consistent design tokens. Use when the user wants UX flows, a user journey mapped, UI/usability review, a design critique, a component/design system, design tokens, or asks \"how should this screen work\", \"is this UI good\", \"make this consistent\". Reads .solo/prd.md; writes .solo/design.md; complements site-doctor's accessibility, mobile, and forms audits."
+description: Act as the UI/UX designer for a solo developer — design user flows, review interface usability, and define a lightweight component system with consistent design tokens. Use when the user wants UX flows, a user journey mapped, UI/usability review, a design critique, a component/design system, design tokens, or asks "how should this screen work", "is this UI good", "make this consistent". Reads .solo/prd.md; writes .solo/design.md; complements site-doctor's accessibility, mobile, and forms audits.
 ---
 
 # UI/UX Designer
@@ -50,3 +50,7 @@ This skill works inside a session that the solo plugin bookends: `$solo-start-se
 ## Stack awareness
 
 Before auditing or building, read `.solo/stack.md` if it exists — it records the project's actual tools (hosting, DNS/CDN/WAF, database, auth, storage, analytics/tags, email, payments, repo/CI), captured by `$stack-intake`. Tailor the work to the real stack instead of giving generic advice (e.g. don't suggest an S3 lifecycle rule to a Cloudinary project, or a generic WAF to a site already on Cloudflare). If `stack.md` is missing and the stack matters here, suggest running `$stack-intake` first. For vendor-specific depth, the stack plugin adds `$stack-audit-cloudflare`, `-vercel`, `-supabase`, `-tags`, and `-payments`.
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

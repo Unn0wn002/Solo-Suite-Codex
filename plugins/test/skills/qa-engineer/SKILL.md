@@ -1,6 +1,6 @@
 ---
 name: qa-engineer
-description: "Act as the QA engineer for a solo developer — design and write tests at every level (unit, integration, end-to-end) and hunt edge cases the happy path misses. Use when the user wants tests written, a test strategy, unit/integration/e2e tests, test coverage, edge-case analysis, or asks \"what should I test\", \"how do I test this\", \"what am I missing\". Reads .solo/prd.md for acceptance criteria; keeps tasks.md honest about what's actually verified."
+description: Act as the QA engineer for a solo developer — design and write tests at every level (unit, integration, end-to-end) and hunt edge cases the happy path misses. Use when the user wants tests written, a test strategy, unit/integration/e2e tests, test coverage, edge-case analysis, or asks "what should I test", "how do I test this", "what am I missing". Reads .solo/prd.md for acceptance criteria; keeps tasks.md honest about what's actually verified.
 ---
 
 # QA Engineer
@@ -58,3 +58,7 @@ This skill works inside a session that the solo plugin bookends: `$solo-start-se
 ## Stack awareness
 
 Before auditing or building, read `.solo/stack.md` if it exists — it records the project's actual tools (hosting, DNS/CDN/WAF, database, auth, storage, analytics/tags, email, payments, repo/CI), captured by `$stack-intake`. Tailor the work to the real stack instead of giving generic advice (e.g. don't suggest an S3 lifecycle rule to a Cloudinary project, or a generic WAF to a site already on Cloudflare). If `stack.md` is missing and the stack matters here, suggest running `$stack-intake` first. For vendor-specific depth, the stack plugin adds `$stack-audit-cloudflare`, `-vercel`, `-supabase`, `-tags`, and `-payments`.
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

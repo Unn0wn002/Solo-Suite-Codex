@@ -2,10 +2,10 @@
   "spdxVersion": "SPDX-2.3",
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
-  "name": "solo-suite-codex-v1.0.12",
-  "documentNamespace": "urn:solo-suite:spdx:1.0.12:source-date-epoch-1783814400",
+  "name": "solo-suite-codex-v1.0.27",
+  "documentNamespace": "urn:solo-suite:spdx:1.0.27:4bea1e32ff757ddf2e175fb1ee17f3b7c0cb8445",
   "creationInfo": {
-    "created": "2026-07-12T00:00:00Z",
+    "created": "2026-07-15T08:22:02Z",
     "creators": [
       "Tool: solo-suite/tools/package_release.py"
     ]
@@ -17,7 +17,7 @@
     {
       "SPDXID": "SPDXRef-Package",
       "name": "solo-suite-codex",
-      "versionInfo": "1.0.12",
+      "versionInfo": "1.0.27",
       "downloadLocation": "NOASSERTION",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
@@ -28,7 +28,7 @@
     {
       "SPDXID": "SPDXRef-Plugin-ai",
       "name": "ai",
-      "versionInfo": "1.0.12",
+      "versionInfo": "1.0.27",
       "downloadLocation": "NOASSERTION",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
@@ -39,7 +39,7 @@
     {
       "SPDXID": "SPDXRef-Plugin-browser",
       "name": "browser",
-      "versionInfo": "1.0.12",
+      "versionInfo": "1.0.27",
       "downloadLocation": "NOASSERTION",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
@@ -50,7 +50,7 @@
     {
       "SPDXID": "SPDXRef-Plugin-design",
       "name": "design",
-      "versionInfo": "1.0.12",
+      "versionInfo": "1.0.27",
       "downloadLocation": "NOASSERTION",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
@@ -61,7 +61,7 @@
     {
       "SPDXID": "SPDXRef-Plugin-dev",
       "name": "dev",
-      "versionInfo": "1.0.12",
+      "versionInfo": "1.0.27",
       "downloadLocation": "NOASSERTION",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
@@ -72,7 +72,7 @@
     {
       "SPDXID": "SPDXRef-Plugin-docs",
       "name": "docs",
-      "versionInfo": "1.0.12",
+      "versionInfo": "1.0.27",
       "downloadLocation": "NOASSERTION",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
@@ -83,7 +83,7 @@
     {
       "SPDXID": "SPDXRef-Plugin-full-team",
       "name": "full-team",
-      "versionInfo": "1.0.12",
+      "versionInfo": "1.0.27",
       "downloadLocation": "NOASSERTION",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
@@ -94,7 +94,7 @@
     {
       "SPDXID": "SPDXRef-Plugin-gate",
       "name": "gate",
-      "versionInfo": "1.0.12",
+      "versionInfo": "1.0.27",
       "downloadLocation": "NOASSERTION",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
@@ -105,7 +105,7 @@
     {
       "SPDXID": "SPDXRef-Plugin-git",
       "name": "git",
-      "versionInfo": "1.0.12",
+      "versionInfo": "1.0.27",
       "downloadLocation": "NOASSERTION",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
@@ -116,7 +116,7 @@
     {
       "SPDXID": "SPDXRef-Plugin-growth",
       "name": "growth",
-      "versionInfo": "1.0.12",
+      "versionInfo": "1.0.27",
       "downloadLocation": "NOASSERTION",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
@@ -127,7 +127,7 @@
     {
       "SPDXID": "SPDXRef-Plugin-project",
       "name": "project",
-      "versionInfo": "1.0.12",
+      "versionInfo": "1.0.27",
       "downloadLocation": "NOASSERTION",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
@@ -138,7 +138,7 @@
     {
       "SPDXID": "SPDXRef-Plugin-release",
       "name": "release",
-      "versionInfo": "1.0.12",
+      "versionInfo": "1.0.27",
       "downloadLocation": "NOASSERTION",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
@@ -149,7 +149,7 @@
     {
       "SPDXID": "SPDXRef-Plugin-repo",
       "name": "repo",
-      "versionInfo": "1.0.12",
+      "versionInfo": "1.0.27",
       "downloadLocation": "NOASSERTION",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
@@ -160,7 +160,7 @@
     {
       "SPDXID": "SPDXRef-Plugin-security",
       "name": "security",
-      "versionInfo": "1.0.12",
+      "versionInfo": "1.0.27",
       "downloadLocation": "NOASSERTION",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
@@ -171,7 +171,7 @@
     {
       "SPDXID": "SPDXRef-Plugin-site-doctor",
       "name": "site-doctor",
-      "versionInfo": "1.0.12",
+      "versionInfo": "1.0.27",
       "downloadLocation": "NOASSERTION",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
@@ -182,7 +182,7 @@
     {
       "SPDXID": "SPDXRef-Plugin-solo",
       "name": "solo",
-      "versionInfo": "1.0.12",
+      "versionInfo": "1.0.27",
       "downloadLocation": "NOASSERTION",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
@@ -193,7 +193,7 @@
     {
       "SPDXID": "SPDXRef-Plugin-spec",
       "name": "spec",
-      "versionInfo": "1.0.12",
+      "versionInfo": "1.0.27",
       "downloadLocation": "NOASSERTION",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
@@ -204,7 +204,7 @@
     {
       "SPDXID": "SPDXRef-Plugin-stack",
       "name": "stack",
-      "versionInfo": "1.0.12",
+      "versionInfo": "1.0.27",
       "downloadLocation": "NOASSERTION",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",
@@ -215,7 +215,7 @@
     {
       "SPDXID": "SPDXRef-Plugin-test",
       "name": "test",
-      "versionInfo": "1.0.12",
+      "versionInfo": "1.0.27",
       "downloadLocation": "NOASSERTION",
       "filesAnalyzed": false,
       "licenseConcluded": "MIT",

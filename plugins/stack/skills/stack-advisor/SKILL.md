@@ -1,6 +1,6 @@
 ---
 name: stack-advisor
-description: "Ask a solo developer what tools their project actually uses — hosting, DNS/CDN/WAF, database, auth, storage, analytics, email, payments, repo/CI — and record it as the single source of truth so every audit and build is stack-aware. Use when the user says intake, \"what stack\", set up the stack, \"tell you my stack\", before a first audit or build, or when .solo/stack.md is missing. Owns .solo/stack.md; run this first so other commands know the stack instead of guessing."
+description: Ask a solo developer what tools their project actually uses — hosting, DNS/CDN/WAF, database, auth, storage, analytics, email, payments, repo/CI — and record it as the single source of truth so every audit and build is stack-aware. Use when the user says intake, "what stack", set up the stack, "tell you my stack", before a first audit or build, or when .solo/stack.md is missing. Owns .solo/stack.md; run this first so other commands know the stack instead of guessing.
 ---
 
 # Stack Advisor
@@ -110,3 +110,7 @@ Based on what they use, surface the relevant next steps (only the applicable one
 ## Session lifecycle
 
 This skill works inside a session that the solo plugin bookends: `$solo-start-session` restores project context at the start (and recommends this intake when `stack.md` is missing), and `$solo-end-session` saves progress — including any stack changes — at the end. `$solo-run-cycle` checks `stack.md` at task selection and may route to the vendor audits this plugin provides. Keep `stack.md` current as tools change so those session commands stay accurate.
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

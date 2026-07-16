@@ -1,6 +1,6 @@
 ---
 name: data-migration
-description: "Plan and safely execute data migrations — moving data between databases or engines, large schema restructures, ETL/import jobs, splitting or merging tables, and backfills at scale — with validation, integrity checks, rollback, and zero-downtime cutover. Use whenever the user is migrating data, changing database engines (e.g. MySQL to Postgres), importing a large dataset, restructuring how data is stored, doing an ETL job, or asks how to move data safely without downtime or loss. Extends database-fix (which covers in-place schema changes) to full data moves."
+description: Plan and safely execute data migrations — moving data between databases or engines, large schema restructures, ETL/import jobs, splitting or merging tables, and backfills at scale — with validation, integrity checks, rollback, and zero-downtime cutover. Use whenever the user is migrating data, changing database engines (e.g. MySQL to Postgres), importing a large dataset, restructuring how data is stored, doing an ETL job, or asks how to move data safely without downtime or loss. Extends database-fix (which covers in-place schema changes) to full data moves.
 ---
 
 # Data Migration
@@ -78,3 +78,7 @@ This skill works inside a session that the solo plugin bookends: `$solo-start-se
 ## Stack awareness
 
 Before auditing or building, read `.solo/stack.md` if it exists — it records the project's actual tools (hosting, DNS/CDN/WAF, database, auth, storage, analytics/tags, email, payments, repo/CI), captured by `$stack-intake`. Tailor the work to the real stack instead of giving generic advice (e.g. don't suggest an S3 lifecycle rule to a Cloudinary project, or a generic WAF to a site already on Cloudflare). If `stack.md` is missing and the stack matters here, suggest running `$stack-intake` first. For vendor-specific depth, the stack plugin adds `$stack-audit-cloudflare`, `-vercel`, `-supabase`, `-tags`, and `-payments`.
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

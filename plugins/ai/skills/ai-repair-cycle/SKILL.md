@@ -12,4 +12,7 @@ Use $ai-output-auditor in repair-cycle mode. Apply it to the user's supplied arg
 Diagnose the root cause of the failure (missing context? ambiguous ask? wrong model? unstated constraint?) and produce a rewritten prompt that removes that cause so the next attempt succeeds.
 
 ## Output
-End with the 7-part contract: **Summary · Findings/Work done · Risks · Required fixes · Suggested tasks** (→ `.solo/tasks.md`, stable T-IDs) **· Verification · Next skill** (exact skill invocation).
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

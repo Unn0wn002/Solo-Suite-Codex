@@ -1,6 +1,6 @@
 ---
 name: dependency-audit
-description: "Audit a project's dependencies — known vulnerabilities (CVEs), outdated packages, license compliance, unmaintained or abandoned packages, supply-chain risks (typosquatting, dependency confusion, compromised packages), transitive dependency bloat, and lockfile health. Use whenever the user wants to review dependencies, check for vulnerable/outdated packages, audit licenses, assess supply-chain risk, \"are my npm/pip packages safe\", or clean up their dependency tree. Complements security-review (app code) and deployment-review (CI/CD)."
+description: Audit a project's dependencies — known vulnerabilities (CVEs), outdated packages, license compliance, unmaintained or abandoned packages, supply-chain risks (typosquatting, dependency confusion, compromised packages), transitive dependency bloat, and lockfile health. Use whenever the user wants to review dependencies, check for vulnerable/outdated packages, audit licenses, assess supply-chain risk, "are my npm/pip packages safe", or clean up their dependency tree. Complements security-review (app code) and deployment-review (CI/CD).
 ---
 
 # Dependency Audit
@@ -14,17 +14,12 @@ npm audit --json            # Node — or: pnpm audit / yarn npm audit
 pip-audit                   # Python (pip install pip-audit) — or: safety check
 ```
 Plus the manifest reader script for a cross-ecosystem inventory and staleness/lockfile check:
-read [`HELPERS.md`](../../HELPERS.md), resolve the installed plugin root from
-this `SKILL.md` rather than the current working directory, and select the first
-available documented Python 3 command.
-
-```text
-<python-command> <resolved-plugin-root>/scripts/run_helper.py dependency-audit/check-deps /path/to/project
+```bash
+python3 "<skill-root>/scripts/check_deps.py" /path/to/project
 ```
-Stdlib-only; parses package.json/requirements/lockfiles, reports direct vs transitive counts, pinning, and lockfile presence. Use the ecosystem's own audit tool for CVE data (it has the live advisory database) and the script for structure.
+> **Running helpers:** `<resolved-plugin-root>` is set by Codex to this plugin's installed root, so the command works from any working directory. If `python3` is not on PATH, use `python` (macOS/Linux/Windows) (Windows launcher) instead.
 
-The helper is dispatched by the plugin-level launcher; an individual skill
-folder is not a standalone Site Doctor installation.
+Stdlib-only; parses package.json/requirements/lockfiles, reports direct vs transitive counts, pinning, and lockfile presence. Use the ecosystem's own audit tool for CVE data (it has the live advisory database) and the script for structure.
 
 ## 1. Known vulnerabilities (CVEs) — but triage by reachability
 
@@ -81,3 +76,7 @@ This skill works inside a session that the solo plugin bookends: `$solo-start-se
 ## Stack awareness
 
 Before auditing or building, read `.solo/stack.md` if it exists — it records the project's actual tools (hosting, DNS/CDN/WAF, database, auth, storage, analytics/tags, email, payments, repo/CI), captured by `$stack-intake`. Tailor the work to the real stack instead of giving generic advice (e.g. don't suggest an S3 lifecycle rule to a Cloudinary project, or a generic WAF to a site already on Cloudflare). If `stack.md` is missing and the stack matters here, suggest running `$stack-intake` first. For vendor-specific depth, the stack plugin adds `$stack-audit-cloudflare`, `-vercel`, `-supabase`, `-tags`, and `-payments`.
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

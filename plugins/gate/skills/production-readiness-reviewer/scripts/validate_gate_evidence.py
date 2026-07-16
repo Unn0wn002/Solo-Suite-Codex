@@ -12,12 +12,20 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
-CATEGORIES = [
-    "Product", "Architecture", "Design", "Frontend", "Backend", "Database",
-    "Security", "Testing", "Performance", "SEO", "Analytics", "Deployment",
-    "Monitoring", "Documentation",
-]
-STATUSES = {"BLOCKED", "SAFE WITH WARNINGS", "SAFE TO LAUNCH"}
+def _gate_policy_module():
+    """Load the shared Gate policy from source or a trusted AgentRoom copy."""
+    path = Path(__file__).resolve().parent.parents[2] / "lib/gate_policy.py"
+    spec = importlib.util.spec_from_file_location("solo_suite_gate_policy", path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"cannot load shared Gate policy: {path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+gp = _gate_policy_module()
+CATEGORIES = list(gp.CATEGORY_LABEL_ORDER)
+STATUSES = gp.LAUNCH_STATUSES
 SCORE_STATUSES = {"SCORED", "INSUFFICIENT EVIDENCE"}
 DIGEST = re.compile(r"^sha256:([0-9a-f]{64})$")
 SKILL_INVOCATION = re.compile(r"^\$[a-z][a-z0-9-]*$")
@@ -29,20 +37,16 @@ WINDOWS_RESERVED = {
     *(f"COM{value}" for value in range(1, 10)),
     *(f"LPT{value}" for value in range(1, 10)),
 }
-PROJECT_PROFILES = {
-    "public-marketing-site", "saas-application", "e-commerce",
-    "internal-application", "api-service", "library-package",
-}
+PROJECT_PROFILES = gp.RECOGNIZED_PROFILES
 PROFILE_NA_ALLOWED = {
-    "public-marketing-site": frozenset({"Backend", "Database"}),
-    "saas-application": frozenset({"SEO"}),
-    "e-commerce": frozenset(),
-    "internal-application": frozenset({"SEO", "Analytics"}),
-    "api-service": frozenset({"Design", "Frontend", "Database", "SEO", "Analytics"}),
-    "library-package": frozenset({
-        "Design", "Frontend", "Backend", "Database", "SEO", "Analytics", "Monitoring",
-    }),
+    profile: frozenset(gp.CATEGORY_LABELS[category]
+                       for category in gp.PROFILE_NA_ALLOWED[profile])
+    for profile in gp.PROFILE_ORDER
 }
+MANDATORY_CATEGORIES = frozenset(
+    gp.CATEGORY_LABELS[category] for category in gp.MANDATORY
+)
+evaluate_production_gate = gp.evaluate_production_gate
 
 # Keep this list intentionally narrow: each entry is a real skill bundled with
 # Solo Suite and is capable of producing evidence relevant to the category.
@@ -636,7 +640,8 @@ def validate(data: object, root: Path, commit: str, environment: str,
     names = [record.get("category") for record in records if isinstance(record, dict)]
     if names != CATEGORIES:
         failures.append("categories must contain the exact 14 categories in canonical order")
-    scores: list[int] = []
+    scores: dict[str, int] = {}
+    not_applicable: set[str] = set()
     for index, record in enumerate(records):
         prefix = f"categories[{index}]"
         if not isinstance(record, dict):
@@ -690,16 +695,21 @@ def validate(data: object, root: Path, commit: str, environment: str,
         score = record.get("score")
         if not isinstance(score, int) or isinstance(score, bool) or not 0 <= score <= 10:
             failures.append(f"{prefix}.score must be an integer from 0 to 10")
-        else:
-            scores.append(score)
+        elif record.get("category") in CATEGORIES:
+            scores[str(record["category"])] = score
         applicability = record.get("applicability")
         if applicability not in {"applicable", "not-applicable"}:
             failures.append(f"{prefix}.applicability is invalid")
         if applicability == "not-applicable":
+            category_key = gp.LABEL_CATEGORIES.get(record.get("category"))
+            if category_key is not None:
+                not_applicable.add(category_key)
             if not isinstance(record.get("na_reason"), str) or not record["na_reason"].strip():
                 failures.append(f"{prefix}.na_reason is required for N/A")
-            if score != 10:
-                failures.append(f"{prefix}: verified N/A must score 10 under the fixed denominator")
+            if score != 0:
+                failures.append(
+                    f"{prefix}: N/A must score 0 and leave the applicable denominator"
+                )
             if record.get("evidence_type") != "applicability-record":
                 failures.append(
                     f"{prefix}: N/A evidence_type must be applicability-record"
@@ -773,12 +783,27 @@ def validate(data: object, root: Path, commit: str, environment: str,
                     failures.append(f"{prefix}.evidence_artifact is missing")
                 elif match and sha256(path) != match.group(1):
                     failures.append(f"{prefix}.artifact_digest does not match the file")
-    total = sum(scores) if len(scores) == 14 else None
+    applicable_labels = [
+        category for category in CATEGORIES
+        if gp.LABEL_CATEGORIES[category] not in not_applicable
+    ]
+    applicable_scores = [scores[category] for category in applicable_labels
+                         if category in scores]
+    complete_scores = len(scores) == len(CATEGORIES)
+    total = sum(applicable_scores) if complete_scores else None
+    normalized = None
+    if total is not None:
+        try:
+            normalized = gp.normalized_score(total, len(applicable_labels))
+        except ValueError as exc:
+            failures.append(f"production scoring policy rejected evidence: {exc}")
     if total is not None and data.get("total_score") != total:
-        failures.append("total_score does not equal the 14 category scores")
-    normalized = round(total / 140 * 100) if total is not None else None
+        failures.append("total_score does not equal the applicable category scores")
     if normalized is not None and data.get("normalized_score") != normalized:
-        failures.append("normalized_score does not equal round(total/140*100)")
+        failures.append(
+            "normalized_score does not equal "
+            "round(total/(10*applicable_category_count)*100)"
+        )
     if mode == "score":
         assessment = data.get("assessment_status")
         if assessment not in {"SCORED", "INSUFFICIENT EVIDENCE"}:
@@ -801,17 +826,27 @@ def validate(data: object, root: Path, commit: str, environment: str,
         failures.append("launch_status is invalid")
     blockers = data.get("blockers") if isinstance(data.get("blockers"), list) else []
     warnings = data.get("warnings") if isinstance(data.get("warnings"), list) else []
-    if (blockers or (normalized is not None and normalized < 70)) and status != "BLOCKED":
-        failures.append("launch_status must be BLOCKED for blockers or a score below 70")
-    if status == "SAFE WITH WARNINGS" and blockers:
-        failures.append("SAFE WITH WARNINGS cannot contain blockers")
-    if status == "SAFE TO LAUNCH":
-        if normalized is not None and normalized < 85:
-            failures.append("SAFE TO LAUNCH requires a normalized score of at least 85")
-        if scores and min(scores) < 7:
-            failures.append("SAFE TO LAUNCH requires every category score to be at least 7")
-        if blockers or warnings:
-            failures.append("SAFE TO LAUNCH requires empty blockers and warnings")
+    if (normalized is not None and applicable_scores and
+            data.get("project_profile") in PROJECT_PROFILES):
+        policy_scores = {
+            gp.LABEL_CATEGORIES[category]: scores[category]
+            for category in CATEGORIES if category in scores
+        }
+        if len(policy_scores) == len(gp.CATEGORY_ORDER):
+            try:
+                assessment = gp.evaluate_production_gate(
+                    policy_scores, data["project_profile"], not_applicable,
+                    blockers, warnings,
+                )
+            except ValueError as exc:
+                failures.append(f"production policy rejected evidence: {exc}")
+            else:
+                expected = assessment["launch_status"]
+                if status in STATUSES and status != expected:
+                    failures.append(
+                        f"launch_status must be {expected} under the shared "
+                        "production policy"
+                    )
     return failures
 
 

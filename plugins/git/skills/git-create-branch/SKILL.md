@@ -12,4 +12,7 @@ Use $git-workflow-manager in create-branch mode. Apply it to the user's supplied
 Derive a safe `type/scope-desc` branch name from the current `.solo/tasks.md` task (or the provided text), confirm the base branch, and output the exact `git checkout -b` command. Don't switch branches or run git for the user unless asked.
 
 ## Output
-End with the 7-part contract: **Summary · Findings/Work done · Risks · Required fixes · Suggested tasks** (→ `.solo/tasks.md`, stable T-IDs) **· Verification · Next skill** (exact skill invocation).
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

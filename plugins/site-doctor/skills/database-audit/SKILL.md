@@ -1,38 +1,22 @@
 ---
 name: database-audit
-description: "Audit a database for schema quality, missing or wasted indexes, slow queries, security misconfiguration, data integrity problems, and operational risk. Works with PostgreSQL, MySQL, and SQLite. Use whenever the user asks to audit, review, check, or health-check a database or schema, asks \"why are queries slow\", \"are my indexes right\", \"is my DB production ready\", mentions a migration review, or wants a database checked alongside a website audit."
+description: Audit a database for schema quality, missing or wasted indexes, slow queries, security misconfiguration, data integrity problems, and operational risk. Works with PostgreSQL, MySQL, and SQLite. Use whenever the user asks to audit, review, check, or health-check a database or schema, asks "why are queries slow", "are my indexes right", "is my DB production ready", mentions a migration review, or wants a database checked alongside a website audit.
 ---
 
 # Database Audit
 
-An audit is read-only. Run only `SELECT`, read-only `EXPLAIN`, `SHOW`, and the
-explicitly allowlisted query-form PRAGMAs in `references/audit-queries.md`.
-Never run `ANALYZE`, `VACUUM`, `REINDEX`, `PRAGMA optimize`, assignment-form
-PRAGMAs, DDL, DML, stored procedures, or a multi-statement file that contains
-anything outside that allowlist. Findings get fixed later through the
-**database-fix** skill.
-
-## Read-only execution contract
-
-- Prefer a recent snapshot. On production, require a database role that cannot
-  write; do not rely on an instruction prompt as the permission boundary.
-- PostgreSQL/MySQL: verify the session/role is read-only before querying and
-  stop if it is not. SQLite: open with URI `mode=ro` (or an equivalent
-  immutable snapshot), never with the application's normal read-write handle.
-- Inspect each statement before execution. Reject batches, extensions, or
-  vendor commands that can invoke functions with side effects even if their
-  first token looks read-only.
-- Query output can contain personal or secret data. Select metadata and
-  aggregates only, redact sensitive values, and never paste credentials or raw
-  customer rows into the report or project memory.
+An audit is read-only. Run only SELECTs, EXPLAINs, SHOWs, and **read-only** PRAGMAs (query form, never `PRAGMA x = value`, never `PRAGMA optimize`, never `ANALYZE`/`VACUUM`/`REINDEX`) — never mutate data, schema, or planner statistics while auditing, and prefer a read-only role or a recent snapshot for production databases. Findings get fixed later via the **database-fix** skill.
 
 ## Setup
 
 1. Identify the engine and version (`SELECT version();` / `SELECT sqlite_version();`) — the checks and queries differ per engine.
-2. Get access through a read-only environment variable, OS secret store, or
-   connector. Never ask the user to paste a connection string into chat or
-   persist it in `.solo/`. For SQLite, use a read-only file URI. If access is
-   unavailable, ask for a schema-only dump plus a sanitized slow-query log.
+2. Get access without collecting secrets in chat: for PG/MySQL request only
+   the **name** of an environment variable, client profile, local socket, or
+   secret-store reference, and confirm the resolved account is read-only.
+   Never ask for or repeat a credential-bearing connection string. For SQLite,
+   use a file path. If live access is unavailable, ask for schema dumps
+   (`pg_dump --schema-only`, `mysqldump --no-data`, `.schema`) plus a redacted
+   slow-query log and audit from those.
 3. Ask what the workload looks like (read-heavy web app? write-heavy ingest?) — a "missing index" on a table written 1000×/sec and read once/day is not a finding.
 
 **Ready-to-run queries for every check below live in `references/audit-queries.md`, grouped by engine. Open it and use those instead of writing queries from scratch.**
@@ -95,3 +79,7 @@ This skill works inside a session that the solo plugin bookends: `$solo-start-se
 ## Stack awareness
 
 Before auditing or building, read `.solo/stack.md` if it exists — it records the project's actual tools (hosting, DNS/CDN/WAF, database, auth, storage, analytics/tags, email, payments, repo/CI), captured by `$stack-intake`. Tailor the work to the real stack instead of giving generic advice (e.g. don't suggest an S3 lifecycle rule to a Cloudinary project, or a generic WAF to a site already on Cloudflare). If `stack.md` is missing and the stack matters here, suggest running `$stack-intake` first. For vendor-specific depth, the stack plugin adds `$stack-audit-cloudflare`, `-vercel`, `-supabase`, `-tags`, and `-payments`.
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

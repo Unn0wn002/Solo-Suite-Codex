@@ -19,5 +19,12 @@ deployment-review. Record what shipped in .solo/.
 
 Record the plan in **`.solo/release.md`**.
 
+## Plan-only safety boundary
+
+This skill may inspect evidence and write a deployment **plan only**. It must not deploy, run a migration, shift traffic, execute production commands, publish artifacts, or cause any external side effect. Plan approval is not execution authorization. If execution is requested, stop after producing the plan and create a separate handoff that names the environment, exact proposed actions, prerequisites, risks, verification, and rollback trigger. Production execution requires a distinct explicit user confirmation after that handoff and a separately authorized execution workflow or tool.
+
 ## Output
-End with the 7-part contract: **Summary · Findings/Work done · Risks · Required fixes · Suggested tasks** (→ `.solo/tasks.md`, stable T-IDs) **· Verification · Next skill** (exact skill invocation).
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

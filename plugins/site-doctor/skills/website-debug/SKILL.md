@@ -1,6 +1,6 @@
 ---
 name: website-debug
-description: "Systematically debug broken website behavior — blank pages, JavaScript errors, failed API calls, CORS errors, 500s, hydration mismatches, WebSocket disconnects, layout breakage, or \"works locally but not in production\". Use whenever something on a site or web app is broken, erroring, hanging, or behaving strangely and the cause is not yet known, including when the user just pastes an error message or screenshot and says \"why is this happening\" or \"fix this\"."
+description: Systematically debug broken website behavior — blank pages, JavaScript errors, failed API calls, CORS errors, 500s, hydration mismatches, WebSocket disconnects, layout breakage, or "works locally but not in production". Use whenever something on a site or web app is broken, erroring, hanging, or behaving strangely and the cause is not yet known, including when the user just pastes an error message or screenshot and says "why is this happening" or "fix this".
 ---
 
 # Website Debug
@@ -71,3 +71,7 @@ This skill works inside a session that the solo plugin bookends: `$solo-start-se
 ## Stack awareness
 
 Before auditing or building, read `.solo/stack.md` if it exists — it records the project's actual tools (hosting, DNS/CDN/WAF, database, auth, storage, analytics/tags, email, payments, repo/CI), captured by `$stack-intake`. Tailor the work to the real stack instead of giving generic advice (e.g. don't suggest an S3 lifecycle rule to a Cloudinary project, or a generic WAF to a site already on Cloudflare). If `stack.md` is missing and the stack matters here, suggest running `$stack-intake` first. For vendor-specific depth, the stack plugin adds `$stack-audit-cloudflare`, `-vercel`, `-supabase`, `-tags`, and `-payments`.
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

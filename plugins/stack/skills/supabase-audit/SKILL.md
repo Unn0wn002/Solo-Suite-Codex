@@ -1,6 +1,6 @@
 ---
 name: supabase-audit
-description: "Audit a Supabase project — Row Level Security (RLS) policies, public/private table exposure, auth settings, API key usage, storage bucket policies, edge functions, database indexes, slow queries, backups, and realtime rules. Use when the user wants a Supabase review, \"check my Supabase\", RLS/security/database configuration on Supabase, or asks if their Supabase is safe. Vendor-specific front end to site-doctor's security-review, database-audit, and backup-recovery; reads .solo/stack.md; uses a Supabase connector for live config when available."
+description: Audit a Supabase project — Row Level Security (RLS) policies, public/private table exposure, auth settings, API key usage, storage bucket policies, edge functions, database indexes, slow queries, backups, and realtime rules. Use when the user wants a Supabase review, "check my Supabase", RLS/security/database configuration on Supabase, or asks if their Supabase is safe. Vendor-specific front end to site-doctor's security-review, database-audit, and backup-recovery; reads .solo/stack.md; uses a Supabase connector for live config when available.
 ---
 
 # Supabase Audit
@@ -67,3 +67,7 @@ Either way, every finding must name its evidence (which setting, file, screensho
 ## Session lifecycle
 
 This skill works inside a session that the solo plugin bookends: `$solo-start-session` restores project context at the start (reading `.solo/`), and `$solo-end-session` saves progress, blockers, decisions, and the next task at the end. `$solo-run-cycle` may invoke this skill as one step of a complete task cycle. Keep `.solo/` current as you go so those session commands stay accurate.
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

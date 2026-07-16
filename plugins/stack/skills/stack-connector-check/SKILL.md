@@ -9,7 +9,7 @@ Follow this workflow using the user's supplied context. Preserve stated gates, e
 
 Use $connector-auditor to check connector availability. Apply it to the user's supplied arguments and surrounding request.
 
-Read `.solo/stack.md` first (offer `$stack-intake` if missing). For each connector in scope — Vercel, Supabase, GitHub, Cloudflare, or just the one named — report the tier actually reached: **live** (a connector/MCP/API answered a read-only probe; name the call and what it returned), **local config** (name the file: `vercel.json`, Supabase migrations/policy SQL, `.github/`, `wrangler.toml`), or **neither → Manual mode**. No probe, no claim — a tier is asserted only from a real response or a real file, never assumed. Read-only throughout; never print secret values.
+Read `.solo/stack.md` first (offer `$stack-intake` if missing). For each connector in scope — Vercel, Supabase, GitHub, Cloudflare, or just the one named — report the tier actually reached: **live** (a connector/MCP/API answered a read-only probe; name the call and what it returned), **local config** (name the file: `vercel.json`, Supabase migrations/policy SQL, `.github/`, `wrangler.toml`), or **neither → Manual mode**. No probe, no claim — a tier is asserted only from a real response or a real file, never assumed. External probes are read-only: never mutate vendor state or print secret values. The command's only write is the idempotent local project-memory update below.
 
 Write the result to `.solo/stack.md` under `## Connectors` (replace the section if it exists — idempotent, no duplicates), and end by recommending which `$stack-audit-*` commands can run in Connector mode versus Manual. Payments and tag platforms are checked inside their own audits (`$stack-audit-payments`, `$stack-audit-tags`), not here.
 
@@ -46,5 +46,9 @@ Low / Medium / High / Critical
 1. …
 
 ## Next Recommended Skill
-$stack-intake — use it when connector configuration or ownership evidence is incomplete.
+No follow-up skill is implied here; choose the next validated skill for the current workflow.
 ```
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

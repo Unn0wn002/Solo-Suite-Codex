@@ -1,6 +1,6 @@
 ---
 name: website-audit
-description: "Run a comprehensive website health audit covering security headers, performance, SEO, accessibility, broken links, and code hygiene, producing a severity-ranked report with a concrete fix plan. Use whenever the user asks to audit, check, review, or health-check a website or web app, asks \"what's wrong with my site\", \"is this production ready\", mentions a pre-launch checklist, SEO check, security check, slow pages, or a Lighthouse-style review — even if they never say the word \"audit\"."
+description: Run a comprehensive website health audit covering security headers, performance, SEO, accessibility, broken links, and code hygiene, producing a severity-ranked report with a concrete fix plan. Use whenever the user asks to audit, check, review, or health-check a website or web app, asks "what's wrong with my site", "is this production ready", mentions a pre-launch checklist, SEO check, security check, slow pages, or a Lighthouse-style review — even if they never say the word "audit".
 ---
 
 # Website Audit
@@ -15,18 +15,17 @@ Produce a report the user can act on. Every finding needs three parts — **evid
 
 ## Run the bundled scripts first
 
-They're stdlib-only Python, no installs needed. Before running them, read
-[`HELPERS.md`](../../HELPERS.md), resolve the installed plugin root from this
-`SKILL.md` (not the current working directory), and select `python3`, `python`,
-or `py -3` as documented there.
+They're stdlib-only Python, no installs needed:
 
-```text
+```bash
 # Security headers, HTTPS redirect, compression, cookie flags, exposed files
-<python-command> <resolved-plugin-root>/scripts/run_helper.py website-audit/check-headers https://example.com
+python3 "<skill-root>/scripts/check_headers.py" https://example.com
 
 # Crawl same-domain pages, find broken links + mixed content
-<python-command> <resolved-plugin-root>/scripts/run_helper.py website-audit/check-links https://example.com --max-pages 30 --max-redirects 1 --mixed-content fail
+python3 "<skill-root>/scripts/check_links.py" https://example.com --max-pages 30
 ```
+> **Running helpers:** `<resolved-plugin-root>` is set by Codex to this plugin's installed root, so the command works from any working directory. If `python3` is not on PATH, use `python` (macOS/Linux/Windows) (Windows launcher) instead.
+
 
 Use their output as raw evidence, then do the manual checks below. If a script can't reach the site (auth wall, localhost-only), fall back to `curl -sI` and reading the codebase.
 
@@ -133,7 +132,8 @@ Before auditing or building, read `.solo/stack.md` if it exists — it records t
 
 ## Script safety (url_guard)
 
-The bundled script(s) route every outbound request through `plugins/site-doctor/lib/url_guard.py`: HTTPS-first scheme policy (http only where auditing it is the point), refusal of loopback/private/link-local/CGNAT/reserved/multicast and cloud-metadata targets — every DNS answer and every redirect hop is re-validated — plus a hard response-size cap. A refused target prints `BLOCKED unsafe target: <reason>` instead of being fetched.
+The bundled script(s) route every outbound request through `<skill-root>/../../lib/url_guard.py` (shipped at `plugins/site-doctor/lib/url_guard.py` in the source tree): HTTPS-first scheme policy (http only where auditing it is the point), refusal of loopback/private/link-local/CGNAT/reserved/multicast and cloud-metadata targets — every DNS answer and every redirect hop is re-validated — plus a hard response-size cap. A refused target prints `BLOCKED unsafe target: <reason>` instead of being fetched.
 
-These helpers require the intact Site Doctor plugin: the launcher and shared
-`lib/url_guard.py` are not packaged inside an individual skill folder.
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

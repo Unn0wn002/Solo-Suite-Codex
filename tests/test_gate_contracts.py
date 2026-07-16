@@ -253,9 +253,12 @@ class ScoreOnlyContract(unittest.TestCase):
     def test_all_na_score_cannot_masquerade_as_scored(self):
         for record in self.evidence["categories"]:
             record["applicability"] = "not-applicable"
+            record["score"] = 0
             record["na_reason"] = "No evidence was collected."
             record["evidence_type"] = "applicability-record"
             record["provenance"]["source_kind"] = "repository-record"
+        self.evidence["total_score"] = 0
+        self.evidence["normalized_score"] = 0
         self.assertTrue(any("all-N/A" in item for item in self.validate()))
 
 

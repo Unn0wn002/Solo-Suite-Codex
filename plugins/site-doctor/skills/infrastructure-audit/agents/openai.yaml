@@ -2,3 +2,5 @@ interface:
   display_name: "Infrastructure Audit"
   short_description: "Run the Infrastructure Audit workflow in Codex"
   default_prompt: "Use $infrastructure-audit to help with this project."
+policy:
+  allow_implicit_invocation: false

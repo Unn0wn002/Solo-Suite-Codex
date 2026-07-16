@@ -12,4 +12,7 @@ Use $git-workflow-manager in release-notes mode. Apply it to the user's supplied
 From commits since the last tag plus `.solo/decisions.md` and Done tasks, produce two views: **user-facing** (new / fixed / changed, plain language) and **technical** (notable changes, migrations, breaking changes, upgrade steps).
 
 ## Output
-End with the 7-part contract: **Summary · Findings/Work done · Risks · Required fixes · Suggested tasks** (→ `.solo/tasks.md`, stable T-IDs) **· Verification · Next skill** (exact skill invocation).
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

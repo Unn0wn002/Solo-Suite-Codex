@@ -1,6 +1,6 @@
 ---
 name: load-testing
-description: "Plan and interpret load, stress, and capacity testing for a website or API — designing realistic load scenarios, choosing metrics and thresholds, finding bottlenecks and breaking points, testing spikes and sustained load, and turning results into scaling and capacity decisions. Use whenever the user wants to load test, stress test, check capacity, \"can my site handle traffic\", prepare for a launch/spike/sale, find performance bottlenecks under load, or size infrastructure. Complements performance-tuning (single-user speed) with a concurrency lens."
+description: Plan and interpret load, stress, and capacity testing for a website or API — designing realistic load scenarios, choosing metrics and thresholds, finding bottlenecks and breaking points, testing spikes and sustained load, and turning results into scaling and capacity decisions. Use whenever the user wants to load test, stress test, check capacity, "can my site handle traffic", prepare for a launch/spike/sale, find performance bottlenecks under load, or size infrastructure. Complements performance-tuning (single-user speed) with a concurrency lens.
 ---
 
 # Load Testing
@@ -73,3 +73,7 @@ This skill works inside a session that the solo plugin bookends: `$solo-start-se
 ## Stack awareness
 
 Before auditing or building, read `.solo/stack.md` if it exists — it records the project's actual tools (hosting, DNS/CDN/WAF, database, auth, storage, analytics/tags, email, payments, repo/CI), captured by `$stack-intake`. Tailor the work to the real stack instead of giving generic advice (e.g. don't suggest an S3 lifecycle rule to a Cloudinary project, or a generic WAF to a site already on Cloudflare). If `stack.md` is missing and the stack matters here, suggest running `$stack-intake` first. For vendor-specific depth, the stack plugin adds `$stack-audit-cloudflare`, `-vercel`, `-supabase`, `-tags`, and `-payments`.
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

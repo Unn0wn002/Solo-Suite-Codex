@@ -1,10 +1,10 @@
 # Solo Suite for Codex
 
-Solo Suite is a Codex-native plugin marketplace for planning, designing, building, testing, auditing, and releasing software with shared `.solo/` project memory. This edition preserves the 100 workflows from Solo Suite v1.0.10 by migrating each legacy command to an explicit Codex skill.
+Solo Suite is a Codex-native plugin marketplace for planning, designing, building, testing, auditing, and releasing software with shared `.solo/` project memory. This adapter synchronizes 102 workflows from the reconstructed Claude baseline paired with Codex v1.0.27, migrating each legacy command to an explicit Codex skill. That source is checked in under `parity/artifacts/` and published as the release asset `solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip`; its identity, reconstruction inputs, exact byte overlay, and provenance caveat are pinned under [`parity/`](parity/README.md).
 
-**18 plugins** · **157 skills** · **100 migrated commands** · **20 helper scripts**
+**18 plugins** · **159 skills** · **102 migrated commands** · **24 helper scripts**
 
-The 157 skills comprise 56 specialist skills, 100 command-derived skills, and the new `full-team-orchestrator` meta-skill. The authoritative one-to-one migration is in [`command-map.json`](command-map.json) and the readable table is in [`COMMAND-MAP.md`](COMMAND-MAP.md).
+The 159 skills comprise 56 synchronized specialist skills, 102 command-derived skills, and the Codex-native `full-team-orchestrator` meta-skill. The authoritative one-to-one migration is in [`command-map.json`](command-map.json), the readable table is in [`COMMAND-MAP.md`](COMMAND-MAP.md), and the source-to-adapter contract is in [`parity/capabilities.json`](parity/capabilities.json).
 
 ## What changed for Codex
 
@@ -20,15 +20,37 @@ Legacy lookup                 Codex invocation
 
 The legacy names are documentation-only migration keys. There is no Claude command runtime or `${CLAUDE_PLUGIN_ROOT}` dependency in this release. Skills that can mutate files, deploy, synchronize externally, submit forms, handle secrets, or touch production are explicit-only through `agents/openai.yaml` policy.
 
+Two implementations remain intentionally platform-native: Codex keeps its executable, resumable AgentRoom runner and its Codex marketplace integrity checker. The canonical Claude AgentRoom files are archived under `parity/claude-rooms`, and both exceptions are declared in the parity manifest. All other commands, specialist instructions, shared helpers, schemas, and policies are checked mechanically against the pinned source archive. A validated package build refuses to proceed unless that archive's SHA-256 is exact and its bundled checker passes against the release tree.
+
 ## Install
 
-Unpack the release so it has one enclosing `solo-suite-codex-v1.0.12/` folder, then register that folder as a local marketplace:
+Unpack the release so it has one enclosing `solo-suite-codex-v1.0.27/` folder, then register that folder as a local marketplace:
 
 ```powershell
-codex plugin marketplace add "C:\path\to\solo-suite-codex-v1.0.12"
+codex plugin marketplace add "C:\path\to\solo-suite-codex-v1.0.27"
 codex plugin add solo@solo-suite-codex
 codex plugin add project@solo-suite-codex
 codex plugin add dev@solo-suite-codex
+```
+
+Before installing a plugin, verify that Codex has exactly one configured
+`solo-suite-codex` marketplace and that its `root` is the folder you just
+unpacked:
+
+```powershell
+codex plugin marketplace list --json
+```
+
+Codex selects the first matching marketplace name. If the list contains a
+duplicate or an older root, stop: repeat `codex plugin marketplace remove
+solo-suite-codex` while reviewing the list after each removal, then add the
+intended folder again. Do not install until the name is unique and the root
+matches; otherwise a successful-looking `codex plugin add` can install an old
+same-name cache. From a source checkout, the optional native smoke check makes
+the same guard and verifies all 18 installed trees:
+
+```powershell
+python tools/native_install_smoke.py --suite-root . --check-current
 ```
 
 On macOS or Linux, use the same commands with a POSIX path. Install any combination of component plugins from the inventory below. Start a new Codex task after installing or updating so the new skills are loaded.
@@ -46,7 +68,17 @@ Then invoke:
 $full-team-orchestrator
 ```
 
-Codex's current plugin manifest contract has no plugin-dependency field. Consequently, installing `full-team` does not silently install its components. The orchestrator checks the component list in `plugins/full-team/skills/full-team-orchestrator/references/component-plugins.json`, reports missing plugins, and degrades only with an explicit evidence-backed reason.
+## Usage
+
+Start with an explicit skill invocation, for example `$solo-self-check` for
+mechanical suite/project checks or `$full-team-orchestrator` for the prepared
+multi-seat workflow. Each skill reports its evidence, risks, required fixes,
+stable task IDs, verification command, and the exact next skill. Mutating,
+external-sync, form-submit, deployment, rollback, and production workflows
+remain preview/confirmation-gated; invoking a skill does not authorize those
+side effects.
+
+Codex's current plugin manifest contract has no plugin-dependency field. Consequently, installing `full-team` does not silently install its components. The orchestrator checks the component list in `plugins/full-team/skills/full-team-orchestrator/references/component-plugins.json`, enforces the v1.0.27 minimum floor and every room-declared skill, and fails closed before preparation when coverage is missing. It may report degraded coverage, but it does not call that report an authoritative full-team run.
 
 ## Plugin inventory
 
@@ -66,16 +98,37 @@ Codex's current plugin manifest contract has no plugin-dependency field. Consequ
 | `repo` | 6 | 5 | Read-only repository mapping and risk analysis |
 | `security` | 6 | 5 | Threat, authorization, RLS, secret, and abuse-case reviews |
 | `browser` | 6 | 5 | Browser smoke, console, visual, mobile, and form QA |
-| `gate` | 7 | 5 | Before-code/merge/deploy and production gates |
+| `gate` | 8 | 6 | Before-code/merge/deploy, evidence finalization, and production gates |
 | `ai` | 8 | 6 | Prompt, handoff, output, repair, and AgentRooms workflows |
 | `growth` | 2 | 1 | Conditional conversion audit |
-| `full-team` | 1 | 0 | Meta-orchestrator for the 17 components |
+| `full-team` | 2 | 1 | Meta-orchestrator and canonical full-team verification workflow |
 
 ## Full-team workflow
 
-`$full-team-orchestrator` and `$solo-full-team-dev` coordinate these roles when the project profile makes them relevant: Product Manager, Software Architect, UI/UX Designer, Frontend Developer, Backend Developer, Database Engineer, QA Engineer, Browser QA Engineer, Security Engineer, DevOps Engineer, Release Manager, Documentation Writer, Git/PR Manager, Repo Analyst, AI Agent Reviewer, Growth/Conversion Reviewer, and Site Doctor.
+`$full-team-orchestrator` is the single authoritative full-team entrypoint. It
+executes the `full-team-website.json` AgentRoom through `preflight.py`,
+`prepare_run.py`, and `run_room.py`; the generated
+[`authoritative flow`](plugins/full-team/skills/full-team-orchestrator/references/authoritative-flow.md)
+and [`seat/stage map`](plugins/full-team/skills/full-team-orchestrator/references/seat-stage-map.md)
+are derived from that JSON. `$solo-full-team-dev` is a compatibility alias that
+delegates to the same room and owns no separate schedule.
 
-The flow begins with `$stack-intake` before `$stack-connector-check`, orders architecture before database architecture and design, performs `$ai-review-output` between major phases, includes `$test-edge-cases`, and runs `$design-ui-review` after implementation. The advanced-website room requires accessibility, visual/cross-browser, forms/privacy, dependency/SBOM, performance/load, lint/type, contract, migration, browser-QA, environment, and release evidence before its dedicated pre-deploy gate. Every gate consumes the prepared-room digest and evidence bound to the exact run, gate, commit, environment, declared prerequisite, producer command, artifact digest, and maximum age. `run_room.py` additionally binds cited evidence to commands recorded for the actual producing task. A failed gate enters a status-driven, bounded three-iteration repair/retest loop; only a freshly revalidated before-deploy `GO` can reach production, and the strict room completes only with `SAFE TO LAUNCH`. Growth and provider-specific reviews run only when the project profile and `.solo/stack.md` make them applicable. Every skipped category needs a digest-bound profile reason permitted by the selected profile's narrow N/A policy.
+The room has 15 stages, 24 worker seats, and one memory steward (25 seat
+definitions total). It begins with `$stack-intake` before
+`$stack-connector-check`, orders architecture before database architecture and
+design, performs `$ai-review-output` between major phases, includes
+`$test-edge-cases`, and runs `$design-ui-review` after implementation. The
+Site Doctor seat declares conditional Vercel, Supabase, Cloudflare, analytics
+tag, and payments tasks; each runs only when `.solo/stack.md` records that
+provider, otherwise it records an evidence-backed N/A artifact. Every gate
+consumes the prepared-room digest and evidence bound to the exact run, gate,
+commit, environment, declared prerequisite, producer command, artifact digest,
+and maximum age. `run_room.py` additionally binds cited evidence to commands
+recorded for the actual producing task. A failed gate enters a status-driven,
+bounded three-iteration repair/retest loop; only a freshly revalidated
+before-deploy `GO` can reach production, and the strict room completes only
+with `SAFE TO LAUNCH`. Every skipped category needs a digest-bound profile
+reason permitted by the selected profile's narrow N/A policy.
 
 Supported profiles include public marketing site, SaaS application, e-commerce, internal application, API/service, and library/package.
 
@@ -96,13 +149,13 @@ tests.md          release.md        monitoring.md     handoff.md
 
 `$gate-production-ready` evaluates exactly 14 categories: Product, Architecture, Design, Frontend, Backend, Database, Security, Testing, Performance, SEO, Analytics, Deployment, Monitoring, and Documentation.
 
-Each category is scored from 0 to 10. The total is `/140`; the normalized score is `round(total / 140 * 100)`. Production status is one of:
+Each applicable category is scored from 0 to 10. A matrix-accepted N/A category contributes neither points nor denominator, so `applicable_max = 10 * applicable_category_count` and the normalized score is `round(total / applicable_max * 100)`. The seven mandatory categories keep the denominator at `/70` or higher; `/140` applies only when all 14 categories are applicable. Production status is one of:
 
 - `BLOCKED`
 - `SAFE WITH WARNINGS`
 - `SAFE TO LAUNCH`
 
-The gate validates machine-readable evidence, the prepared-room digest, category-specific real-skill allowlists, nested run/gate identity, exact room-declared category artifacts, a separate project-profile applicability contract, typed provenance, structured actionable warnings, SHA-256 digests, commit/environment identity, chronology, expiration, and maximum age. An all-N/A score cannot become launch approval. Evidence from another run, gate, commit, or environment; invented or cross-category skills; substituted or reused artifacts; over-age evidence; changed digests; and provenance that postdates the review are rejected. Production also revalidates the required before-deploy phase evidence and all of its prerequisites. GO/NO-GO wording is reserved for the narrower before-code, before-merge, and before-deploy gates.
+The direct checker and AgentRoom validator import the same `plugins/gate/lib/gate_policy.py` definitions for category order, six-profile N/A applicability, mandatory categories, denominator, thresholds, and launch-status decision. N/A evidence carries score `0` as a serialization sentinel and can never inflate the total. The gate also validates machine-readable evidence, the prepared-room digest, category-specific real-skill allowlists, nested run/gate identity, exact room-declared category artifacts, a separate project-profile applicability contract, typed provenance, structured actionable warnings, SHA-256 digests, commit/environment identity, chronology, expiration, and maximum age. Evidence from another run, gate, commit, or environment; invented or cross-category skills; substituted or reused artifacts; over-age evidence; changed digests; and provenance that postdates the review are rejected. Production also revalidates the required before-deploy phase evidence and all of its prerequisites. GO/NO-GO wording is reserved for the narrower before-code, before-merge, and before-deploy gates.
 
 ## AgentRooms
 
@@ -152,11 +205,23 @@ python plugins/ai/skills/agent-room-templates/scripts/validate_rooms.py --suite 
 Publication-grade packages are built only from a clean Git commit. The packager snapshots `HEAD`, generates release metadata in a disposable staging directory, and leaves tracked source files unchanged:
 
 ```powershell
-python tools/package_release.py --output ..\solo-suite-codex-v1.0.12.zip --validation-state validated
-python tools/smoke_package.py ..\solo-suite-codex-v1.0.12.zip
+python tools/build_canonical_source.py --base-archive ..\solo-suite-plugin-v1.0.26.zip --output ..\solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip
+python tools/verify_source_overlay.py --base-archive ..\solo-suite-plugin-v1.0.26.zip --canonical-source-archive parity\artifacts\solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip --target .
+python tools/verify_source_overlay.py --canonical-only --canonical-source-archive parity\artifacts\solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip --target .
+python tools/package_release.py --output ..\solo-suite-codex-v1.0.27.zip --validation-state validated --canonical-source-archive ..\solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip
+python tools/smoke_package.py ..\solo-suite-codex-v1.0.27.zip --canonical-source-archive ..\solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip
 git diff --exit-code
 git status --short --untracked-files=all
 ```
+
+The source builder verifies the supplied v1.0.26 base digest, applies 19 disclosed replacements (eight Site Doctor helpers, eight command sources, and three gate-policy files), adds three generated verification/provenance files, regenerates both sides' `capabilities.json` contract, and runs the complete parity check before emitting a deterministic archive. The independent overlay verifier then rejects any byte difference not listed in `parity/source-overlay-manifest.json`. Repeating the build with the pinned inputs must reproduce the archive digest in `parity/canonical-source.json`.
+
+The public Claude v1.0.26 release asset, annotated tag, source tree, and
+provenance record are authenticated and independently reachable. The paired
+archive is therefore accurately labeled a **reconstructed adapter baseline**:
+it is not a byte-identical claim against the later Claude v1.0.27 release. The
+overlay manifest proves exactly what changed, and the accepted baseline-scope
+decision is recorded in `.solo/decisions.md`.
 
 The final status command must print nothing. Intentional release output under ignored `dist/` is omitted by Git.
 
@@ -164,4 +229,4 @@ The Site Doctor command reference and ready-to-adapt prompts are in `site-doctor
 
 ## Publisher and license
 
-The original marketplace owner `Ayaya` and the MIT copyright holder Sakura Yukihira refer to the same publisher identity, recorded here as `Sakura Yukihira (Ayaya)`. The supplied archive did not contain a verified repository or homepage; this Codex release is maintained at [Unn0wn002/Solo-Suite-Codex](https://github.com/Unn0wn002/Solo-Suite-Codex), whose visibility and access are controlled by the publisher. See `LICENSE`, `SECURITY.md`, and `CONTRIBUTING.md`.
+The original marketplace owner `Ayaya` and the MIT copyright holder Sakura Yukihira refer to the same publisher identity, recorded here as `Sakura Yukihira (Ayaya)`. The public Claude v1.0.26 release, annotated tag, asset, and provenance record are linked from [`parity/canonical-source.json`](parity/canonical-source.json). This Codex adapter is maintained at [Unn0wn002/Solo-Suite-Codex](https://github.com/Unn0wn002/Solo-Suite-Codex), whose visibility and access are controlled by the publisher. See `LICENSE`, `SECURITY.md`, and `CONTRIBUTING.md`.

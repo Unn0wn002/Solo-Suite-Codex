@@ -9,8 +9,12 @@ Follow this workflow using the user's supplied context. Preserve stated gates, e
 
 Use $database-audit to audit the user's supplied arguments and surrounding request.
 
-If no target was provided, first ask for the engine and how to access it
-(connection string, SQLite file path, or schema dump). Use the read-only
+If no target was provided, first ask for the engine and how to access it.
+For PostgreSQL/MySQL, request only the NAME of an environment variable,
+client profile, local socket, or secret-store reference -- never ask the user
+to paste a credential-bearing connection string into chat or command
+arguments. A SQLite file path or schema dump is also acceptable. Confirm that
+any live account is read-only before connecting. Use the read-only
 queries from the skill's references/audit-queries.md, work through all six
 categories, and produce the standard severity-ranked report. Finish by
 offering to apply fixes with the database-fix skill.
@@ -48,5 +52,9 @@ Low / Medium / High / Critical
 1. …
 
 ## Next Recommended Skill
-$database-audit — use it to investigate verified data, schema, or access findings.
+No follow-up skill is implied here; choose the next validated skill for the current workflow.
 ```
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

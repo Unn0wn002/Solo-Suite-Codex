@@ -19,6 +19,7 @@ from __future__ import print_function
 
 import argparse
 import glob
+import importlib.util
 import json
 import os
 import re
@@ -49,6 +50,25 @@ UNIVERSAL_MEMORY_EFFECTS = {
     ".solo/decisions.md",
     ".solo/handoff.md",
 }
+
+
+def _gate_policy_module():
+    """Load the suite's one production category and scoring policy."""
+    path = os.path.abspath(os.path.join(
+        os.path.dirname(__file__), "..", "..", "..", "..", "gate", "lib",
+        "gate_policy.py",
+    ))
+    spec = importlib.util.spec_from_file_location(
+        "solo_suite_agentroom_gate_policy", path,
+    )
+    if spec is None or spec.loader is None:
+        raise RuntimeError("cannot load shared Gate policy: %s" % path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+GATE_POLICY = _gate_policy_module()
 
 # These are effects documented by the target skills in addition to the suite's
 # universal task/decision/handoff lifecycle.  A propose-only seat must declare
@@ -112,21 +132,15 @@ COMMAND_MEMORY_EFFECTS = {
     },
 }
 
-PRODUCTION_CATEGORIES = (
-    "Product",
-    "Architecture",
-    "Design",
-    "Frontend",
-    "Backend",
-    "Database",
-    "Security",
-    "Testing",
-    "Performance",
-    "SEO",
-    "Analytics",
-    "Deployment",
-    "Monitoring",
-    "Documentation",
+PRODUCTION_CATEGORIES = GATE_POLICY.CATEGORY_LABEL_ORDER
+PRODUCTION_PROFILE_NA_ALLOWED = {
+    profile: frozenset(GATE_POLICY.CATEGORY_LABELS[category]
+                       for category in GATE_POLICY.PROFILE_NA_ALLOWED[profile])
+    for profile in GATE_POLICY.PROFILE_ORDER
+}
+PRODUCTION_MANDATORY_CATEGORIES = frozenset(
+    GATE_POLICY.CATEGORY_LABELS[category]
+    for category in GATE_POLICY.MANDATORY
 )
 
 # This mirrors the production-evidence validator's category allowlist.  Room
@@ -235,9 +249,7 @@ EVIDENCE_CONTRACTS = {
     },
     "solo-suite/gate-evidence-v1": {
         "status_field": "launch_status",
-        "statuses": frozenset({
-            "BLOCKED", "SAFE WITH WARNINGS", "SAFE TO LAUNCH",
-        }),
+        "statuses": GATE_POLICY.LAUNCH_STATUSES,
         "required_fields": PRODUCTION_GATE_EVIDENCE_FIELDS,
     },
 }
@@ -253,6 +265,8 @@ COMMAND_EVIDENCE_SCHEMA = {
 FULL_TEAM_REQUIRED_COMMANDS = {
     "$stack-intake",
     "$stack-connector-check",
+    "$spec-feature-brief",
+    "$spec-acceptance",
     "$browser-smoke-test",
     "$browser-mobile-test",
     "$browser-visual-check",
@@ -262,6 +276,14 @@ FULL_TEAM_REQUIRED_COMMANDS = {
     "$site-doctor-audit-deps",
     "$site-doctor-perf",
     "$site-doctor-load-test",
+    "$stack-audit-vercel",
+    "$stack-audit-supabase",
+    "$stack-audit-cloudflare",
+    "$stack-audit-tags",
+    "$stack-audit-payments",
+    "$git-commit-plan",
+    "$release-ci-setup",
+    "$solo-handoff-memory",
     "$gate-before-deploy",
 }
 
@@ -275,11 +297,17 @@ FULL_TEAM_BEFORE_MERGE_ARTIFACTS = {
     "artifacts/full-team/migration-verification.json",
     "artifacts/full-team/performance-load.json",
     "artifacts/full-team/visual-cross-browser.json",
+    "artifacts/full-team/vendor-audits/analytics-tag.json",
+    "artifacts/full-team/vendor-audits/cloudflare.json",
+    "artifacts/full-team/vendor-audits/payments.json",
+    "artifacts/full-team/vendor-audits/supabase.json",
+    "artifacts/full-team/vendor-audits/vercel.json",
 }
 
 FULL_TEAM_BEFORE_DEPLOY_ARTIFACTS = FULL_TEAM_BEFORE_MERGE_ARTIFACTS | {
     "artifacts/gates/full-team-before-merge.json",
     "artifacts/full-team/environment-readiness.json",
+    "artifacts/full-team/handoff-finalization.json",
     "artifacts/full-team/release-management.json",
 }
 
@@ -551,6 +579,9 @@ def validate_room(data, label, known=None):
                         "state_journal", "validate_rooms",
                     )
                 }
+                expected_runtime["gate_policy"] = (
+                    "plugins/gate/lib/gate_policy.py"
+                )
                 runtime = trust.get("runtime")
                 malformed = (
                     set(trust) != {"schema", "suite_digest", "skill_count",

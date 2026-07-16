@@ -1,6 +1,6 @@
 {
   "name": "git",
-  "version": "1.0.12",
+  "version": "1.0.27",
   "description": "Plan safe branches, commits, pull requests, release notes, and issue synchronization. Migrated workflows: $git-commit-plan, $git-create-branch, $git-pr-review, $git-release-notes, $git-sync-issues.",
   "author": {
     "name": "Sakura Yukihira (Ayaya)"

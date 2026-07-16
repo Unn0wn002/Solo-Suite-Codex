@@ -107,6 +107,7 @@
           "type": "object",
           "additionalProperties": false,
           "required": [
+            "gate_policy",
             "git_trust",
             "prepare_run",
             "run_room",
@@ -115,6 +116,7 @@
             "validate_rooms"
           ],
           "properties": {
+            "gate_policy": {"$ref": "#/$defs/runtimeFileTrust"},
             "git_trust": {"$ref": "#/$defs/runtimeFileTrust"},
             "prepare_run": {"$ref": "#/$defs/runtimeFileTrust"},
             "run_room": {"$ref": "#/$defs/runtimeFileTrust"},

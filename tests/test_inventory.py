@@ -64,8 +64,8 @@ class Inventory(unittest.TestCase):
 
     def test_versions_changelog_and_publisher_agree(self):
         version = self.release["version"]
-        self.assertEqual(version, "1.0.12")
-        self.assertEqual(self.release["previous_version"], "1.0.11")
+        self.assertEqual(version, "1.0.27")
+        self.assertEqual(self.release["previous_version"], "1.0.12")
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         top = re.search(r"^##\s+(\d+\.\d+\.\d+)", changelog, re.MULTILINE)
         self.assertIsNotNone(top)

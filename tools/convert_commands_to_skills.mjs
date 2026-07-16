@@ -18,7 +18,10 @@ import { fileURLToPath } from "node:url";
 const scriptFile = fileURLToPath(import.meta.url);
 const packageRoot = path.resolve(path.dirname(scriptFile), "..");
 const workspaceRoot = path.resolve(packageRoot, "..");
-const defaultSourceRoot = path.join(workspaceRoot, ".source-v1.0.10");
+// Keep the Codex adapter pointed at the current Claude source tree by
+// default.  A caller can still override this with --source-root for a
+// reproducible historical conversion.
+const defaultSourceRoot = path.join(workspaceRoot, "solo-suite-v1.0.26-work");
 
 function parseArgs(argv) {
   const options = {

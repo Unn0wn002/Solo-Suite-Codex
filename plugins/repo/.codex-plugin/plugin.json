@@ -1,6 +1,6 @@
 {
   "name": "repo",
-  "version": "1.0.12",
+  "version": "1.0.27",
   "description": "Map repository structure, dependencies, risks, dead code, and onboarding context without mutation. Migrated workflows: $repo-dependency-map, $repo-find-dead-code, $repo-map, $repo-onboarding, $repo-risk-map.",
   "author": {
     "name": "Sakura Yukihira (Ayaya)"

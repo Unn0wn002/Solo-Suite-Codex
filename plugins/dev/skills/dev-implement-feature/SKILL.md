@@ -31,3 +31,7 @@ After implementation, always output:
 - **Manual verification steps**
 - **Suggested tasks** → `.solo/tasks.md` (stable T-IDs)
 - **Next skill** — `$dev-code-review` or `$test-integration`
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

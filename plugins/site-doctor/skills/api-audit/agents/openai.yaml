@@ -2,3 +2,5 @@ interface:
   display_name: "Api Audit"
   short_description: "Run the Api Audit workflow in Codex"
   default_prompt: "Use $api-audit to help with this project."
+policy:
+  allow_implicit_invocation: false

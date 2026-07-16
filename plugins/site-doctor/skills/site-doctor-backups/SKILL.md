@@ -48,5 +48,9 @@ Low / Medium / High / Critical
 1. …
 
 ## Next Recommended Skill
-$backup-recovery — use it to define or test recovery actions for verified backup gaps.
+No follow-up skill is implied here; choose the next validated skill for the current workflow.
 ```
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

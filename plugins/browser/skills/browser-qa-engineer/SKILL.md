@@ -1,112 +1,61 @@
 ---
 name: browser-qa-engineer
-description: "Run explicit, safety-bounded browser QA for rendering, console/network errors, responsiveness, and manual side-effecting flows. Use when the user asks for a smoke test, browser test, visual/mobile check, console review, or a manual form-submission test."
+description: Real browser QA — exercise core flows, catch console/network/hydration errors, review layout and responsiveness, test mobile breakpoints, and test forms end to end. Use when the user says smoke test, test in the browser, console errors, visual check, mobile test, responsive, or form testing. Uses a browser automation tool when available; otherwise gives a precise, repeatable manual test script.
 ---
 
 # Browser QA Engineer
 
-Test what a user experiences and attach evidence to every finding: a screenshot,
-sanitized console/network evidence, or an exact reproduction step. Browser
-automation may inspect and navigate read-only flows. Any submission or other
-state change follows the manual-only contract below.
+Unit tests pass and the page is still broken. This skill tests what the user actually experiences. **If a browser/automation tool (Playwright, a browser connector) is available, drive it and report real results; if not, produce an exact step-by-step manual script** (URLs, actions, and expected results) the user can run in minutes. Five modes.
 
-## Safety contract (apply before every mode)
+**Evidence per finding:** every finding carries a screenshot, a console/network paste, or an exact reproduction step — and manual-mode scripts say what to capture at each step. No evidence, no finding.
 
-1. Default to localhost, staging, or a dedicated test tenant. Read
-   `.solo/stack.md` and verify the environment from visible evidence; do not
-   infer that a production-looking hostname is safe.
-2. Production access requires the user's explicit confirmation naming the
-   production URL and intended read-only scope. A request to test staging is
-   not permission to open production.
-3. Use synthetic test identities and data. Never use real PII, payment cards,
-   production credentials, customer accounts, customer records, session
-   cookies, or copied production payloads. Use only documented sandbox payment
-   values in an isolated test environment.
-4. Do not trigger real payments, emails, SMS, push notifications, webhooks,
-   deployments, destructive actions, account changes, or irreversible
-   workflows. If a safe sandbox/stub cannot suppress them, mark the test
-   blocked and provide a manual test plan.
-5. Form submission and every state-changing smoke step are **manual-only**.
-   Never click the final submit/confirm/delete/pay/send control with browser
-   automation. Provide the user the exact step and expected result, wait for
-   their explicit confirmation that they performed it, then inspect the result
-   read-only.
-6. Before any manual side effect, show the environment, synthetic record/data,
-   affected system, expected downstream events (which must be sandboxed), and
-   cleanup plan. Obtain explicit confirmation for that exact action.
-7. Record every observed side effect in the report: timestamp, environment,
-   synthetic record ID, action, downstream events, outcome, and cleanup state.
-   Sanitize tokens, cookies, PII, request bodies, and response bodies.
-8. Clean up records created by the test using the documented test cleanup path.
-   Destructive cleanup is also manual-only. If cleanup cannot be completed,
-   report the exact synthetic IDs as a required task; never silently abandon
-   test data.
 
-If a browser tool is unavailable, provide a precise manual script with URLs,
-actions, expected results, safe synthetic values, evidence to capture, and
-cleanup. Lack of automation is not permission to relax this contract.
+## Safety contract (applies to every mode)
 
-## Mode: smoke-test
+Browser QA has real side effects — submitted forms create records, trigger emails/SMS/webhooks, and can charge cards. These rules are mandatory:
 
-Navigate the read-only portion of core journeys and confirm pages render and
-advance. Stop before any step that creates/updates/deletes data or can trigger a
-notification or integration. Put that step into the manual side-effect plan.
-Fail loudly on dead ends, 500s, blank screens, or infinite spinners.
+- **Target selection**: default to `localhost`, a staging environment, or a dedicated test tenant. Testing against **production requires the user to explicitly confirm** the environment and which actions are allowed there; read-only checks (console, visual, mobile viewports) are the only default-allowed production activity.
+- **Synthetic data only**: never use real PII, real payment cards, production credentials, or real customer accounts. Use obviously-synthetic test data (`qa+<runid>@example.com`, test-card numbers on payment sandboxes, `QA TEST — SAFE TO DELETE` markers in free-text fields).
+- **No real side effects**: do not trigger real payments, production emails/SMS, third-party webhooks, or destructive actions (deletes, cancellations, refunds). If a flow can't be tested without one, stop and ask — with the specific side effect named.
+- **Confirmation before any side-effecting submission**: state what will be submitted, where, and with what data; proceed only after explicit user confirmation. This applies doubly to anything pointed at production.
+- **Clean up**: track every record the tests create (accounts, orders, uploads) and delete them afterward — or, when deletion isn't possible, report exactly what was left behind and where.
+- **Record all side effects**: the run report lists every state-changing action performed (or attempted), successful or not, so nothing happens silently.
+- **Manual-only side-effecting modes**: `$browser-form-submit-test` and `$browser-smoke-test` are `disable-model-invocation: true` — they run only when the user invokes them, because they submit forms and advance state-changing flows. The read-only modes (console-errors, visual-check, mobile-test) remain auto-invocable.
 
-## Mode: console-errors
+## Mode: smoke-test (`$browser-smoke-test`)
+Walk the core user journeys happy-path (e.g. load → sign up → log in → do the main thing → sign out) **under the safety contract above** (synthetic accounts, non-production target unless explicitly confirmed, cleanup after). Confirm each step renders and advances. Fail loudly on any dead end, 500, blank screen, or infinite spinner.
 
-Load key pages and capture sanitized console/network evidence: JavaScript
-exceptions, unhandled rejections, failed requests, CORS/CSP violations,
-hydration mismatches, and meaningful warnings. Do not capture authorization
-headers, cookies, query-string secrets, request bodies, response bodies, PII,
-or customer data. Report page, redacted message, status, and likely cause.
+## Mode: console-errors (`$browser-console-errors`)
+Load key pages and capture the console + network: JS exceptions, uncaught promise rejections, failed requests (4xx/5xx), CORS/CSP violations, framework **hydration mismatches** (SSR), and noisy warnings. Report each with page, message, and likely cause.
 
-## Mode: visual-check
+## Mode: visual-check (`$browser-visual-check`)
+Review layout across the important pages: broken/overlapping elements, spacing/alignment, text overflow and truncation, images not loading or unsized (layout shift), z-index/modal issues, and whether it holds up when the viewport resizes.
 
-Review layout on important pages: overlap, spacing/alignment, overflow,
-truncation, failed/unsized images, layout shift, stacking/modal problems, and
-viewport resizing. This mode is read-only.
+## Mode: mobile-test (`$browser-mobile-test`)
+Test at **320px, 375px, and 768px**: horizontal overflow/scroll, tap-target size (~44px), readable text, working nav/menus, and no content cut off or hidden behind fixed bars. Note anything desktop-only that breaks on touch.
 
-## Mode: mobile-test
-
-Test 320px, 375px, and 768px for horizontal overflow, approximately 44px tap
-targets, readable text, navigation behavior, and content hidden behind fixed
-bars. Do not submit forms while checking touch behavior.
-
-## Mode: form-submit-test (manual-only)
-
-Prepare tests for valid, invalid, empty, boundary, network-failure, and double-
-submit behavior. Use synthetic data and a test tenant with outbound email/SMS,
-payment, and webhook integrations stubbed or sandboxed. Automation may fill
-fields only when doing so has no side effect, but it must stop before the final
-submission control. The user performs each confirmed submission manually; then
-inspect loading/success/error/persistence read-only and record/clean up every
-created test record.
+## Mode: form-submit-test (`$browser-form-submit-test`)
+Test each important form end to end **under the safety contract above** (synthetic data, no real payments/emails, confirm before submitting anywhere side-effecting, clean up created records): valid submit (does it actually persist / show success?), invalid input (clear, correct validation messages), empty/required fields, boundary values, **network-failure** handling, and double-submit protection. Confirm loading, success, and error states all exist and behave.
 
 ## Working with other skills
-
-Findings feed the bug-fix workflow and `.solo/tasks.md`. Deployment and
-production-readiness reviews may consume sanitized smoke/console/mobile
-evidence, but a gate must not treat unperformed manual submissions as passing.
-Pair with the forms-audit and accessibility skills for deeper coverage.
+Findings feed `$dev-fix-bug` and `.solo/tasks.md`. `$gate-before-deploy` and `$gate-production-ready` expect smoke + console + mobile to be clean. Pairs with `$site-doctor-audit-forms` (deeper form/security checks) and `$site-doctor-a11y`.
 
 ## Output
+End every run with these seven sections:
+1. **Summary** — what was checked or created.
+2. **Findings / Work done** — what was found, changed, or decided.
+3. **Risks** — anything uncertain, dangerous, incomplete, or blocked.
+4. **Required fixes** — must-fix items before moving forward.
+5. **Suggested tasks** — concrete entries for `.solo/tasks.md`, each with a stable T-ID.
+6. **Verification** — how to prove the result works.
+7. **Next skill** — the exact next skill invocation to run.
 
-End every run with:
+## Session lifecycle
+Runs inside a session the solo plugin bookends: `$solo-start-session` restores `.solo/` context at the start and `$solo-end-session` saves it at the end. Read `.solo/` before acting; write findings, decisions, and tasks back (stable T-IDs) so the next skill — or the next agent — picks up cleanly.
 
-1. **Summary** — environment and read-only/manual scope checked.
-2. **Findings / Work done** — evidence-backed results.
-3. **Side-effect ledger** — every confirmed action, synthetic ID, downstream
-   effect, and cleanup state; write `None` when no side effects occurred.
-4. **Risks** — uncertainty, blocked production access, or unavailable stubs.
-5. **Required fixes** — must-fix items before proceeding.
-6. **Suggested tasks** — concrete `.solo/tasks.md` entries with stable T-IDs.
-7. **Verification** — how to reproduce safely.
-8. **Next skill** — the exact next Codex skill invocation or manual step.
+## Stack awareness
+Check `.solo/stack.md` first and tailor everything to the real stack. For vendor depth the `$stack-audit-*` skills go further: Cloudflare, Vercel, Supabase, analytics/tags, payments. If a sibling skill or connector isn't installed, do a lighter inline version and say so.
 
-## Session and stack awareness
+## User-facing output contract
 
-Read `.solo/` and `.solo/stack.md` before acting, then write only sanitized
-findings, decisions, task IDs, and the side-effect ledger back. Never persist
-credentials, cookies, PII, customer data, or full network payloads in project
-memory.
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

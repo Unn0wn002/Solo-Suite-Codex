@@ -12,4 +12,7 @@ Use $git-workflow-manager in commit-plan mode. Apply it to the user's supplied a
 Inspect `git status`/`git diff`, group the changes into logical atomic commits with Conventional-Commit messages, and flag anything that must not be committed (secrets, `.env`, build output, large binaries). Give copy-paste `git add`/`commit` commands. Don't commit unless asked.
 
 ## Output
-End with the 7-part contract: **Summary · Findings/Work done · Risks · Required fixes · Suggested tasks** (→ `.solo/tasks.md`, stable T-IDs) **· Verification · Next skill** (exact skill invocation).
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

@@ -45,7 +45,21 @@ jobs:
         run: python -m compileall -q plugins tests tools
 
       - name: Validate every Codex plugin directory
-        run: python tools/validate_plugins.py --official-if-available
+        run: |
+          python -c "from pathlib import Path; Path('dist').mkdir(exist_ok=True)"
+          python tools/validate_plugins.py --official-if-available --report dist/plugin-validation-v1.0.27.json
+
+      - name: Verify checked-in canonical overlay offline
+        run: >-
+          python tools/verify_source_overlay.py --canonical-only
+          --canonical-source-archive
+          parity/artifacts/solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip
+          --target .
+
+      - name: Rebuild and verify the public canonical source overlay
+        run: >-
+          python tools/build_canonical_source.py --fetch-public-base
+          --output dist/rebuilt-canonical-source.zip
 
       - name: Unit and regression tests with coverage
         run: |
@@ -68,7 +82,11 @@ jobs:
         run: python plugins/site-doctor/scripts/run_helper.py security-review/scan-secrets . --json
 
       - name: Build deterministic release package
-        run: python tools/package_release.py --output dist/solo-suite-codex-v1.0.12.zip --validation-state ci
+        run: >-
+          python tools/package_release.py
+          --output dist/solo-suite-codex-v1.0.27.zip
+          --validation-state ci
+          --canonical-source-archive parity/artifacts/solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip
 
       - name: Verify packaging did not rewrite tracked source
         run: |
@@ -76,4 +94,6 @@ jobs:
           python -c 'import subprocess, sys; status = subprocess.check_output(["git", "status", "--porcelain", "--untracked-files=all"], text=True); print(status, end=""); sys.exit(1 if status.strip() else 0)'
 
       - name: Packaged ZIP clean-room smoke test
-        run: python tools/smoke_package.py dist/solo-suite-codex-v1.0.12.zip
+        run: >-
+          python tools/smoke_package.py dist/solo-suite-codex-v1.0.27.zip
+          --canonical-source-archive parity/artifacts/solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip

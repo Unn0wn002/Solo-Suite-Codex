@@ -1,6 +1,6 @@
 {
   "name": "spec",
-  "version": "1.0.12",
+  "version": "1.0.27",
   "description": "Define feature briefs, acceptance criteria, API contracts, data contracts, and environment contracts. Migrated workflows: $spec-acceptance, $spec-api-contract, $spec-data-contract, $spec-env-contract, $spec-feature-brief.",
   "author": {
     "name": "Sakura Yukihira (Ayaya)"

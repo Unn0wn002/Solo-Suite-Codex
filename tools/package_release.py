@@ -18,7 +18,9 @@ import os
 from pathlib import Path, PurePosixPath
 import re
 import shutil
+import stat
 import subprocess
+import sys
 import tempfile
 from typing import Mapping, Optional
 import unicodedata
@@ -26,16 +28,30 @@ import zipfile
 
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "1.0.12"
+VERSION = "1.0.27"
 FOLDER = f"solo-suite-codex-v{VERSION}"
-HISTORICAL_SOURCE_NAME = "solo-suite-plugin-v1.0.10.zip"
+HISTORICAL_SOURCE_NAME = "solo-suite-plugin-v1.0.26.zip"
 HISTORICAL_SOURCE_SHA256 = (
-    "3d8989c6e201215812b00f9299b47b5da0e12a7d54f899bbd7cffcea905c438a"
+    "b691905f8ade4c2fb7e0084a46f537c9be8d7b2bf0f4d160c38c5e930aed1d43"
+)
+CANONICAL_SOURCE_NAME = (
+    "solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip"
+)
+CANONICAL_SOURCE_SHA256 = (
+    "49a0eab223d2014506fade29189419e7d096f3b935be35078d1a46e58d6db652"
+)
+CANONICAL_SOURCE_FOLDER = "solo-suite-plugin-v1.0.26"
+CANONICAL_CAPABILITIES_SHA256 = (
+    "f1ea0261f28de025d0626f5d1bdc4ded6667b4167d1dc310e74c79349cf9ec6a"
 )
 STRICT_VALIDATION_STATES = {"validated", "ci"}
 VALIDATION_STATES = {"pending", "preflight", *STRICT_VALIDATION_STATES}
 EXCLUDED_PARTS = {
-    ".git", ".venv", ".docx-qa", "dist", "__pycache__", "htmlcov",
+    ".git", ".venv", ".docx-qa", ".solo", "dist", "__pycache__", "htmlcov",
+}
+EXCLUDED_PREFIXES = {
+    "artifacts/runs",
+    "worktrees/runs",
 }
 EXCLUDED_NAMES = {".coverage", "coverage.xml"}
 COMMIT_PATTERN = re.compile(r"^(?:[0-9a-f]{40}|[0-9a-f]{64})$")
@@ -228,6 +244,103 @@ def verify_historical_archive(path: Path) -> None:
         )
 
 
+def _extract_canonical_source(path: Path, destination: Path) -> Path:
+    """Extract the pinned source archive without trusting ZIP member paths."""
+
+    with zipfile.ZipFile(path) as archive:
+        members = archive.infolist()
+        if not members:
+            raise RuntimeError("canonical source archive is empty")
+        seen: set[str] = set()
+        for info in members:
+            name = info.filename
+            relative = PurePosixPath(name)
+            if (
+                relative.is_absolute()
+                or "\\" in name
+                or not relative.parts
+                or any(part in {"", ".", ".."} for part in relative.parts)
+                or relative.parts[0] != CANONICAL_SOURCE_FOLDER
+            ):
+                raise RuntimeError(f"unsafe canonical source archive member: {name!r}")
+            key = relative.as_posix()
+            if key in seen:
+                raise RuntimeError(f"duplicate canonical source archive member: {name!r}")
+            seen.add(key)
+            if stat.S_ISLNK(info.external_attr >> 16):
+                raise RuntimeError(
+                    f"canonical source archive contains a symbolic link: {name}"
+                )
+            target = destination.joinpath(*relative.parts)
+            if info.is_dir():
+                target.mkdir(parents=True, exist_ok=True)
+                continue
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(archive.read(info))
+    source = destination / CANONICAL_SOURCE_FOLDER
+    if not source.is_dir():
+        raise RuntimeError(
+            f"canonical source archive lacks {CANONICAL_SOURCE_FOLDER!r}"
+        )
+    return source
+
+
+def verify_canonical_source_archive(path: Path, target: Path = ROOT) -> None:
+    """Require the exact source artifact and prove it matches the target tree."""
+
+    path = path.resolve()
+    target = target.resolve()
+    if not path.is_file():
+        raise RuntimeError(f"canonical source archive does not exist: {path}")
+    actual = sha256(path)
+    if actual != CANONICAL_SOURCE_SHA256:
+        raise RuntimeError(
+            "canonical source archive digest mismatch: "
+            f"expected {CANONICAL_SOURCE_SHA256}, got {actual}"
+        )
+    try:
+        with tempfile.TemporaryDirectory(prefix="solo-suite-parity-source-") as temp:
+            source = _extract_canonical_source(path, Path(temp))
+            manifest = source / "parity/capabilities.json"
+            if not manifest.is_file() or sha256(manifest) != CANONICAL_CAPABILITIES_SHA256:
+                raise RuntimeError(
+                    "canonical source archive has an invalid capabilities manifest"
+                )
+            metadata = json.loads(
+                (source / "PARITY-SOURCE.json").read_text(encoding="utf-8")
+            )
+            if (
+                metadata.get("target_version") != VERSION
+                or metadata.get("capabilities_sha256")
+                != CANONICAL_CAPABILITIES_SHA256
+            ):
+                raise RuntimeError("canonical source provenance does not match this release")
+            checker = source / "tools/parity.py"
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(checker),
+                    "check",
+                    "--source",
+                    str(source),
+                    "--target",
+                    str(target),
+                ],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=180,
+            )
+            if result.returncode:
+                raise RuntimeError(
+                    "canonical source/target parity check failed:\n"
+                    f"{result.stdout}{result.stderr}"
+                )
+    except (json.JSONDecodeError, KeyError, OSError, zipfile.BadZipFile) as exc:
+        raise RuntimeError(f"invalid canonical source archive: {exc}") from exc
+
+
 def counts(root: Path = ROOT) -> dict[str, int]:
     return {
         "plugins": len(list(root.glob("plugins/*/.codex-plugin/plugin.json"))),
@@ -258,10 +371,13 @@ def write_release(root: Path, validation_state: str) -> None:
     dump_json(root / "RELEASE.json", {
         "name": "solo-suite-codex",
         "version": VERSION,
-        "previous_version": "1.0.11",
-        "source_archive": HISTORICAL_SOURCE_NAME,
-        "source_archive_sha256": HISTORICAL_SOURCE_SHA256,
+        "previous_version": "1.0.12",
+        "source_archive": CANONICAL_SOURCE_NAME,
+        "source_archive_sha256": CANONICAL_SOURCE_SHA256,
         "source_archive_required_for_build": False,
+        "source_archive_required_for_validation": True,
+        "historical_source_archive": HISTORICAL_SOURCE_NAME,
+        "historical_source_archive_sha256": HISTORICAL_SOURCE_SHA256,
         "counts": counts(root),
         "format": "codex-plugin-marketplace",
         "top_level_folder": FOLDER,
@@ -361,12 +477,25 @@ def re_safe(value: str) -> str:
 def write_provenance(
     root: Path, validation_state: str, context: BuildContext
 ) -> None:
+    if validation_state in STRICT_VALIDATION_STATES and (
+        not context.commit or context.dirty
+    ):
+        raise RuntimeError(
+            "validated package provenance requires an exact clean Git commit"
+        )
     source_commit = context.commit
     materials = [{
+        "uri": CANONICAL_SOURCE_NAME,
+        "digest": {"sha256": CANONICAL_SOURCE_SHA256},
+        "role": "canonical-parity-source",
+        "required_for_build": False,
+        "required_for_validation": True,
+    }, {
         "uri": HISTORICAL_SOURCE_NAME,
         "digest": {"sha256": HISTORICAL_SOURCE_SHA256},
         "role": "historical-source-reference",
         "required_for_build": False,
+        "required_for_validation": False,
     }]
     if context.commit:
         materials.append({
@@ -374,22 +503,30 @@ def write_provenance(
             "digest": {"gitCommit": context.commit},
             "role": "release-source",
             "required_for_build": True,
+            "required_for_validation": True,
         })
     dump_json(root / "RELEASE-PROVENANCE.json", {
         "schema": "solo-suite/release-provenance-v1",
+        "record_kind": "generated-build-provenance",
         "subject": {"name": f"{FOLDER}.zip", "version": VERSION},
         "builder": {
             "id": "local-codex-workspace",
             "tool": "tools/package_release.py",
         },
-        "build_type": "reproducible-zip-from-git-tree",
+        "build_type": (
+            "reproducible-zip-from-git-tree"
+            if context.commit and not context.dirty
+            else "preflight-zip-from-working-tree"
+        ),
         "build_timestamp": context.timestamp,
         "source_date_epoch": context.epoch,
         "materials": materials,
         "source_git_commit": source_commit,
-        "source_git_dirty": context.dirty,
+        "source_git_dirty": context.dirty if context.git_root else None,
         "source_identity_note": (
             "Resolved from the clean committed Git tree."
+            if context.commit and not context.dirty else
+            "A Git commit is identified, but this preflight includes working-tree changes."
             if context.commit else
             "No Git commit is asserted for this non-publication preflight snapshot."
         ),
@@ -400,7 +537,8 @@ def write_provenance(
             "python plugins/solo/skills/suite-integrity/scripts/self_check.py . -",
             "python plugins/ai/skills/agent-room-templates/scripts/validate_rooms.py --suite .",
             "python tools/validate_plugins.py --official-if-available",
-            "python tools/smoke_package.py <release.zip>",
+            "python tools/smoke_package.py <release.zip> --canonical-source-archive "
+            f"<{CANONICAL_SOURCE_NAME}>",
         ],
         "artifact_digest_note": (
             "The ZIP SHA-256 is stored beside the ZIP and in the outer release handoff; "
@@ -423,6 +561,12 @@ def included_files(root: Path = ROOT) -> list[Path]:
             raise RuntimeError(f"refusing file outside release root: {path}") from exc
         relative = path.relative_to(root)
         if any(part in EXCLUDED_PARTS for part in relative.parts):
+            continue
+        relative_posix = relative.as_posix()
+        if any(
+            relative_posix == prefix or relative_posix.startswith(prefix + "/")
+            for prefix in EXCLUDED_PREFIXES
+        ):
             continue
         if path.name in EXCLUDED_NAMES or path.suffix in {".pyc", ".zip", ".sha256"}:
             continue
@@ -612,6 +756,7 @@ def build_release(
     validation_state: str,
     *,
     root: Path = ROOT,
+    canonical_source_archive: Optional[Path] = None,
     verify_source_archive: Optional[Path] = None,
     environ: Optional[Mapping[str, str]] = None,
 ) -> BuildResult:
@@ -635,9 +780,15 @@ def build_release(
         )
         if tracked.returncode == 0:
             raise RuntimeError(f"release output must not overwrite tracked source: {relative}")
+    context = resolve_build_context(root, validation_state, environ)
+    if validation_state in STRICT_VALIDATION_STATES and canonical_source_archive is None:
+        raise RuntimeError(
+            f"{validation_state} release requires --canonical-source-archive"
+        )
+    if canonical_source_archive is not None:
+        verify_canonical_source_archive(canonical_source_archive, root)
     if verify_source_archive is not None:
         verify_historical_archive(verify_source_archive)
-    context = resolve_build_context(root, validation_state, environ)
     with tempfile.TemporaryDirectory(prefix="solo-suite-release-") as temp:
         stage = Path(temp) / FOLDER
         stage_source(root, stage, context)
@@ -657,10 +808,18 @@ def main() -> int:
         "--validation-state", choices=sorted(VALIDATION_STATES), default="pending"
     )
     parser.add_argument(
+        "--canonical-source-archive",
+        type=Path,
+        help=(
+            "pinned reconstructed Claude baseline required for validated/CI builds; its "
+            "digest and source/target parity are checked before packaging"
+        ),
+    )
+    parser.add_argument(
         "--verify-source-archive",
         type=Path,
         help=(
-            "optionally verify the historical v1.0.10 archive; its presence and "
+            "optionally verify the historical Claude v1.0.26 archive; its presence and "
             "path never affect package contents"
         ),
     )
@@ -669,6 +828,7 @@ def main() -> int:
         result = build_release(
             args.output,
             args.validation_state,
+            canonical_source_archive=args.canonical_source_archive,
             verify_source_archive=args.verify_source_archive,
         )
     except RuntimeError as exc:
