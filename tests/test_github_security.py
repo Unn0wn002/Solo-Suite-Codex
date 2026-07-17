@@ -121,14 +121,26 @@ class GitHubSecurityPolicy(unittest.TestCase):
         ):
             self.assertGreaterEqual(source.count(report), 3, report)
         self.assertNotIn("--clobber", source)
+        final_publish = next(
+            step
+            for step in publish["steps"]
+            if "gh release edit" in step.get("run", "")
+        )
+        self.assertIn("tools/verify_release_ref.py", final_publish["run"])
+        self.assertEqual(final_publish["env"]["REF_PROTECTED"], "${{ github.ref_protected }}")
+        self.assertLess(
+            final_publish["run"].index("tools/verify_release_ref.py"),
+            final_publish["run"].index("gh release edit"),
+        )
         self.assertLess(
             source.index("Reverify the remote tag and default branch"),
             source.index("gh release create"),
         )
         self.assertLess(source.index("gh release create"), source.index("gh release upload"))
-        final_reverify = source.index("Reverify release binding immediately before public publish")
-        self.assertLess(source.index("gh release upload"), final_reverify)
-        self.assertLess(final_reverify, source.index("gh release edit"))
+        self.assertLess(
+            source.index("gh release upload"),
+            source.index("Reverify release binding and publish"),
+        )
 
 
 if __name__ == "__main__":

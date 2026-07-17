@@ -286,7 +286,7 @@ jobs:
           "dist/dependency-audit-tools-v1.0.27.json"
           --repo "$GITHUB_REPOSITORY"
 
-      - name: Reverify release binding immediately before public publish
+      - name: Reverify release binding and publish after every gate and upload succeeds
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
@@ -303,13 +303,7 @@ jobs:
             --tag "$RELEASE_TAG" \
             --expected-commit "$RELEASE_COMMIT" \
             --default-branch "$DEFAULT_BRANCH"
-
-      - name: Publish release after every gate and upload succeeds
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ github.ref_name }}
-        run: >-
-          gh release edit "$RELEASE_TAG"
-          --repo "$GITHUB_REPOSITORY"
-          --draft=false
-          --latest
+          gh release edit "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --draft=false \
+            --latest
