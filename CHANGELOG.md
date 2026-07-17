@@ -2,12 +2,12 @@
 
 ## Unreleased
 
-- Bound release tags to the exact protected default-branch commit at build and immediately before draft creation; added owner-only `v*` tag creation, non-bypassable tag update/deletion protection, and immutable GitHub releases.
+- Bound release tags to the exact protected default-branch commit at build, before draft creation, and immediately before public publication; added owner-only `v*` tag creation, non-bypassable tag update/deletion protection, and immutable GitHub releases.
 - Added a Python 3.12-only, hash-pinned `pip-audit` toolchain; CI and publication now fail closed on live vulnerability checks for both validation and audit locks and attest the two JSON reports.
 - Split source-checkout and installed-package validation profiles in README and generated provenance, disclosing that the install ZIP omits the separately attested canonical parity archive and cannot run Git-dependent contributor tests.
 - Corrected the supported release in `SECURITY.md` from stale v1.0.12 wording to v1.0.27.
 - Unified direct and AgentRoom production-gate policy on one imported definition of the 14 categories, six profile N/A matrices, seven mandatory categories, N/A-adjusted denominator, launch thresholds, and status decision; corrected SaaS SEO, API-service Database, and library Monitoring/Performance applicability drift.
-- Published a deterministic, digest-pinned historical Claude v1.0.26 parity baseline for the Codex v1.0.27 adapter: a public-release base plus 19 disclosed replacements and three generated verification/provenance files. The release explicitly does not claim byte parity with a later Claude v1.0.27 source release.
+- Prepared a deterministic, digest-pinned historical Claude v1.0.26 parity baseline for the Codex v1.0.27 adapter: a public-release base plus 19 disclosed replacements and three generated verification/provenance files. The unreleased candidate explicitly does not claim byte parity with a later Claude v1.0.27 source release.
 - Accepted the historical-baseline scope explicitly, added offline canonical-overlay verification before networked provenance fetching, and documented a non-destructive remote-main import/PR plan for the separate public v1.0.12 history.
 - Added a fail-closed native Codex marketplace smoke/duplicate-name guard, so a stale same-name marketplace cannot silently install an older plugin cache.
 - Made the canonical source artifact mandatory for validated/CI packaging and package smoke tests; both now rerun the bundled source/target parity checker instead of relying on provenance prose.

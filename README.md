@@ -271,7 +271,7 @@ provenance record are authenticated and independently reachable. The paired
 archive is therefore accurately labeled a **reconstructed adapter baseline**:
 it is not a byte-identical claim against the later Claude v1.0.27 release. The
 overlay manifest proves exactly what changed, and the accepted baseline-scope
-decision is recorded in `.solo/decisions.md`.
+decision and its exact overlay are documented in [`parity/README.md`](parity/README.md) and [`parity/source-overlay-manifest.json`](parity/source-overlay-manifest.json).
 
 The final status command must print nothing. Intentional release output under ignored `dist/` is omitted by Git.
 

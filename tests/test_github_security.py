@@ -96,10 +96,10 @@ class GitHubSecurityPolicy(unittest.TestCase):
         )
         self.assertIn("subject-path", attestation.get("with", {}))
         source = path.read_text(encoding="utf-8")
-        self.assertEqual(source.count("tools/verify_release_ref.py"), 2)
-        self.assertEqual(source.count('--expected-commit "$RELEASE_COMMIT"'), 2)
+        self.assertEqual(source.count("tools/verify_release_ref.py"), 3)
+        self.assertEqual(source.count('--expected-commit "$RELEASE_COMMIT"'), 3)
         self.assertEqual(
-            source.count("${{ github.event.repository.default_branch }}"), 2
+            source.count("${{ github.event.repository.default_branch }}"), 3
         )
         self.assertIn("${{ github.ref_protected }}", source)
         self.assertIn("release tag is not protected by an active ruleset", source)
@@ -126,7 +126,9 @@ class GitHubSecurityPolicy(unittest.TestCase):
             source.index("gh release create"),
         )
         self.assertLess(source.index("gh release create"), source.index("gh release upload"))
-        self.assertLess(source.index("gh release upload"), source.index("gh release edit"))
+        final_reverify = source.index("Reverify release binding immediately before public publish")
+        self.assertLess(source.index("gh release upload"), final_reverify)
+        self.assertLess(final_reverify, source.index("gh release edit"))
 
 
 if __name__ == "__main__":
