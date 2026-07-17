@@ -286,13 +286,15 @@ jobs:
           "dist/dependency-audit-tools-v1.0.27.json"
           --repo "$GITHUB_REPOSITORY"
 
-      - name: Reverify release binding and publish after every gate and upload succeeds
+      - name: Reverify release binding and uploaded asset bytes, then publish
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
           RELEASE_COMMIT: ${{ github.sha }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
           REF_PROTECTED: ${{ github.ref_protected }}
+          ARCHIVE_NAME: ${{ needs.build.outputs.archive }}
+          CANONICAL_SOURCE: solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip
         run: |
           if [ "$REF_PROTECTED" != "true" ]; then
             echo "::error::release tag is not protected by an active ruleset"
@@ -303,6 +305,17 @@ jobs:
             --tag "$RELEASE_TAG" \
             --expected-commit "$RELEASE_COMMIT" \
             --default-branch "$DEFAULT_BRANCH"
+          python tools/verify_release_assets.py \
+            --repo "$GITHUB_REPOSITORY" \
+            --tag "$RELEASE_TAG" \
+            --asset "dist/${ARCHIVE_NAME}" \
+            --asset "dist/${ARCHIVE_NAME}.sha256" \
+            --asset "dist/${CANONICAL_SOURCE}" \
+            --asset "dist/${CANONICAL_SOURCE}.sha256" \
+            --asset dist/source-overlay-manifest-v1.0.27.json \
+            --asset dist/plugin-validation-v1.0.27.json \
+            --asset dist/dependency-audit-dev-v1.0.27.json \
+            --asset dist/dependency-audit-tools-v1.0.27.json
           gh release edit "$RELEASE_TAG" \
             --repo "$GITHUB_REPOSITORY" \
             --draft=false \

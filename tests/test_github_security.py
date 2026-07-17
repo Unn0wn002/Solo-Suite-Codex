@@ -109,6 +109,8 @@ class GitHubSecurityPolicy(unittest.TestCase):
         self.assertIn("--verify-tag", source)
         self.assertIn("--draft", source)
         self.assertIn("gh release upload", source)
+        self.assertIn("tools/verify_release_assets.py", source)
+        self.assertGreaterEqual(source.count("--asset "), 8)
         self.assertIn("gh release edit", source)
         self.assertIn("--draft=false", source)
         self.assertIn(
@@ -127,9 +129,14 @@ class GitHubSecurityPolicy(unittest.TestCase):
             if "gh release edit" in step.get("run", "")
         )
         self.assertIn("tools/verify_release_ref.py", final_publish["run"])
+        self.assertIn("tools/verify_release_assets.py", final_publish["run"])
         self.assertEqual(final_publish["env"]["REF_PROTECTED"], "${{ github.ref_protected }}")
         self.assertLess(
             final_publish["run"].index("tools/verify_release_ref.py"),
+            final_publish["run"].index("tools/verify_release_assets.py"),
+        )
+        self.assertLess(
+            final_publish["run"].index("tools/verify_release_assets.py"),
             final_publish["run"].index("gh release edit"),
         )
         self.assertLess(
@@ -139,7 +146,7 @@ class GitHubSecurityPolicy(unittest.TestCase):
         self.assertLess(source.index("gh release create"), source.index("gh release upload"))
         self.assertLess(
             source.index("gh release upload"),
-            source.index("Reverify release binding and publish"),
+            source.index("Reverify release binding and uploaded asset bytes"),
         )
 
 
