@@ -4,11 +4,15 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+from io import BytesIO
 import json
 from pathlib import Path
+import ssl
 import sys
 import tempfile
 import unittest
+from urllib.error import HTTPError
+from urllib.request import Request
 import zipfile
 
 
@@ -44,6 +48,193 @@ def write_zip(path: Path, top: str, files: dict[str, bytes]) -> None:
 
 
 class PublishedOverlayTests(unittest.TestCase):
+    class _Response:
+        def __init__(self, data: bytes, url: str) -> None:
+            self.data = data
+            self.url = url
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args) -> None:
+            return None
+
+        def geturl(self) -> str:
+            return self.url
+
+        def read(self, _limit: int) -> bytes:
+            return self.data
+
+    def test_download_retries_transient_network_failure(self) -> None:
+        attempts = 0
+        sleeps: list[float] = []
+
+        def opener(_request, *, timeout: int):
+            nonlocal attempts
+            self.assertEqual(timeout, 90)
+            attempts += 1
+            if attempts == 1:
+                raise VERIFY.URLError(
+                    ConnectionResetError(104, "connection reset")
+                )
+            return self._Response(b"pinned", "https://release-assets.githubusercontent.com/base.zip")
+
+        result = VERIFY._download_pinned(
+            "https://github.com/owner/repo/releases/download/v1/base.zip",
+            opener=opener,
+            sleeper=sleeps.append,
+        )
+        self.assertEqual(result, b"pinned")
+        self.assertEqual(attempts, 2)
+        self.assertEqual(sleeps, [1.0])
+
+    def test_download_fails_closed_after_bounded_retries(self) -> None:
+        attempts = 0
+        sleeps: list[float] = []
+
+        def opener(_request, *, timeout: int):
+            nonlocal attempts
+            self.assertEqual(timeout, 90)
+            attempts += 1
+            raise ConnectionResetError("connection reset")
+
+        with self.assertRaisesRegex(
+            VERIFY.VerificationError, "after 3 attempts: connection reset"
+        ):
+            VERIFY._download_pinned(
+                "https://github.com/owner/repo/releases/download/v1/base.zip",
+                opener=opener,
+                sleeper=sleeps.append,
+            )
+        self.assertEqual(attempts, 3)
+        self.assertEqual(sleeps, [1.0, 2.0])
+
+    def test_download_retries_transient_http_status(self) -> None:
+        attempts = 0
+        sleeps: list[float] = []
+
+        def opener(request, *, timeout: int):
+            nonlocal attempts
+            self.assertEqual(timeout, 90)
+            attempts += 1
+            if attempts == 1:
+                raise HTTPError(
+                    request.full_url, 503, "busy", hdrs={}, fp=BytesIO()
+                )
+            return self._Response(b"pinned", "https://objects.githubusercontent.com/base.zip")
+
+        result = VERIFY._download_pinned(
+            "https://github.com/owner/repo/releases/download/v1/base.zip",
+            opener=opener,
+            sleeper=sleeps.append,
+        )
+        self.assertEqual(result, b"pinned")
+        self.assertEqual(attempts, 2)
+        self.assertEqual(sleeps, [1.0])
+
+    def test_download_does_not_retry_certificate_failure(self) -> None:
+        attempts = 0
+        sleeps: list[float] = []
+
+        def opener(_request, *, timeout: int):
+            nonlocal attempts
+            self.assertEqual(timeout, 90)
+            attempts += 1
+            raise ssl.SSLCertVerificationError("certificate rejected")
+
+        with self.assertRaisesRegex(
+            VERIFY.VerificationError, "certificate rejected"
+        ):
+            VERIFY._download_pinned(
+                "https://github.com/owner/repo/releases/download/v1/base.zip",
+                opener=opener,
+                sleeper=sleeps.append,
+            )
+        self.assertEqual(attempts, 1)
+        self.assertEqual(sleeps, [])
+
+    def test_download_does_not_retry_unrelated_os_error(self) -> None:
+        attempts = 0
+        sleeps: list[float] = []
+
+        def opener(_request, *, timeout: int):
+            nonlocal attempts
+            self.assertEqual(timeout, 90)
+            attempts += 1
+            raise PermissionError("local transport policy")
+
+        with self.assertRaisesRegex(
+            VERIFY.VerificationError, "local transport policy"
+        ):
+            VERIFY._download_pinned(
+                "https://github.com/owner/repo/releases/download/v1/base.zip",
+                opener=opener,
+                sleeper=sleeps.append,
+            )
+        self.assertEqual(attempts, 1)
+        self.assertEqual(sleeps, [])
+
+    def test_download_does_not_retry_permanent_http_status(self) -> None:
+        attempts = 0
+        sleeps: list[float] = []
+
+        def opener(request, *, timeout: int):
+            nonlocal attempts
+            self.assertEqual(timeout, 90)
+            attempts += 1
+            raise HTTPError(request.full_url, 404, "not found", hdrs={}, fp=BytesIO())
+
+        with self.assertRaisesRegex(
+            VERIFY.VerificationError, "not found"
+        ):
+            VERIFY._download_pinned(
+                "https://github.com/owner/repo/releases/download/v1/base.zip",
+                opener=opener,
+                sleeper=sleeps.append,
+            )
+        self.assertEqual(attempts, 1)
+        self.assertEqual(sleeps, [])
+
+    def test_download_does_not_retry_an_untrusted_redirect(self) -> None:
+        attempts = 0
+        sleeps: list[float] = []
+
+        def opener(_request, *, timeout: int):
+            nonlocal attempts
+            self.assertEqual(timeout, 90)
+            attempts += 1
+            return self._Response(b"pinned", "https://example.com/base.zip")
+
+        with self.assertRaisesRegex(
+            VERIFY.VerificationError, "redirect left the permitted GitHub hosts"
+        ):
+            VERIFY._download_pinned(
+                "https://github.com/owner/repo/releases/download/v1/base.zip",
+                opener=opener,
+                sleeper=sleeps.append,
+            )
+        self.assertEqual(attempts, 1)
+        self.assertEqual(sleeps, [])
+
+    def test_malformed_source_url_fails_closed(self) -> None:
+        with self.assertRaisesRegex(VERIFY.VerificationError, "is malformed"):
+            VERIFY._download_pinned("https://[malformed")
+
+    def test_redirect_handler_rejects_an_untrusted_intermediate_hop(self) -> None:
+        request = Request("https://github.com/owner/repo/releases/download/v1/base.zip")
+        handler = VERIFY._PinnedRedirectHandler()
+        with self.assertRaisesRegex(
+            VERIFY.VerificationError, "redirect left the permitted GitHub hosts"
+        ):
+            handler.redirect_request(
+                request,
+                None,
+                302,
+                "Found",
+                {},
+                "https://example.com/intermediate",
+            )
+
     def test_manifest_matches_canonical_archive_and_checked_in_origins(self) -> None:
         manifest_path = ROOT / "parity/source-overlay-manifest.json"
         manifest = VERIFY.load_manifest(manifest_path)

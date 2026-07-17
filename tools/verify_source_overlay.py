@@ -10,26 +10,84 @@ can then run the digest-pinned parity checker against a Codex target checkout.
 from __future__ import annotations
 
 import argparse
+import errno
 import hashlib
+from http.client import IncompleteRead
 import json
 from pathlib import Path, PurePosixPath
 import re
+import ssl
 import stat
 import subprocess
 import sys
 import tempfile
+import time
 from urllib.parse import urlparse
-from urllib.request import Request, urlopen
+from urllib.error import HTTPError, URLError
+from urllib.request import HTTPRedirectHandler, Request, build_opener
 import zipfile
 
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MANIFEST = ROOT / "parity/source-overlay-manifest.json"
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+DOWNLOAD_RETRY_DELAYS = (1.0, 2.0)
+ALLOWED_DOWNLOAD_HOSTS = frozenset({
+    "github.com",
+    "objects.githubusercontent.com",
+    "release-assets.githubusercontent.com",
+})
+TRANSIENT_HTTP_STATUSES = {408, 425, 429, 500, 502, 503, 504}
+TRANSIENT_ERRNOS = frozenset(
+    value
+    for value in (
+        getattr(errno, "ETIMEDOUT", None),
+        getattr(errno, "ECONNRESET", None),
+        getattr(errno, "ECONNABORTED", None),
+        getattr(errno, "ECONNREFUSED", None),
+        getattr(errno, "EHOSTUNREACH", None),
+        getattr(errno, "ENETUNREACH", None),
+    )
+    if value is not None
+)
 
 
 class VerificationError(RuntimeError):
     """Raised when an archive or overlay violates the published contract."""
+
+
+def _validate_download_url(url: str, label: str) -> None:
+    try:
+        parsed = urlparse(url)
+    except ValueError as exc:
+        raise VerificationError(f"{label} is malformed: {url}") from exc
+    if parsed.scheme != "https" or parsed.hostname not in ALLOWED_DOWNLOAD_HOSTS:
+        raise VerificationError(f"{label} left the permitted GitHub hosts: {url}")
+
+
+class _PinnedRedirectHandler(HTTPRedirectHandler):
+    """Reject every redirect hop that leaves the pinned GitHub host set."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        _validate_download_url(newurl, "public-source redirect")
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+def _is_transient_download_error(exc: BaseException) -> bool:
+    if isinstance(exc, HTTPError):
+        return exc.code in TRANSIENT_HTTP_STATUSES
+    if isinstance(exc, IncompleteRead):
+        return True
+    if isinstance(exc, ssl.SSLError):
+        return False
+    if isinstance(exc, URLError):
+        reason = exc.reason
+        return reason is not exc and isinstance(reason, BaseException) and (
+            _is_transient_download_error(reason)
+        )
+    if isinstance(exc, (TimeoutError, ConnectionError)):
+        return True
+    return isinstance(exc, OSError) and exc.errno in TRANSIENT_ERRNOS
 
 
 def sha256_bytes(value: bytes) -> str:
@@ -44,34 +102,45 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _download_pinned(url: str, limit: int = 64 * 1024 * 1024) -> bytes:
-    parsed = urlparse(url)
-    if parsed.scheme != "https" or parsed.hostname not in {
-        "github.com",
-        "objects.githubusercontent.com",
-        "release-assets.githubusercontent.com",
-    }:
-        raise VerificationError(f"refusing untrusted public-source URL: {url}")
-    request = Request(url, headers={"User-Agent": "solo-suite-overlay-verifier/1"})
-    try:
-        with urlopen(request, timeout=90) as response:
-            final = urlparse(response.geturl())
-            if final.scheme != "https" or final.hostname not in {
-                "github.com",
-                "objects.githubusercontent.com",
-                "release-assets.githubusercontent.com",
-            }:
+def _download_pinned(
+    url: str,
+    limit: int = 64 * 1024 * 1024,
+    *,
+    opener=None,
+    sleeper=time.sleep,
+) -> bytes:
+    _validate_download_url(url, "public-source URL")
+    if opener is None:
+        opener = build_opener(_PinnedRedirectHandler()).open
+    delays = DOWNLOAD_RETRY_DELAYS
+    for attempt in range(len(delays) + 1):
+        request = Request(
+            url, headers={"User-Agent": "solo-suite-overlay-verifier/1"}
+        )
+        try:
+            with opener(request, timeout=90) as response:
+                _validate_download_url(response.geturl(), "public-source redirect")
+                data = response.read(limit + 1)
+            if len(data) > limit:
+                raise VerificationError("public source material exceeds the download limit")
+            return data
+        except VerificationError:
+            raise
+        except (OSError, IncompleteRead) as exc:
+            retry = _is_transient_download_error(exc)
+            if isinstance(exc, HTTPError):
+                exc.close()
+            if not retry:
                 raise VerificationError(
-                    f"public-source redirect left the permitted GitHub hosts: {response.geturl()}"
-                )
-            data = response.read(limit + 1)
-    except VerificationError:
-        raise
-    except OSError as exc:
-        raise VerificationError(f"could not download public source material: {exc}") from exc
-    if len(data) > limit:
-        raise VerificationError("public source material exceeds the download limit")
-    return data
+                    f"could not download public source material: {exc}"
+                ) from exc
+            if attempt == len(delays):
+                raise VerificationError(
+                    "could not download public source material after "
+                    f"{attempt + 1} attempts: {exc}"
+                ) from exc
+            sleeper(delays[attempt])
+    raise AssertionError("download retry loop exhausted unexpectedly")
 
 
 def fetch_public_base(manifest: dict, destination: Path) -> Path:
