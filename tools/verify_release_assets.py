@@ -167,11 +167,14 @@ def verify_release_assets(
                 f"got {remote_digest}"
             )
         advertised = asset.get("digest")
-        if isinstance(advertised, str) and advertised.startswith("sha256:"):
-            if advertised[7:].lower() != expected_digest:
-                raise ReleaseAssetError(
-                    f"asset {name!r} advertised digest mismatch: {advertised}"
-                )
+        if not isinstance(advertised, str) or not advertised.startswith("sha256:"):
+            raise ReleaseAssetError(
+                f"asset {name!r} is missing a sha256 advertised digest"
+            )
+        if advertised[7:].lower() != expected_digest:
+            raise ReleaseAssetError(
+                f"asset {name!r} advertised digest mismatch: {advertised}"
+            )
         verified.append((name, expected_size, expected_digest))
     return verified
 

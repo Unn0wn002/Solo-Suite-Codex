@@ -84,6 +84,23 @@ class ReleaseAssetVerificationTests(unittest.TestCase):
                 fetch_asset=lambda _repo, asset_id: downloaded[asset_id],
             )
 
+    def test_rejects_missing_or_unsupported_advertised_digest(self):
+        for advertised in (None, "md5:deadbeef"):
+            with self.subTest(advertised=advertised):
+                temp, paths, release, downloaded = self._fixture()
+                self.addCleanup(temp.cleanup)
+                release["assets"][0]["digest"] = advertised
+                with self.assertRaisesRegex(
+                    ReleaseAssetError, "missing a sha256 advertised digest"
+                ):
+                    verify_release_assets(
+                        "owner/repo",
+                        "v1.0.27",
+                        paths,
+                        fetch_release=lambda _endpoint: release,
+                        fetch_asset=lambda _repo, asset_id: downloaded[asset_id],
+                    )
+
 
 if __name__ == "__main__":
     unittest.main()
