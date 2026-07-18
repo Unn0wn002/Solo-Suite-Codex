@@ -11,7 +11,8 @@ intentionally omits nested archives and checksum sidecars. After completion of
 normal review and merge, protected-tag validation, and final private-draft asset
 re-verification, the release workflow publishes and
 attests the canonical archive and sidecar as separate assets alongside the
-Codex package. This candidate has not yet completed that publication workflow.
+Codex package. At this source snapshot, the candidate has not yet completed that
+publication workflow.
 
 **Provenance scope:** the v1.0.26 base is independently reproducible from the
 public immutable Solo Suite release, its annotated tag, and its published
