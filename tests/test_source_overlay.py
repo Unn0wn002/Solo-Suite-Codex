@@ -11,6 +11,7 @@ import ssl
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from urllib.error import HTTPError
 from urllib.request import Request
 import zipfile
@@ -31,6 +32,19 @@ assert BUILD_SPEC is not None and BUILD_SPEC.loader is not None
 BUILDER = importlib.util.module_from_spec(BUILD_SPEC)
 sys.modules[BUILD_SPEC.name] = BUILDER
 BUILD_SPEC.loader.exec_module(BUILDER)
+# The manifest generator imports these tools by their script-module names.
+# Alias the already-loaded modules so the focused tests exercise the exact
+# implementations above rather than loading duplicate module instances.
+sys.modules["build_canonical_source"] = BUILDER
+sys.modules["verify_source_overlay"] = VERIFY
+GEN_SPEC = importlib.util.spec_from_file_location(
+    "source_overlay_manifest_generator",
+    ROOT / "tools/generate_source_overlay_manifest.py",
+)
+assert GEN_SPEC is not None and GEN_SPEC.loader is not None
+GENERATOR = importlib.util.module_from_spec(GEN_SPEC)
+sys.modules[GEN_SPEC.name] = GENERATOR
+GEN_SPEC.loader.exec_module(GENERATOR)
 
 
 def sha256_bytes(value: bytes) -> str:
@@ -195,6 +209,146 @@ class PublishedOverlayTests(unittest.TestCase):
         self.assertEqual(attempts, 1)
         self.assertEqual(sleeps, [])
 
+    def test_public_fetch_requires_archive_binding_and_clean_source(self) -> None:
+        asset = b"pinned archive"
+        manifest = {
+            "base_archive": "base.zip",
+            "base_asset_url": "https://github.com/owner/repo/base.zip",
+            "base_provenance_url": "https://github.com/owner/repo/provenance.json",
+            "base_archive_sha256": sha256_bytes(asset),
+            "base_provenance_sha256": sha256_bytes(b"provenance"),
+            "base_git_commit": "a" * 40,
+            "base_tree_oid": "b" * 40,
+        }
+        bad = json.dumps({
+            "artifact_sha256": "c" * 64,
+            "source_commit": "a" * 40,
+            "source_tree_oid": "b" * 40,
+            "source_dirty": False,
+        }).encode("utf-8")
+        manifest["base_provenance_sha256"] = sha256_bytes(bad)
+
+        def download(url: str, **_kwargs: object) -> bytes:
+            return asset if url.endswith("base.zip") else bad
+
+        with mock.patch.object(VERIFY, "_download_pinned", side_effect=download):
+            with self.assertRaisesRegex(
+                VERIFY.VerificationError,
+                "does not bind the downloaded archive",
+            ):
+                VERIFY.fetch_public_base(manifest, Path(tempfile.mkdtemp()) / "base.zip")
+
+    def test_manifest_rejects_traversal_base_archive_name(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            manifest = Path(temp) / "manifest.json"
+            manifest.write_text(
+                json.dumps({
+                    "schema": "solo-suite/source-overlay-manifest-v1",
+                    "base_archive": "../escape.zip",
+                }),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(
+                VERIFY.VerificationError,
+                "invalid base_archive filename",
+            ):
+                VERIFY.load_manifest(manifest)
+
+    def test_manifest_rejects_windows_device_base_archive_name(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            manifest = Path(temp) / "manifest.json"
+            manifest.write_text(
+                json.dumps({
+                    "schema": "solo-suite/source-overlay-manifest-v1",
+                    "base_archive": "CON.txt",
+                }),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(
+                VERIFY.VerificationError,
+                "invalid base_archive filename",
+            ):
+                VERIFY.load_manifest(manifest)
+
+    def test_manifest_rejects_non_object_json_root(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            manifest = Path(temp) / "manifest.json"
+            manifest.write_text("[]", encoding="utf-8")
+            with self.assertRaisesRegex(
+                VERIFY.VerificationError, "must be a JSON object"
+            ):
+                VERIFY.load_manifest(manifest)
+
+    def test_embedded_provenance_rejects_non_object_json_root(self) -> None:
+        manifest = {
+            "base_archive_sha256": "a",
+            "base_provenance_sha256": "b",
+            "base_git_commit": "c",
+            "base_tree_oid": "d",
+            "base_tag_object": "e",
+            "base_tag_signed": False,
+            "target_sync_commit": "f",
+            "capabilities_sha256": "g",
+            "changes": [],
+        }
+        with self.assertRaisesRegex(
+            VERIFY.VerificationError, "must be a JSON object"
+        ):
+            VERIFY._verify_embedded_provenance(
+                manifest, {"PARITY-SOURCE.json": b"[]"}
+            )
+
+    def test_generator_rejects_substituted_base_archive_digest(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            archive = Path(temp) / BUILDER.BASE_ARCHIVE_NAME
+            archive.write_bytes(b"substituted archive")
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "does not match the pinned release asset",
+            ):
+                GENERATOR._validate_base_archive(archive)
+
+    def test_generator_rejects_substituted_provenance_digest(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            provenance = Path(temp) / "provenance.json"
+            provenance.write_text("{}", encoding="utf-8")
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "does not match the pinned public record",
+            ):
+                GENERATOR._validate_base_provenance(
+                    provenance, BUILDER.BASE_ARCHIVE_SHA256
+                )
+
+    def test_generator_pins_provenance_identity_metadata(self) -> None:
+        payload = {
+            "artifact": "substituted.zip",
+            "artifact_sha256": BUILDER.BASE_ARCHIVE_SHA256,
+            "version": BUILDER.TARGET_VERSION,
+            "source_commit": BUILDER.BASE_GIT_COMMIT,
+            "source_tree_oid": BUILDER.BASE_TREE_OID,
+            "worktree_head_commit": BUILDER.BASE_GIT_COMMIT,
+            "source_dirty": False,
+        }
+        with tempfile.TemporaryDirectory() as temp:
+            provenance = Path(temp) / "provenance.json"
+            provenance.write_text(json.dumps(payload), encoding="utf-8")
+            # The digest pin is independently covered above; mocking it here
+            # lets this test reach the metadata checks without embedding a
+            # second copy of the public release record.
+            with mock.patch.object(
+                GENERATOR,
+                "sha256_file",
+                return_value=BUILDER.BASE_PROVENANCE_SHA256,
+            ):
+                with self.assertRaisesRegex(
+                    RuntimeError,
+                    "base provenance artifact does not match pinned source",
+                ):
+                    GENERATOR._validate_base_provenance(
+                        provenance, BUILDER.BASE_ARCHIVE_SHA256
+                    )
+
     def test_download_does_not_retry_an_untrusted_redirect(self) -> None:
         attempts = 0
         sleeps: list[float] = []
@@ -239,28 +393,29 @@ class PublishedOverlayTests(unittest.TestCase):
         manifest_path = ROOT / "parity/source-overlay-manifest.json"
         manifest = VERIFY.load_manifest(manifest_path)
         self.assertTrue(manifest["base_git_commit_authenticated"])
+        self.assertFalse(manifest["base_tag_signed"])
         self.assertEqual(
             manifest["provenance_status"],
-            "public-release-reproducible-overlay",
+            "authenticated-tag-reproducible-overlay",
         )
-        self.assertIn("not a claim of byte parity", manifest["provenance_caveat"])
+        self.assertIn("tag is not cryptographically signed", manifest["provenance_caveat"])
 
         changes = manifest["changes"]
-        self.assertEqual(len(changes), 22)
+        self.assertEqual(len(changes), 10)
         self.assertEqual(
             {kind: sum(item["change"] == kind for item in changes)
              for kind in ("replace", "add", "delete")},
-            {"replace": 19, "add": 3, "delete": 0},
+            {"replace": 7, "add": 3, "delete": 0},
         )
         self.assertEqual(
             sum(item["category"] == "site-doctor-helper-hardening"
                 for item in changes),
-            8,
+            0,
         )
         self.assertEqual(
             sum(item["category"] == "reviewed-command-source"
                 for item in changes),
-            8,
+            4,
         )
         self.assertTrue(all(
             item.get("provenance_role") != "preserved-claude-command-source"
@@ -270,6 +425,12 @@ class PublishedOverlayTests(unittest.TestCase):
             sum(item["category"] == "synchronized-gate-policy"
                 for item in changes),
             3,
+        )
+        self.assertEqual(
+            sum(item["category"] == "generated-verifier" for item in changes), 1
+        )
+        self.assertEqual(
+            sum(item["category"] == "generated-parity-manifest" for item in changes), 1
         )
 
         archive = ROOT / "parity/artifacts" / manifest["canonical_archive"]
@@ -294,7 +455,7 @@ class PublishedOverlayTests(unittest.TestCase):
         VERIFY._verify_embedded_provenance(manifest, canonical)
 
     def test_builder_pins_the_checked_in_archive_and_overlay_manifest(self) -> None:
-        archive = ROOT / "parity/artifacts" / "solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip"
+        archive = ROOT / "parity/artifacts" / "solo-suite-plugin-v1.0.27-codex-v1.0.27-parity-source.zip"
         manifest = ROOT / "parity/source-overlay-manifest.json"
         self.assertRegex(BUILDER.EXPECTED_ARCHIVE_SHA256, r"^[0-9a-f]{64}$")
         self.assertRegex(
@@ -311,7 +472,7 @@ class PublishedOverlayTests(unittest.TestCase):
         count, parity_output = VERIFY.verify_canonical_only(
             archive, manifest, target=ROOT,
         )
-        self.assertEqual(count, 22)
+        self.assertEqual(count, 10)
         self.assertIsNotNone(parity_output)
 
     def test_fixture_rejects_an_undeclared_archive_change(self) -> None:
@@ -347,6 +508,7 @@ class PublishedOverlayTests(unittest.TestCase):
             write_zip(canonical, top, canonical_files)
             manifest = {
                 "schema": "solo-suite/source-overlay-manifest-v1",
+                "base_archive": "base.zip",
                 "top_level_folder": top,
                 "base_archive_sha256": sha256_file(base),
                 "canonical_archive_sha256": sha256_file(canonical),

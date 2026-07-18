@@ -14,7 +14,7 @@ import errno
 import hashlib
 from http.client import IncompleteRead
 import json
-from pathlib import Path, PurePosixPath
+from pathlib import Path, PurePosixPath, PureWindowsPath
 import re
 import ssl
 import stat
@@ -30,6 +30,12 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MANIFEST = ROOT / "parity/source-overlay-manifest.json"
+# Archive names are later joined to a temporary directory in networked mode.
+# Keep this an intentionally small, cross-platform allow-list: a manifest is
+# data, not a path-authorisation mechanism.  In particular, reject separators,
+# drive-qualified names, dot-segments, control characters, and names that are
+# ambiguous on Windows (trailing spaces/dots).
+PLAIN_FILENAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,254}$")
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 DOWNLOAD_RETRY_DELAYS = (1.0, 2.0)
 ALLOWED_DOWNLOAD_HOSTS = frozenset({
@@ -102,6 +108,28 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def is_safe_plain_filename(value: object) -> bool:
+    """Return whether *value* is safe to append to a directory path.
+
+    This deliberately accepts only ordinary archive-style names.  It is used
+    for the manifest's ``base_archive`` before any temporary-path join, so a
+    malicious manifest cannot turn the download destination into a traversal
+    or an absolute path.
+    """
+
+    if (
+        not isinstance(value, str)
+        or PLAIN_FILENAME_RE.fullmatch(value) is None
+        or value in {".", ".."}
+        or value.endswith((".", " "))
+    ):
+        return False
+    # ``PureWindowsPath.is_reserved`` covers CON/PRN/AUX/NUL, COM/LPT
+    # device names (including extension-bearing forms), and superscript
+    # variants that are special on Windows even though they look like files.
+    return not PureWindowsPath(value).is_reserved()
+
+
 def _download_pinned(
     url: str,
     limit: int = 64 * 1024 * 1024,
@@ -143,7 +171,17 @@ def _download_pinned(
     raise AssertionError("download retry loop exhausted unexpectedly")
 
 
-def fetch_public_base(manifest: dict, destination: Path) -> Path:
+def fetch_public_base(
+    manifest: dict,
+    destination: Path,
+    provenance_destination: Path | None = None,
+) -> Path:
+    # Validate this even for direct callers that bypass ``load_manifest``.
+    # ``main`` subsequently joins this value to a temporary directory.
+    if not is_safe_plain_filename(manifest.get("base_archive")):
+        raise VerificationError(
+            "overlay manifest has an invalid base_archive filename"
+        )
     asset_url = manifest.get("base_asset_url")
     provenance_url = manifest.get("base_provenance_url")
     expected_provenance = manifest.get("base_provenance_sha256")
@@ -171,15 +209,23 @@ def fetch_public_base(manifest: dict, destination: Path) -> Path:
         record = json.loads(provenance.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise VerificationError(f"public provenance is not valid JSON: {exc}") from exc
+    if not isinstance(record, dict):
+        raise VerificationError("public provenance must be a JSON object")
     if (
-        record.get("source_commit") != manifest.get("base_git_commit")
+        record.get("artifact_sha256") != manifest.get("base_archive_sha256")
+        or record.get("source_commit") != manifest.get("base_git_commit")
         or record.get("source_tree_oid") != manifest.get("base_tree_oid")
+        or record.get("source_dirty") is not False
     ):
         raise VerificationError(
-            "public provenance commit/tree does not match the overlay manifest"
+            "public provenance does not bind the downloaded archive to the "
+            "pinned clean source commit/tree"
         )
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_bytes(asset)
+    if provenance_destination is not None:
+        provenance_destination.parent.mkdir(parents=True, exist_ok=True)
+        provenance_destination.write_bytes(provenance)
     return destination
 
 
@@ -188,8 +234,14 @@ def load_manifest(path: Path) -> dict:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise VerificationError(f"cannot read overlay manifest {path}: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise VerificationError("overlay manifest must be a JSON object")
     if payload.get("schema") != "solo-suite/source-overlay-manifest-v1":
         raise VerificationError("overlay manifest has an unsupported schema")
+    if not is_safe_plain_filename(payload.get("base_archive")):
+        raise VerificationError(
+            "overlay manifest has an invalid base_archive filename"
+        )
     for key in ("base_archive_sha256", "canonical_archive_sha256"):
         if not SHA256_RE.fullmatch(str(payload.get(key, ""))):
             raise VerificationError(f"overlay manifest has an invalid {key}")
@@ -231,6 +283,40 @@ def load_manifest(path: Path) -> dict:
         ):
             raise VerificationError(f"unsafe overlay origin for {changed_path}")
     return payload
+
+
+def verify_base_provenance(path: Path, manifest: dict) -> dict:
+    """Verify the source builder record bound to the pinned base archive."""
+    expected = manifest.get("base_provenance_sha256")
+    if not isinstance(expected, str) or not SHA256_RE.fullmatch(expected):
+        raise VerificationError("overlay manifest has an invalid base_provenance_sha256")
+    if not path.is_file():
+        raise VerificationError(f"base provenance does not exist: {path}")
+    actual = sha256_file(path)
+    if actual != expected:
+        raise VerificationError(
+            "base provenance digest mismatch: "
+            f"expected {expected}, got {actual}"
+        )
+    try:
+        record = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise VerificationError(f"base provenance is not valid JSON: {exc}") from exc
+    if not isinstance(record, dict):
+        raise VerificationError("base provenance must be a JSON object")
+    checks = {
+        "artifact_sha256": manifest.get("base_archive_sha256"),
+        "source_commit": manifest.get("base_git_commit"),
+        "source_tree_oid": manifest.get("base_tree_oid"),
+    }
+    for key, value in checks.items():
+        if record.get(key) != value:
+            raise VerificationError(
+                f"base provenance {key} does not match the overlay manifest"
+            )
+    if record.get("source_dirty") is not False:
+        raise VerificationError("base provenance is not bound to a clean source tree")
+    return record
 
 
 def _safe_relative(value: str) -> bool:
@@ -315,9 +401,15 @@ def _verify_embedded_provenance(manifest: dict, canonical: dict[str, bytes]) -> 
         provenance = json.loads(canonical["PARITY-SOURCE.json"].decode("utf-8"))
     except (KeyError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise VerificationError(f"canonical PARITY-SOURCE.json is invalid: {exc}") from exc
+    if not isinstance(provenance, dict):
+        raise VerificationError("canonical PARITY-SOURCE.json must be a JSON object")
     for manifest_key, provenance_key in (
         ("base_archive_sha256", "base_archive_sha256"),
+        ("base_provenance_sha256", "base_provenance_sha256"),
         ("base_git_commit", "base_git_commit"),
+        ("base_tree_oid", "base_tree_oid"),
+        ("base_tag_object", "base_tag_object"),
+        ("base_tag_signed", "base_tag_signed"),
         ("target_sync_commit", "target_sync_commit"),
         ("capabilities_sha256", "capabilities_sha256"),
     ):
@@ -400,8 +492,17 @@ def verify(
     canonical_archive: Path,
     manifest_path: Path,
     target: Path | None = None,
+    base_provenance: Path | None = None,
+    *,
+    provenance_already_verified: bool = False,
 ) -> tuple[int, str | None]:
     manifest = load_manifest(manifest_path)
+    if base_provenance is not None:
+        verify_base_provenance(base_provenance.resolve(), manifest)
+    elif manifest.get("base_provenance_sha256") and not provenance_already_verified:
+        raise VerificationError(
+            "full overlay verification requires the pinned base provenance record"
+        )
     top_level = manifest["top_level_folder"]
     base = read_archive(
         base_archive.resolve(), manifest["base_archive_sha256"], top_level
@@ -499,6 +600,10 @@ def main() -> int:
         help="verify the checked-in canonical archive and embedded provenance without downloading the base",
     )
     parser.add_argument("--canonical-source-archive", type=Path, required=True)
+    parser.add_argument(
+        "--base-provenance", type=Path,
+        help="source builder provenance paired with --base-archive",
+    )
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
     parser.add_argument("--target", type=Path)
     args = parser.parse_args()
@@ -506,12 +611,22 @@ def main() -> int:
         manifest = load_manifest(args.manifest)
         if args.fetch_public_base:
             with tempfile.TemporaryDirectory(prefix="solo-suite-public-base-") as temp:
-                base_archive = fetch_public_base(manifest, Path(temp) / manifest["base_archive"])
+                # ``load_manifest`` and ``fetch_public_base`` both validate the
+                # name; retain the explicit guard at the sink so this remains
+                # safe if this path is refactored to receive a different
+                # manifest object later.
+                archive_name = manifest.get("base_archive")
+                if not is_safe_plain_filename(archive_name):
+                    raise VerificationError(
+                        "overlay manifest has an invalid base_archive filename"
+                    )
+                base_archive = fetch_public_base(manifest, Path(temp) / archive_name)
                 count, parity_output = verify(
                     base_archive,
                     args.canonical_source_archive,
                     args.manifest,
                     args.target,
+                    provenance_already_verified=True,
                 )
         elif args.base_archive is not None:
             count, parity_output = verify(
@@ -519,6 +634,7 @@ def main() -> int:
                 args.canonical_source_archive,
                 args.manifest,
                 args.target,
+                args.base_provenance,
             )
         elif args.canonical_only:
             count, parity_output = verify_canonical_only(

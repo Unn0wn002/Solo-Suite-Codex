@@ -61,7 +61,7 @@ jobs:
           coverage run --parallel-mode --source=plugins,tools
           tools/verify_source_overlay.py --canonical-only
           --canonical-source-archive
-          parity/artifacts/solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip
+          parity/artifacts/solo-suite-plugin-v1.0.27-codex-v1.0.27-parity-source.zip
           --target .
 
       - name: Rebuild and verify the public canonical source overlay
@@ -72,8 +72,8 @@ jobs:
 
       - name: Run checked-in parity and authoring-contract validators
         run: |
-          python -m zipfile -e parity/artifacts/solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip dist/parity-source
-          coverage run --parallel-mode --source=plugins,tools tools/parity.py --check --source dist/parity-source/solo-suite-plugin-v1.0.26 --target .
+          python -m zipfile -e parity/artifacts/solo-suite-plugin-v1.0.27-codex-v1.0.27-parity-source.zip dist/parity-source
+          coverage run --parallel-mode --source=plugins,tools tools/parity.py --check --source dist/parity-source/solo-suite-plugin-v1.0.27 --target .
           coverage run --parallel-mode --source=plugins,tools tools/build_agentrooms.py --check-docs
           coverage run --parallel-mode --source=plugins,tools tools/normalize_skill_contracts.py --check
           coverage run --parallel-mode --source=plugins,tools tools/native_install_smoke.py --suite-root . --if-available --no-self-check --report dist/native-install-validation.json
@@ -124,7 +124,7 @@ jobs:
           tools/package_release.py
           --output dist/solo-suite-codex-v1.0.27.zip
           --validation-state ci
-          --canonical-source-archive parity/artifacts/solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip
+          --canonical-source-archive parity/artifacts/solo-suite-plugin-v1.0.27-codex-v1.0.27-parity-source.zip
 
       - name: Verify packaging did not rewrite tracked source
         run: |
@@ -135,7 +135,7 @@ jobs:
         run: >-
           coverage run --parallel-mode --source=plugins,tools
           tools/smoke_package.py dist/solo-suite-codex-v1.0.27.zip
-          --canonical-source-archive parity/artifacts/solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip
+          --canonical-source-archive parity/artifacts/solo-suite-plugin-v1.0.27-codex-v1.0.27-parity-source.zip
 
       - name: Combine executed-command coverage and enforce floor
         run: |

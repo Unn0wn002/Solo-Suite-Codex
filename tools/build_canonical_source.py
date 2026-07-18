@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Reconstruct and package the pinned Claude v1.0.26 baseline for Codex v1.0.27.
+"""Reconstruct and package the pinned Claude v1.0.27 baseline for Codex v1.0.27.
 
-The public Claude v1.0.26 archive is the immutable base. Reviewed release-sync
-files are overlaid before the canonical parity manifest is
-regenerated.  A build succeeds only when that manifest is byte-identical to
+The exact authenticated Claude v1.0.27 Git-object build is the immutable base.
+Reviewed Codex adapter files are overlaid before the canonical parity manifest
+is regenerated. A build succeeds only when that manifest is byte-identical to
 the Codex checkout's pinned manifest and the full source/target parity check
 passes.
 """
@@ -24,15 +24,16 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 TARGET_VERSION = "1.0.27"
-SOURCE_FOLDER = "solo-suite-plugin-v1.0.26"
+SOURCE_FOLDER = "solo-suite-plugin-v1.0.27"
 BASE_ARCHIVE_NAME = f"{SOURCE_FOLDER}.zip"
 BASE_ARCHIVE_SHA256 = (
-    "b691905f8ade4c2fb7e0084a46f537c9be8d7b2bf0f4d160c38c5e930aed1d43"
+    "e6ade834f95695766af5655a2444d49096ba3b0c49b4f1f726a119ef30848caa"
 )
-BASE_GIT_COMMIT = "99eb54f9113a1dab279135024ced11dc88970ef5"
-BASE_TAG = "v1.0.26"
-BASE_TAG_OBJECT = "2846a430cc7391218346e087cb90b0e515934883"
-BASE_TREE_OID = "c5992b7b9082e160705c41421603d31471025403"
+BASE_GIT_COMMIT = "a31be037edaee840479977585e33ac0e57088cb4"
+BASE_TAG = "v1.0.27"
+BASE_TAG_OBJECT = "7495f3ac2c4da972f0f4435028ed468da3135475"
+BASE_TAG_SIGNED = False
+BASE_TREE_OID = "0517f8f10a5406f227eb3177b188b2b1103fcf47"
 BASE_REPOSITORY = "https://github.com/Unn0wn002/solo-suite"
 BASE_RELEASE_URL = f"{BASE_REPOSITORY}/releases/tag/{BASE_TAG}"
 BASE_ASSET_URL = (
@@ -42,42 +43,28 @@ BASE_PROVENANCE_URL = (
     f"{BASE_REPOSITORY}/releases/download/{BASE_TAG}/provenance.json"
 )
 BASE_PROVENANCE_SHA256 = (
-    "c55f8fb0700d015af778d081037ae623d962097c2ea1a912498b84bfa4f31c6b"
+    "a6d59e91229d38dfb284c130957c138a2718912dcd23fea4917670f9b875633b"
 )
-TARGET_SYNC_COMMIT = "3d16f56fd4a924bd56da3b57de69b4dc3f52f684"
-SOURCE_DATE_EPOCH = 1_784_103_592
+TARGET_SYNC_COMMIT = "16d3bba2503c1698d770cc52b3fe53be39ab6e09"
+SOURCE_DATE_EPOCH = 1_784_160_312
 OUTPUT_NAME = (
     f"{SOURCE_FOLDER}-codex-v{TARGET_VERSION}-parity-source.zip"
 )
 EXPECTED_CAPABILITIES_SHA256 = (
-    "f1ea0261f28de025d0626f5d1bdc4ded6667b4167d1dc310e74c79349cf9ec6a"
+    "3f03cfe3cb25cff447dcfcba028df832288e9212c0fe816b9f702b7a1038f5ec"
 )
 EXPECTED_OVERLAY_MANIFEST_SHA256 = (
-    "bddf3928594cec55ccd03049febc611e0dc7c1d403e8b202b32f24af70b9a51a"
+    "a59ed564dc008fa6b6d12f4a3122905c4bc39baa5743069e9d8db33cd1aedeb1"
 )
 EXPECTED_ARCHIVE_SHA256 = (
-    "6e4da1b2eb3d4880057c35611699cf1fed241d0f25c644d741ea7b9fa5522d83"
+    "7dde7bbe44e7534e3f1890ddb1c5feba5554d60127c4dd7ef2095b31cafb03aa"
 )
 
-HELPER_OVERLAYS = (
-    "plugins/site-doctor/lib/url_guard.py",
-    "plugins/site-doctor/skills/compliance-check/scripts/scan_trackers.py",
-    "plugins/site-doctor/skills/dependency-audit/scripts/check_deps.py",
-    "plugins/site-doctor/skills/email-deliverability/scripts/check_email_dns.py",
-    "plugins/site-doctor/skills/security-review/scripts/scan_secrets.py",
-    "plugins/site-doctor/skills/seo-optimization/scripts/extract_meta.py",
-    "plugins/site-doctor/skills/website-audit/scripts/check_headers.py",
-    "plugins/site-doctor/skills/website-audit/scripts/check_links.py",
-)
 COMMAND_OVERLAYS = (
-    "plugins/browser/commands/form-submit-test.md",
+    "plugins/full-team/commands/verify.md",
     "plugins/release/commands/deploy-plan.md",
     "plugins/release/commands/rollback-plan.md",
-    "plugins/gate/commands/production-ready.md",
-    "plugins/full-team/commands/verify.md",
     "plugins/solo/commands/full-team-dev.md",
-    "plugins/solo/commands/sync-grafana.md",
-    "plugins/solo/commands/sync-obsidian.md",
 )
 GATE_POLICY_OVERLAYS = (
     "plugins/gate/skills/production-readiness-reviewer/SKILL.md",
@@ -146,22 +133,35 @@ def extract_base(archive_path: Path, destination: Path) -> Path:
     return source
 
 
+def verify_base_provenance(path: Path) -> None:
+    if not path.is_file():
+        raise RuntimeError(f"base provenance does not exist: {path}")
+    actual = sha256(path)
+    if actual != BASE_PROVENANCE_SHA256:
+        raise RuntimeError(
+            "base provenance digest mismatch: "
+            f"expected {BASE_PROVENANCE_SHA256}, got {actual}"
+        )
+    try:
+        record = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"base provenance is not valid JSON: {exc}") from exc
+    for key, expected in {
+        "artifact_sha256": BASE_ARCHIVE_SHA256,
+        "source_commit": BASE_GIT_COMMIT,
+        "source_tree_oid": BASE_TREE_OID,
+    }.items():
+        if record.get(key) != expected:
+            raise RuntimeError(
+                f"base provenance {key} mismatch: expected {expected}, "
+                f"got {record.get(key)}"
+            )
+    if record.get("source_dirty") is not False:
+        raise RuntimeError("base provenance is not bound to a clean source tree")
+
+
 def overlay_files(source: Path) -> list[dict[str, str]]:
     records: list[dict[str, str]] = []
-    for relative in HELPER_OVERLAYS:
-        origin = ROOT / relative
-        role = "target-synchronized-helper"
-        if not origin.is_file():
-            raise RuntimeError(f"helper overlay is missing: {origin}")
-        destination = source / relative
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        destination.write_bytes(origin.read_bytes())
-        records.append({
-            "path": relative,
-            "role": role,
-            "origin": relative,
-            "sha256": sha256(origin),
-        })
     for relative in COMMAND_OVERLAYS:
         origin = ROOT / "parity/canonical-source-overrides" / relative
         if not origin.is_file():
@@ -219,7 +219,7 @@ def run_parity(source: Path) -> None:
     source_manifest = source / "parity/capabilities.json"
     target_manifest = ROOT / "parity/capabilities.json"
     source_digest = sha256(source_manifest)
-    if source_digest != EXPECTED_CAPABILITIES_SHA256:
+    if EXPECTED_CAPABILITIES_SHA256 and source_digest != EXPECTED_CAPABILITIES_SHA256:
         raise RuntimeError(
             "canonical source manifest has an unexpected digest: "
             f"expected {EXPECTED_CAPABILITIES_SHA256}, got {source_digest}"
@@ -276,7 +276,7 @@ def write_provenance(source: Path, overlays: list[dict[str, str]]) -> None:
     write_json(source / "PARITY-SOURCE.json", {
         "schema": "solo-suite/canonical-parity-source-v1",
         "source_suite": "solo-suite-plugin",
-        "source_version": "1.0.26",
+        "source_version": "1.0.27",
         "target_suite": "solo-suite-codex",
         "target_version": TARGET_VERSION,
         "source_date_epoch": SOURCE_DATE_EPOCH,
@@ -286,6 +286,7 @@ def write_provenance(source: Path, overlays: list[dict[str, str]]) -> None:
         "base_git_commit": BASE_GIT_COMMIT,
         "base_tag": BASE_TAG,
         "base_tag_object": BASE_TAG_OBJECT,
+        "base_tag_signed": BASE_TAG_SIGNED,
         "base_tree_oid": BASE_TREE_OID,
         "base_repository": BASE_REPOSITORY,
         "base_release_url": BASE_RELEASE_URL,
@@ -295,7 +296,9 @@ def write_provenance(source: Path, overlays: list[dict[str, str]]) -> None:
         "target_sync_commit": TARGET_SYNC_COMMIT,
         "capabilities_sha256": EXPECTED_CAPABILITIES_SHA256,
         "tree_sha256": tree_digest(source),
-        "overlays": overlays,
+        # Keep the embedded record byte-stable and in the same path order used
+        # by the independently generated overlay manifest.
+        "overlays": sorted(overlays, key=lambda item: item["path"]),
         "verification": [
             "python tools/parity.py generate --source <canonical-source>",
             "python tools/parity.py check --source <canonical-source> --target <codex-target>",
@@ -335,10 +338,12 @@ def package_source(source: Path, output: Path) -> str:
     return digest
 
 
-def verify_published_overlay(base_archive: Path, output: Path) -> None:
+def verify_published_overlay(
+    base_archive: Path, base_provenance: Path, output: Path
+) -> None:
     manifest = ROOT / "parity/source-overlay-manifest.json"
     actual_manifest_digest = sha256(manifest)
-    if actual_manifest_digest != EXPECTED_OVERLAY_MANIFEST_SHA256:
+    if EXPECTED_OVERLAY_MANIFEST_SHA256 and actual_manifest_digest != EXPECTED_OVERLAY_MANIFEST_SHA256:
         raise RuntimeError(
             "source overlay manifest digest mismatch: "
             f"expected {EXPECTED_OVERLAY_MANIFEST_SHA256}, "
@@ -353,6 +358,8 @@ def verify_published_overlay(base_archive: Path, output: Path) -> None:
             str(base_archive),
             "--canonical-source-archive",
             str(output),
+            "--base-provenance",
+            str(base_provenance),
             "--manifest",
             str(manifest),
             "--target",
@@ -372,16 +379,18 @@ def verify_published_overlay(base_archive: Path, output: Path) -> None:
     print(checked.stdout.strip())
 
 
-def build(base_archive: Path, output: Path) -> str:
+def build(base_archive: Path, base_provenance: Path, output: Path) -> str:
     base_archive = base_archive.resolve()
+    base_provenance = base_provenance.resolve()
     output = output.resolve()
+    verify_base_provenance(base_provenance)
     with tempfile.TemporaryDirectory(prefix="solo-suite-canonical-source-") as temp:
         source = extract_base(base_archive, Path(temp))
         overlays = overlay_files(source)
         run_parity(source)
         write_provenance(source, overlays)
         digest = package_source(source, output)
-    verify_published_overlay(base_archive, output)
+    verify_published_overlay(base_archive, base_provenance, output)
     if EXPECTED_ARCHIVE_SHA256 and digest != EXPECTED_ARCHIVE_SHA256:
         raise RuntimeError(
             "canonical source archive digest mismatch: "
@@ -399,19 +408,36 @@ def main() -> int:
         help="download the authenticated base asset/provenance pinned in parity/source-overlay-manifest.json",
     )
     parser.add_argument("--output", type=Path, default=ROOT.parent / OUTPUT_NAME)
+    parser.add_argument(
+        "--base-provenance", type=Path,
+        default=ROOT / "parity/artifacts/solo-suite-plugin-v1.0.27.provenance.json",
+    )
     args = parser.parse_args()
     try:
         if args.fetch_public_base:
-            from verify_source_overlay import fetch_public_base, load_manifest
+            from verify_source_overlay import (
+                fetch_public_base,
+                is_safe_plain_filename,
+                load_manifest,
+            )
 
             manifest = load_manifest(ROOT / "parity/source-overlay-manifest.json")
             with tempfile.TemporaryDirectory(prefix="solo-suite-public-base-") as temp:
+                temporary = Path(temp)
+                public_provenance = temporary / "provenance.json"
+                archive_name = manifest.get("base_archive")
+                if not is_safe_plain_filename(archive_name):
+                    raise RuntimeError(
+                        "overlay manifest has an invalid base_archive filename"
+                    )
                 base_archive = fetch_public_base(
-                    manifest, Path(temp) / manifest["base_archive"]
+                    manifest,
+                    temporary / archive_name,
+                    public_provenance,
                 )
-                digest = build(base_archive, args.output)
+                digest = build(base_archive, public_provenance, args.output)
         elif args.base_archive is not None:
-            digest = build(args.base_archive, args.output)
+            digest = build(args.base_archive, args.base_provenance, args.output)
         else:
             parser.error("one of --base-archive or --fetch-public-base is required")
     except (OSError, RuntimeError, zipfile.BadZipFile) as exc:

@@ -101,7 +101,7 @@ jobs:
           coverage run --parallel-mode --source=plugins,tools
           tools/verify_source_overlay.py --canonical-only
           --canonical-source-archive
-          parity/artifacts/solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip
+          parity/artifacts/solo-suite-plugin-v1.0.27-codex-v1.0.27-parity-source.zip
           --target .
 
       - name: Rebuild and verify the public canonical source overlay
@@ -112,8 +112,8 @@ jobs:
 
       - name: Run checked-in parity and authoring-contract validators
         run: |
-          python -m zipfile -e parity/artifacts/solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip dist/parity-source
-          coverage run --parallel-mode --source=plugins,tools tools/parity.py --check --source dist/parity-source/solo-suite-plugin-v1.0.26 --target .
+          python -m zipfile -e parity/artifacts/solo-suite-plugin-v1.0.27-codex-v1.0.27-parity-source.zip dist/parity-source
+          coverage run --parallel-mode --source=plugins,tools tools/parity.py --check --source dist/parity-source/solo-suite-plugin-v1.0.27 --target .
           coverage run --parallel-mode --source=plugins,tools tools/build_agentrooms.py --check-docs
           coverage run --parallel-mode --source=plugins,tools tools/normalize_skill_contracts.py --check
           coverage run --parallel-mode --source=plugins,tools tools/native_install_smoke.py --suite-root . --if-available --no-self-check --report dist/native-install-validation.json
@@ -144,7 +144,7 @@ jobs:
       - name: Build and smoke-test deterministic release package
         env:
           ARCHIVE_NAME: ${{ steps.release.outputs.archive }}
-          CANONICAL_SOURCE: solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip
+          CANONICAL_SOURCE: solo-suite-plugin-v1.0.27-codex-v1.0.27-parity-source.zip
         run: |
           coverage run --parallel-mode --source=plugins,tools tools/package_release.py --output "dist/${ARCHIVE_NAME}" --validation-state validated --canonical-source-archive "parity/artifacts/${CANONICAL_SOURCE}"
           coverage run --parallel-mode --source=plugins,tools tools/smoke_package.py "dist/${ARCHIVE_NAME}" --canonical-source-archive "parity/artifacts/${CANONICAL_SOURCE}"
@@ -182,8 +182,8 @@ jobs:
           path: |
             dist/${{ steps.release.outputs.archive }}
             dist/${{ steps.release.outputs.archive }}.sha256
-            dist/solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip
-            dist/solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip.sha256
+            dist/solo-suite-plugin-v1.0.27-codex-v1.0.27-parity-source.zip
+            dist/solo-suite-plugin-v1.0.27-codex-v1.0.27-parity-source.zip.sha256
             dist/source-overlay-manifest-v1.0.27.json
             dist/plugin-validation-v1.0.27.json
             dist/dependency-audit-dev-v1.0.27.json
@@ -214,8 +214,8 @@ jobs:
           subject-path: |
             dist/${{ needs.build.outputs.archive }}
             dist/${{ needs.build.outputs.archive }}.sha256
-            dist/solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip
-            dist/solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip.sha256
+            dist/solo-suite-plugin-v1.0.27-codex-v1.0.27-parity-source.zip
+            dist/solo-suite-plugin-v1.0.27-codex-v1.0.27-parity-source.zip.sha256
             dist/source-overlay-manifest-v1.0.27.json
             dist/plugin-validation-v1.0.27.json
             dist/dependency-audit-dev-v1.0.27.json
@@ -268,14 +268,14 @@ jobs:
           --draft
           --title "Solo Suite Codex $RELEASE_TAG"
           --generate-notes
-          --notes "Codex v1.0.27 is paired with the authenticated historical Claude v1.0.26 overlay; it does not claim current Claude v1.0.27 byte parity."
+          --notes "Codex v1.0.27 is paired with a reproducible Claude v1.0.27 overlay. The annotated upstream tag is unsigned; the ten declared Codex adapter paths are listed in source-overlay-manifest.json."
 
       - name: Upload immutable release assets to draft
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
           ARCHIVE_PATH: dist/${{ needs.build.outputs.archive }}
-          CANONICAL_SOURCE_PATH: dist/solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip
+          CANONICAL_SOURCE_PATH: dist/solo-suite-plugin-v1.0.27-codex-v1.0.27-parity-source.zip
         run: >-
           gh release upload "$RELEASE_TAG"
           "$ARCHIVE_PATH" "$ARCHIVE_PATH.sha256"
@@ -294,7 +294,7 @@ jobs:
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
           REF_PROTECTED: ${{ github.ref_protected }}
           ARCHIVE_NAME: ${{ needs.build.outputs.archive }}
-          CANONICAL_SOURCE: solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip
+          CANONICAL_SOURCE: solo-suite-plugin-v1.0.27-codex-v1.0.27-parity-source.zip
         run: |
           if [ "$REF_PROTECTED" != "true" ]; then
             echo "::error::release tag is not protected by an active ruleset"

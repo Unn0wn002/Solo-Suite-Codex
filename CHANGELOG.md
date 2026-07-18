@@ -7,11 +7,11 @@
 - Split source-checkout and installed-package validation profiles in README and generated provenance, disclosing that the install ZIP omits the separately attested canonical parity archive and cannot run Git-dependent contributor tests.
 - Corrected the supported release in `SECURITY.md` from stale v1.0.12 wording to v1.0.27.
 - Unified direct and AgentRoom production-gate policy on one imported definition of the 14 categories, six profile N/A matrices, seven mandatory categories, N/A-adjusted denominator, launch thresholds, and status decision; corrected SaaS SEO, API-service Database, and library Monitoring/Performance applicability drift.
-- Prepared a deterministic, digest-pinned historical Claude v1.0.26 parity baseline for the Codex v1.0.27 adapter: a public-release base plus 19 disclosed replacements and three generated verification/provenance files. The unreleased candidate explicitly does not claim byte parity with a later Claude v1.0.27 source release.
-- Accepted the historical-baseline scope explicitly, added offline canonical-overlay verification before networked provenance fetching, and documented a non-destructive remote-main import/PR plan for the separate public v1.0.12 history.
+- Reconciled the Codex adapter against the public Claude v1.0.27 annotated tag (commit/tree and release provenance pinned; tag signature absent). The reproducible canonical overlay now declares exactly ten paths: seven reviewed behavior merges, the hardened parity checker, regenerated capabilities, and embedded provenance.
+- Added offline canonical-overlay verification before networked provenance fetching and documented a non-destructive remote-main import/PR plan; the current v1.0.27 baseline is the public Claude release asset with an explicit ten-path Codex adapter overlay (the unsigned upstream tag remains a caveat).
 - Added a fail-closed native Codex marketplace smoke/duplicate-name guard, so a stale same-name marketplace cannot silently install an older plugin cache.
 - Made the canonical source artifact mandatory for validated/CI packaging and package smoke tests; both now rerun the bundled source/target parity checker instead of relying on provenance prose.
-- Added `tools/build_canonical_source.py`, preserved the three raw Claude command inputs needed for reconstruction, and pinned the source archive, manifest, base archive, and source commits in `parity/canonical-source.json`.
+- Added `tools/build_canonical_source.py` and `tools/generate_source_overlay_manifest.py`; both require the v1.0.27 base provenance record and fail closed on undeclared source drift. The base and canonical archive digests, tag object, tree, and overlay manifest are pinned in `parity/canonical-source.json`.
 - Made `$full-team-orchestrator` and `full-team-website.json` the single authoritative full-team flow; `$solo-full-team-dev` now delegates to it instead of maintaining a divergent phase list.
 - Added explicit stack-conditional Vercel, Supabase, Cloudflare, tag, and payments tasks and gate artifacts to the full-team room, aligned the specification/CI/Git/handoff commands, and generated its 15-stage/25-seat documentation from the JSON contract.
 - Made `$full-team-verify` delegate to the native preflight, enforce the v1.0.27 component floor, and report Codex-native `codex plugin add ...@solo-suite-codex` repair commands.
@@ -20,12 +20,12 @@
 
 ## 1.0.27 — 2026-07-15
 
-- Synchronized the Codex adapter with the canonical Solo Suite Claude v1.0.26 capability set: 18 plugins, 56 specialist skills, and all 102 command workflows.
+- Synchronized the Codex adapter with the canonical Solo Suite Claude v1.0.27 capability set: 18 plugins, 56 specialist skills, and all 102 command workflows.
 - Added `$full-team-verify` and `$gate-finalize-evidence`, including the newer evidence finalizer, run-state, Gate policy, and Site Doctor helper hardening.
 - Added a deterministic source-to-adapter manifest and checker for command mappings, specialist instructions, shared helper hashes, schemas, room archives, and explicit invocation policy.
 - Made all 159 Codex skills explicit-only by default.
 - Preserved Codex's stronger executable AgentRoom runtime and Codex marketplace self-check as two documented platform adapters; canonical Claude room files are archived for drift detection.
-- Parameterized conversion, metadata, packaging, smoke checks, and CI around the canonical Claude v1.0.26 source rather than the older embedded v1.0.10 snapshot.
+- Parameterized conversion, metadata, packaging, smoke checks, and CI around the authenticated Claude v1.0.27 source rather than the older embedded snapshot.
 
 ## 1.0.12 — 2026-07-13
 
@@ -71,7 +71,7 @@
 
 - Added the strict AgentRooms v1 JSON Schema, semantic validator, memory-steward ownership, unique task allocation, workspaces, artifact locks, bounded loops, implicit `.solo/` effects, and gate evidence requirements.
 - Rebuilt all four room templates and added a declarative Codex runner adapter. Room JSON remains a validated execution plan, not an unclaimed automatic runtime.
-- Standardized production readiness on 14 categories, 140 points, three launch statuses, provider-aware applicability, artifact digests, and commit/environment/expiry validation.
+- Standardized production readiness on 14 categories (140 points only when all are applicable), three launch statuses, provider-aware applicability, artifact digests, and commit/environment/expiry validation.
 
 ### Release engineering and documentation
 

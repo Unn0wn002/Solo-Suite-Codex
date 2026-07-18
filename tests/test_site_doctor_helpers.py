@@ -292,9 +292,12 @@ class TrackerScannerBehavior(unittest.TestCase):
             self.assertEqual(TRACKERS.main("https://example.test"), 1)
         text = output.getvalue()
         self.assertIn("Google Tag Manager  (x1)", text)
-        self.assertIn("cdn.example.net", text)
-        self.assertIn("objects.example.net", text)
-        self.assertIn("max-age=60s", text)
+        # Untrusted hostnames are fingerprinted rather than echoed into audit
+        # output; this keeps tracker reports safe to publish.
+        self.assertGreaterEqual(text.count("host-id="), 3)
+        self.assertNotIn("cdn.example.net", text)
+        self.assertNotIn("objects.example.net", text)
+        self.assertIn("persistent-max-age", text)
         self.assertIn("(malformed)", text)
 
     def test_main_returns_unavailable_when_fetch_is_blocked(self):

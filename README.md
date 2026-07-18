@@ -1,6 +1,6 @@
 # Solo Suite for Codex
 
-Solo Suite is a Codex-native plugin marketplace for planning, designing, building, testing, auditing, and releasing software with shared `.solo/` project memory. This adapter synchronizes 102 workflows from the reconstructed Claude baseline paired with Codex v1.0.27, migrating each legacy command to an explicit Codex skill. The source checkout pins that baseline under `parity/artifacts/`. The deterministic install ZIP intentionally omits nested archives and checksum sidecars, so the release workflow is configured to publish the separately attested asset `solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip` beside it only after normal review and merge, protected-tag validation, and final private-draft asset re-verification are complete. At this source snapshot, the v1.0.27 candidate has not yet been published; identity, reconstruction inputs, exact byte overlay, and provenance caveat are pinned under [`parity/`](parity/README.md).
+Solo Suite is a Codex-native plugin marketplace for planning, designing, building, testing, auditing, and releasing software with shared `.solo/` project memory. This adapter synchronizes 102 workflows from the authenticated Claude v1.0.27 baseline, migrating each legacy command to an explicit Codex skill. The source checkout pins the public base and its exact ten-path Codex overlay under `parity/artifacts/`. The deterministic install ZIP intentionally omits nested archives and checksum sidecars, so the release workflow publishes the separately attested asset `solo-suite-plugin-v1.0.27-codex-v1.0.27-parity-source.zip` only after normal review, protected-tag validation, and final private-draft asset re-verification. The Claude tag is annotated but unsigned; that caveat and every reconstruction input are recorded under [`parity/`](parity/README.md).
 
 **18 plugins** · **159 skills** · **102 migrated commands** · **24 helper scripts**
 
@@ -219,9 +219,9 @@ python -m pip_audit --strict --progress-spinner off --disable-pip --no-deps --re
 Publication-grade packages are built only from a clean Git commit. The packager snapshots `HEAD`, generates release metadata in a disposable staging directory, and leaves tracked source files unchanged:
 
 ```powershell
-$canonical = Resolve-Path "parity\artifacts\solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip"
-python tools/build_canonical_source.py --base-archive ..\solo-suite-plugin-v1.0.26.zip --output ..\solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip
-python tools/verify_source_overlay.py --base-archive ..\solo-suite-plugin-v1.0.26.zip --canonical-source-archive $canonical --target .
+$canonical = Resolve-Path "parity\artifacts\solo-suite-plugin-v1.0.27-codex-v1.0.27-parity-source.zip"
+python tools/build_canonical_source.py --base-archive parity\artifacts\solo-suite-plugin-v1.0.27.zip --base-provenance parity\artifacts\solo-suite-plugin-v1.0.27.provenance.json --output $canonical
+python tools/verify_source_overlay.py --base-archive parity\artifacts\solo-suite-plugin-v1.0.27.zip --base-provenance parity\artifacts\solo-suite-plugin-v1.0.27.provenance.json --canonical-source-archive $canonical --target .
 python tools/verify_source_overlay.py --canonical-only --canonical-source-archive $canonical --target .
 python tools/package_release.py --output ..\solo-suite-codex-v1.0.27.zip --validation-state validated --canonical-source-archive $canonical
 python tools/smoke_package.py ..\solo-suite-codex-v1.0.27.zip --canonical-source-archive $canonical
@@ -241,7 +241,7 @@ python -m pip install --require-hashes -r requirements-dev.lock
 python plugins/solo/skills/suite-integrity/scripts/self_check.py . -
 python plugins/ai/skills/agent-room-templates/scripts/validate_rooms.py --suite .
 python tools/validate_plugins.py --official-if-available
-python tools/smoke_package.py ..\solo-suite-codex-v1.0.27.zip --canonical-source-archive ..\solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip
+python tools/smoke_package.py ..\solo-suite-codex-v1.0.27.zip --canonical-source-archive $canonical
 ```
 
 The contributor unit suite and Git cleanliness commands are deliberately not
@@ -264,14 +264,22 @@ and dismissed as **used in tests** with that exact rationale. No query
 suppression is embedded in source, and no production secret-handling finding is
 dismissed by this exception.
 
-The source builder verifies the supplied v1.0.26 base digest, applies 19 disclosed replacements (eight Site Doctor helpers, eight command sources, and three gate-policy files), adds three generated verification/provenance files, regenerates both sides' `capabilities.json` contract, and runs the complete parity check before emitting a deterministic archive. The independent overlay verifier then rejects any byte difference not listed in `parity/source-overlay-manifest.json`. Repeating the build with the pinned inputs must reproduce the archive digest in `parity/canonical-source.json`.
+The source builder verifies the supplied Claude v1.0.27 archive and provenance
+record, applies the seven reviewed Codex behavior overlays plus the hardened
+checker, regenerates `capabilities.json`, embeds `PARITY-SOURCE.json`, and runs
+the complete parity check before emitting a deterministic archive. The
+independent overlay verifier then rejects any byte difference not listed in
+`parity/source-overlay-manifest.json`. Repeating the build with the pinned
+inputs must reproduce the archive digest in `parity/canonical-source.json`.
 
-The public Claude v1.0.26 release asset, annotated tag, source tree, and
-provenance record are authenticated and independently reachable. The paired
-archive is therefore accurately labeled a **reconstructed adapter baseline**:
-it is not a byte-identical claim against the later Claude v1.0.27 release. The
-overlay manifest proves exactly what changed, and the accepted baseline-scope
-decision and its exact overlay are documented in [`parity/README.md`](parity/README.md) and [`parity/source-overlay-manifest.json`](parity/source-overlay-manifest.json).
+The public Claude v1.0.27 release asset, annotated tag, and source tree are
+independently reachable and digest-pinned; the checked-in provenance JSON is
+the exact public release CI record, also digest-pinned rather than locally
+rebuilt. Because the tag is unsigned, the result is accurately described as an **authenticated,
+reproducible adapter overlay with an unsigned-tag caveat**, not as a signed
+upstream attestation. The manifest proves exactly what changed; the accepted
+baseline-scope decision is documented in [`parity/README.md`](parity/README.md)
+and [`parity/source-overlay-manifest.json`](parity/source-overlay-manifest.json).
 
 The final status command must print nothing. Intentional release output under ignored `dist/` is omitted by Git.
 
@@ -279,4 +287,4 @@ The Site Doctor command reference and ready-to-adapt prompts are in `site-doctor
 
 ## Publisher and license
 
-The original marketplace owner `Ayaya` and the MIT copyright holder Sakura Yukihira refer to the same publisher identity, recorded here as `Sakura Yukihira (Ayaya)`. The public Claude v1.0.26 release, annotated tag, asset, and provenance record are linked from [`parity/canonical-source.json`](parity/canonical-source.json). This Codex adapter is maintained at [Unn0wn002/Solo-Suite-Codex](https://github.com/Unn0wn002/Solo-Suite-Codex), whose visibility and access are controlled by the publisher. See `LICENSE`, `SECURITY.md`, and `CONTRIBUTING.md`.
+The original marketplace owner `Ayaya` and the MIT copyright holder Sakura Yukihira refer to the same publisher identity, recorded here as `Sakura Yukihira (Ayaya)`. The public Claude v1.0.27 release, annotated tag, asset, and provenance record are linked from [`parity/canonical-source.json`](parity/canonical-source.json). This Codex adapter is maintained at [Unn0wn002/Solo-Suite-Codex](https://github.com/Unn0wn002/Solo-Suite-Codex), whose visibility and access are controlled by the publisher. See `LICENSE`, `SECURITY.md`, and `CONTRIBUTING.md`.

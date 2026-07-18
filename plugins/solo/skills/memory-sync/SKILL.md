@@ -26,7 +26,7 @@ Sync targets are remembered in `.solo/config.md` so you only configure them once
 
 ### Safety: preview first, confirm before writing
 
-This skill is **manual-only** (`disable-model-invocation: true` — run it via `$solo-sync-obsidian` / `$solo-sync-grafana`), and every external write is gated:
+This skill is **manual-only at the execution boundary**: invoke the user-facing `$solo-sync-obsidian` or `$solo-sync-grafana` command, and never perform an external write merely because this skill was loaded for planning or routing. Every external write is gated:
 
 1. **Default is a dry run.** First produce a preview: which notes/dashboard/annotations *would* be created or updated, with a diff-style summary. No external write happens in the preview.
 2. **Explicit confirmation** ("yes, apply") is required before any write to the vault, the Grafana API, or any other destination.

@@ -114,9 +114,9 @@ class GitHubSecurityPolicy(unittest.TestCase):
         self.assertIn("gh release edit", source)
         self.assertIn("--draft=false", source)
         self.assertIn(
-            "authenticated historical Claude v1.0.26 overlay", source
+            "Claude v1.0.27", source
         )
-        self.assertIn("does not claim current Claude v1.0.27 byte parity", source)
+        self.assertIn("unsigned", source.lower())
         for report in (
             "dependency-audit-dev-v1.0.27.json",
             "dependency-audit-tools-v1.0.27.json",

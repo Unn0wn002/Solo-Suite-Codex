@@ -10,9 +10,9 @@ that manifest and reports every mismatch before returning a non-zero status.
 
 Examples::
 
-    python tools/parity.py generate --source C:/src/solo-suite-v1.0.26-work
-    python tools/parity.py --check --source C:/src/solo-suite-v1.0.26-work \
-        --target C:/src/solo-suite-codex-v1.0.11
+    python tools/parity.py generate --source C:/src/solo-suite-v1.0.27-work
+    python tools/parity.py --check --source C:/src/solo-suite-v1.0.27-work \
+        --target C:/src/solo-suite-codex-v1.0.27
 
 ``--generate`` is accepted as an alias for the ``generate`` subcommand.  The
 manifest deliberately contains relative paths and hashes only; no workstation

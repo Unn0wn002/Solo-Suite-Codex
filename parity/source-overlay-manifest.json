@@ -1,112 +1,82 @@
 {
   "schema": "solo-suite/source-overlay-manifest-v1",
   "target_release": "solo-suite-codex-v1.0.27",
-  "top_level_folder": "solo-suite-plugin-v1.0.26",
-  "base_archive": "solo-suite-plugin-v1.0.26.zip",
-  "base_archive_sha256": "b691905f8ade4c2fb7e0084a46f537c9be8d7b2bf0f4d160c38c5e930aed1d43",
-  "base_git_commit": "99eb54f9113a1dab279135024ced11dc88970ef5",
+  "top_level_folder": "solo-suite-plugin-v1.0.27",
+  "base_archive": "solo-suite-plugin-v1.0.27.zip",
+  "base_archive_sha256": "e6ade834f95695766af5655a2444d49096ba3b0c49b4f1f726a119ef30848caa",
+  "base_git_commit": "a31be037edaee840479977585e33ac0e57088cb4",
   "base_git_commit_authenticated": true,
-  "base_tag": "v1.0.26",
-  "base_tag_object": "2846a430cc7391218346e087cb90b0e515934883",
-  "base_tree_oid": "c5992b7b9082e160705c41421603d31471025403",
+  "base_tag": "v1.0.27",
+  "base_tag_object": "7495f3ac2c4da972f0f4435028ed468da3135475",
+  "base_tag_signed": false,
+  "base_tree_oid": "0517f8f10a5406f227eb3177b188b2b1103fcf47",
   "base_repository": "https://github.com/Unn0wn002/solo-suite",
-  "base_release_url": "https://github.com/Unn0wn002/solo-suite/releases/tag/v1.0.26",
-  "base_asset_url": "https://github.com/Unn0wn002/solo-suite/releases/download/v1.0.26/solo-suite-plugin-v1.0.26.zip",
-  "base_provenance_url": "https://github.com/Unn0wn002/solo-suite/releases/download/v1.0.26/provenance.json",
-  "base_provenance_sha256": "c55f8fb0700d015af778d081037ae623d962097c2ea1a912498b84bfa4f31c6b",
+  "base_release_url": "https://github.com/Unn0wn002/solo-suite/releases/tag/v1.0.27",
+  "base_asset_url": "https://github.com/Unn0wn002/solo-suite/releases/download/v1.0.27/solo-suite-plugin-v1.0.27.zip",
+  "base_provenance_url": "https://github.com/Unn0wn002/solo-suite/releases/download/v1.0.27/provenance.json",
+  "base_provenance_sha256": "a6d59e91229d38dfb284c130957c138a2718912dcd23fea4917670f9b875633b",
   "overlay_source_commits": {
-    "site_doctor_helpers": "3d16f56fd4a924bd56da3b57de69b4dc3f52f684",
-    "command_sources": "6de6f57eb5f41218346ee3ec215b74ba14b3b86e",
-    "gate_policy_sources": "6de6f57eb5f41218346ee3ec215b74ba14b3b86e",
-    "canonical_checker": "3d16f56fd4a924bd56da3b57de69b4dc3f52f684"
+    "canonical_tag_commit": "a31be037edaee840479977585e33ac0e57088cb4",
+    "codex_target_sync": "16d3bba2503c1698d770cc52b3fe53be39ab6e09"
   },
-  "canonical_archive": "solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip",
-  "canonical_archive_sha256": "6e4da1b2eb3d4880057c35611699cf1fed241d0f25c644d741ea7b9fa5522d83",
-  "target_sync_commit": "3d16f56fd4a924bd56da3b57de69b4dc3f52f684",
-  "capabilities_sha256": "f1ea0261f28de025d0626f5d1bdc4ded6667b4167d1dc310e74c79349cf9ec6a",
-  "provenance_status": "public-release-reproducible-overlay",
-  "provenance_caveat": "The v1.0.26 base is independently reproducible from the public immutable Solo Suite release and its provenance record. This overlay is the historical v1.0.26 baseline paired to this Codex adapter; it is not a claim of byte parity with any later Claude v1.0.27 source release.",
+  "canonical_archive": "solo-suite-plugin-v1.0.27-codex-v1.0.27-parity-source.zip",
+  "canonical_archive_sha256": "7dde7bbe44e7534e3f1890ddb1c5feba5554d60127c4dd7ef2095b31cafb03aa",
+  "target_sync_commit": "16d3bba2503c1698d770cc52b3fe53be39ab6e09",
+  "capabilities_sha256": "3f03cfe3cb25cff447dcfcba028df832288e9212c0fe816b9f702b7a1038f5ec",
+  "provenance_status": "authenticated-tag-reproducible-overlay",
+  "provenance_caveat": "The Claude v1.0.27 annotated tag, commit, tree, and public release asset are pinned; the checked-in provenance JSON is the exact public release CI record and is digest-pinned rather than locally rebuilt. The tag is not cryptographically signed (base_tag_signed=false). The Codex result differs from that base only at the ten paths declared here; those are reviewed adapter or generated-verifier overlays, not an assertion of byte identity with the unmodified Claude archive.",
   "changes": [
     {
-      "path": "plugins/site-doctor/lib/url_guard.py",
-      "change": "replace",
-      "category": "site-doctor-helper-hardening",
-      "base_sha256": "1e838be55058c7b071ef8a8da898f053034a29bf4abb80d72ad32fab6d47b806",
-      "result_sha256": "d57b604c5b61a58b5a7e4299d181bd8471072636e1399413bbe7069811a367b0",
-      "origin": "plugins/site-doctor/lib/url_guard.py",
-      "provenance_role": "target-synchronized-helper"
+      "path": "PARITY-SOURCE.json",
+      "change": "add",
+      "category": "generated-provenance",
+      "base_sha256": null,
+      "result_sha256": "c47e652756b04d47cb7b4d40cace36494549ff2af7c89762d1f1a22c04feec7b",
+      "origin": null
     },
     {
-      "path": "plugins/site-doctor/skills/compliance-check/scripts/scan_trackers.py",
-      "change": "replace",
-      "category": "site-doctor-helper-hardening",
-      "base_sha256": "082cd92452a41847a97cca8111a54c46b7c10e65b8782113117ad2ebb6926af3",
-      "result_sha256": "44ae778fa52721915c73257d82deaba839a6604350cf06e602ba8e78eb5b6026",
-      "origin": "plugins/site-doctor/skills/compliance-check/scripts/scan_trackers.py",
-      "provenance_role": "target-synchronized-helper"
+      "path": "parity/capabilities.json",
+      "change": "add",
+      "category": "generated-parity-manifest",
+      "base_sha256": null,
+      "result_sha256": "3f03cfe3cb25cff447dcfcba028df832288e9212c0fe816b9f702b7a1038f5ec",
+      "origin": "parity/capabilities.json"
     },
     {
-      "path": "plugins/site-doctor/skills/dependency-audit/scripts/check_deps.py",
-      "change": "replace",
-      "category": "site-doctor-helper-hardening",
-      "base_sha256": "52145da5111ac8d7d1457fc5361f75e25382acf21b3beeaff0726ea7424a4a3d",
-      "result_sha256": "8d67872db758da3a6c39ca3b3b79a057002ed0e643cdb434dc04a628d7dafce0",
-      "origin": "plugins/site-doctor/skills/dependency-audit/scripts/check_deps.py",
-      "provenance_role": "target-synchronized-helper"
-    },
-    {
-      "path": "plugins/site-doctor/skills/email-deliverability/scripts/check_email_dns.py",
-      "change": "replace",
-      "category": "site-doctor-helper-hardening",
-      "base_sha256": "8ea84d49a41fb8bcdc3851386f7662e5402331f869398239748645c368bce23a",
-      "result_sha256": "6df778a441d519685e83efcb1f0eb9de7613c2e7685e37424e905878279fc050",
-      "origin": "plugins/site-doctor/skills/email-deliverability/scripts/check_email_dns.py",
-      "provenance_role": "target-synchronized-helper"
-    },
-    {
-      "path": "plugins/site-doctor/skills/security-review/scripts/scan_secrets.py",
-      "change": "replace",
-      "category": "site-doctor-helper-hardening",
-      "base_sha256": "1c33126d15a52f9e7eb0129eb9e3beec06f5a973f73066c3e0ffcd7a4ad1bb87",
-      "result_sha256": "7de5372b0826f6c2febed29cea0ba81a106ade37f7534362b2e4431e8636de9c",
-      "origin": "plugins/site-doctor/skills/security-review/scripts/scan_secrets.py",
-      "provenance_role": "target-synchronized-helper"
-    },
-    {
-      "path": "plugins/site-doctor/skills/seo-optimization/scripts/extract_meta.py",
-      "change": "replace",
-      "category": "site-doctor-helper-hardening",
-      "base_sha256": "27cbe09086fc0e4024f702b6d7ae75f92742c7e0860defed209a2fff075a5114",
-      "result_sha256": "e5d246415099bc4eaeb65254a37f06e079b796089347cc98998940d12f87d728",
-      "origin": "plugins/site-doctor/skills/seo-optimization/scripts/extract_meta.py",
-      "provenance_role": "target-synchronized-helper"
-    },
-    {
-      "path": "plugins/site-doctor/skills/website-audit/scripts/check_headers.py",
-      "change": "replace",
-      "category": "site-doctor-helper-hardening",
-      "base_sha256": "9b9caed8f005b41e07003b8450eb6d8047b9b13ffd5687e91ee0c925724c0c0c",
-      "result_sha256": "9edc7c1b2e3af096ef7b62fb1f5fcc28033c13b2436072984fd53e5a6e49ee8c",
-      "origin": "plugins/site-doctor/skills/website-audit/scripts/check_headers.py",
-      "provenance_role": "target-synchronized-helper"
-    },
-    {
-      "path": "plugins/site-doctor/skills/website-audit/scripts/check_links.py",
-      "change": "replace",
-      "category": "site-doctor-helper-hardening",
-      "base_sha256": "e1510c5cafd3981ad0e24030d5fb99b3a50e2ac47632b8ac273bd3fa090a9744",
-      "result_sha256": "a52e4a567e1c7ab5ba451ea7fce329ad8bea89bbec423e34eb00f9b4cdcd4147",
-      "origin": "plugins/site-doctor/skills/website-audit/scripts/check_links.py",
-      "provenance_role": "target-synchronized-helper"
-    },
-    {
-      "path": "plugins/browser/commands/form-submit-test.md",
+      "path": "plugins/full-team/commands/verify.md",
       "change": "replace",
       "category": "reviewed-command-source",
-      "base_sha256": "03f7a8664391d747f462497382fe572efcf1287b77197c76ba44b255dc9f1782",
-      "result_sha256": "f9839ac2df5ea2429e1e71d12c5226ff7c43113b18eb089fdecf0c8cc2716f87",
-      "origin": "parity/canonical-source-overrides/plugins/browser/commands/form-submit-test.md",
+      "base_sha256": "6b5ecc525d219ad6c1ecb5b60ef34f6a48b8e78c026f14bf9092fc6c252b892f",
+      "result_sha256": "9da5fadb4b102487563393ce67bb9520cfa4bf034bf851932a42b57544cb8c6f",
+      "origin": "parity/canonical-source-overrides/plugins/full-team/commands/verify.md",
       "provenance_role": "reviewed-adapter-command-source"
+    },
+    {
+      "path": "plugins/gate/lib/gate_policy.py",
+      "change": "replace",
+      "category": "synchronized-gate-policy",
+      "base_sha256": "ce2123ae5ef6d6170af07dfb76a899df7919bc8d0587e04aa1bd7d5617be16c8",
+      "result_sha256": "a672e7c21d9e0c20996597e0f038c5374b856309c80f63fedc35e83c3fc2e83a",
+      "origin": "parity/canonical-source-overrides/plugins/gate/lib/gate_policy.py",
+      "provenance_role": "synchronized-gate-policy-source"
+    },
+    {
+      "path": "plugins/gate/skills/production-readiness-reviewer/SKILL.md",
+      "change": "replace",
+      "category": "synchronized-gate-policy",
+      "base_sha256": "fa878b586a06ce58c210af66331f27dcbde9d9b76fecddd2b19df731a0f13e94",
+      "result_sha256": "c67b37dcdbc0e0ee7d330e02c16c99cdb78255ebd7b1959fad27939135cb1c7a",
+      "origin": "parity/canonical-source-overrides/plugins/gate/skills/production-readiness-reviewer/SKILL.md",
+      "provenance_role": "synchronized-gate-policy-source"
+    },
+    {
+      "path": "plugins/gate/skills/production-readiness-reviewer/scripts/check_evidence.py",
+      "change": "replace",
+      "category": "synchronized-gate-policy",
+      "base_sha256": "a73752268fddc657fc8c53409536e255d259a1c3fd612cdd61742dce586158ad",
+      "result_sha256": "b3ccb2bc5fd6a4de00ccd6b3d51e889ff6bb820475f3f955c3b489546caf8099",
+      "origin": "parity/canonical-source-overrides/plugins/gate/skills/production-readiness-reviewer/scripts/check_evidence.py",
+      "provenance_role": "synchronized-gate-policy-source"
     },
     {
       "path": "plugins/release/commands/deploy-plan.md",
@@ -127,105 +97,27 @@
       "provenance_role": "reviewed-adapter-command-source"
     },
     {
-      "path": "plugins/gate/commands/production-ready.md",
-      "change": "replace",
-      "category": "reviewed-command-source",
-      "base_sha256": "fec2c32ee95487a6de792e5cd8b6b018581e11a12dacb1945e54c82b94fc38f8",
-      "result_sha256": "034c52b1ebe9726d0eaa3b2fb76bbf08dcc0afd086fedc4adfc8d41b606cbc9f",
-      "origin": "parity/canonical-source-overrides/plugins/gate/commands/production-ready.md",
-      "provenance_role": "reviewed-adapter-command-source"
-    },
-    {
-      "path": "plugins/full-team/commands/verify.md",
-      "change": "replace",
-      "category": "reviewed-command-source",
-      "base_sha256": "6b5ecc525d219ad6c1ecb5b60ef34f6a48b8e78c026f14bf9092fc6c252b892f",
-      "result_sha256": "9da5fadb4b102487563393ce67bb9520cfa4bf034bf851932a42b57544cb8c6f",
-      "origin": "parity/canonical-source-overrides/plugins/full-team/commands/verify.md",
-      "provenance_role": "reviewed-adapter-command-source"
-    },
-    {
       "path": "plugins/solo/commands/full-team-dev.md",
       "change": "replace",
       "category": "reviewed-command-source",
-      "base_sha256": "07d6409144e6c9662151381c84052646f3780d3ab16e59fd88a184d1b5341195",
+      "base_sha256": "c53c3a1ad7c7c4b9d5d5fb24cb6a54bd8981b0bcd6486ef69fee71ecbc5f6168",
       "result_sha256": "25d6b1c51f6b67ef9e84c20a7faabb3f02b8e55e1e3623c715d50a4204c74d20",
       "origin": "parity/canonical-source-overrides/plugins/solo/commands/full-team-dev.md",
       "provenance_role": "reviewed-adapter-command-source"
-    },
-    {
-      "path": "plugins/solo/commands/sync-grafana.md",
-      "change": "replace",
-      "category": "reviewed-command-source",
-      "base_sha256": "25c3d2a013f4605e00c7472b46f3b818565647fe4b900395d15f660ec6a01f35",
-      "result_sha256": "f28c99b4365cde4b62895e553dc0bec9c127a06e0b32b461fc8494f8fd68a4db",
-      "origin": "parity/canonical-source-overrides/plugins/solo/commands/sync-grafana.md",
-      "provenance_role": "reviewed-adapter-command-source"
-    },
-    {
-      "path": "plugins/solo/commands/sync-obsidian.md",
-      "change": "replace",
-      "category": "reviewed-command-source",
-      "base_sha256": "f2eea62be4dc2ef27992ea7ac6936ca2fb876bc2fc99e7fbff34ee02571cd2a4",
-      "result_sha256": "02fc77a76ae43b18eae385d8331b6b74ca6ffc2e4bee6688fc58e13258b927ff",
-      "origin": "parity/canonical-source-overrides/plugins/solo/commands/sync-obsidian.md",
-      "provenance_role": "reviewed-adapter-command-source"
-    },
-    {
-      "path": "plugins/gate/skills/production-readiness-reviewer/SKILL.md",
-      "change": "replace",
-      "category": "synchronized-gate-policy",
-      "base_sha256": "d10e8e8ed1f888c923b7966300977514e463b313b99aba442ce0ccc8d98b8340",
-      "result_sha256": "a208cd8117fc2ceca64ea5c3c7f256c53550955118638836fb69d10147973e28",
-      "origin": "parity/canonical-source-overrides/plugins/gate/skills/production-readiness-reviewer/SKILL.md",
-      "provenance_role": "synchronized-gate-policy-source"
-    },
-    {
-      "path": "plugins/gate/lib/gate_policy.py",
-      "change": "replace",
-      "category": "synchronized-gate-policy",
-      "base_sha256": "e48ca7994b14fa7dcad8ad5b8f015307a684693643cc8dbc849f2558771556fd",
-      "result_sha256": "864d06fa53eeb4e8c3b067fe29a6c7574c12c027edfd82b3e616c948388fd9fb",
-      "origin": "parity/canonical-source-overrides/plugins/gate/lib/gate_policy.py",
-      "provenance_role": "synchronized-gate-policy-source"
-    },
-    {
-      "path": "plugins/gate/skills/production-readiness-reviewer/scripts/check_evidence.py",
-      "change": "replace",
-      "category": "synchronized-gate-policy",
-      "base_sha256": "d6195959e1a3eccfdaa4d397b95c326d8ec7f05043dcedaf77b6b6ab5095da4f",
-      "result_sha256": "147311dd73d17443b99edf66a237c984f527a9b218e198708d29ad24ee61523d",
-      "origin": "parity/canonical-source-overrides/plugins/gate/skills/production-readiness-reviewer/scripts/check_evidence.py",
-      "provenance_role": "synchronized-gate-policy-source"
     },
     {
       "path": "tools/parity.py",
       "change": "add",
       "category": "generated-verifier",
       "base_sha256": null,
-      "result_sha256": "9f5e3bb91d8c97166f058422792aed212e6b026849b19d5968d07fb44577a936",
+      "result_sha256": "1d83b55d3fe84a8b5b6142f8538c75c73d89abf53c0e78ae39f95565d16c6175",
       "origin": "tools/parity.py",
       "provenance_role": "canonical-parity-checker"
-    },
-    {
-      "path": "parity/capabilities.json",
-      "change": "add",
-      "category": "generated-parity-manifest",
-      "base_sha256": null,
-      "result_sha256": "f1ea0261f28de025d0626f5d1bdc4ded6667b4167d1dc310e74c79349cf9ec6a",
-      "origin": "parity/capabilities.json"
-    },
-    {
-      "path": "PARITY-SOURCE.json",
-      "change": "add",
-      "category": "generated-provenance",
-      "base_sha256": null,
-      "result_sha256": "646156a1a0c40338109696849ffb711e12f5c9079754d725c930ee8ea5ba0680",
-      "origin": null
     }
   ],
   "verification": [
-    "python tools/verify_source_overlay.py --base-archive <solo-suite-plugin-v1.0.26.zip> --canonical-source-archive parity/artifacts/solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip --target .",
+    "python tools/verify_source_overlay.py --base-archive parity/artifacts/solo-suite-plugin-v1.0.27.zip --base-provenance parity/artifacts/solo-suite-plugin-v1.0.27.provenance.json --canonical-source-archive parity/artifacts/solo-suite-plugin-v1.0.27-codex-v1.0.27-parity-source.zip --target .",
+    "python tools/verify_source_overlay.py --canonical-only --canonical-source-archive parity/artifacts/solo-suite-plugin-v1.0.27-codex-v1.0.27-parity-source.zip --target .",
     "python tools/parity.py check --source <extracted-canonical-source> --target ."
   ]
 }

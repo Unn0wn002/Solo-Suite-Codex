@@ -21,14 +21,14 @@ HISTORICAL_SOURCE_SHA256 = (
     "b691905f8ade4c2fb7e0084a46f537c9be8d7b2bf0f4d160c38c5e930aed1d43"
 )
 CANONICAL_SOURCE_NAME = (
-    "solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip"
+    "solo-suite-plugin-v1.0.27-codex-v1.0.27-parity-source.zip"
 )
 CANONICAL_SOURCE_SHA256 = (
-    "6e4da1b2eb3d4880057c35611699cf1fed241d0f25c644d741ea7b9fa5522d83"
+    "7dde7bbe44e7534e3f1890ddb1c5feba5554d60127c4dd7ef2095b31cafb03aa"
 )
-CANONICAL_SOURCE_FOLDER = "solo-suite-plugin-v1.0.26"
+CANONICAL_SOURCE_FOLDER = "solo-suite-plugin-v1.0.27"
 CANONICAL_CAPABILITIES_SHA256 = (
-    "f1ea0261f28de025d0626f5d1bdc4ded6667b4167d1dc310e74c79349cf9ec6a"
+    "3f03cfe3cb25cff447dcfcba028df832288e9212c0fe816b9f702b7a1038f5ec"
 )
 
 

@@ -1,92 +1,83 @@
-# Claude to Codex capability parity
+# Claude v1.0.27 to Codex v1.0.27 parity
 
-`capabilities.json` is the deterministic parity contract for the Solo Suite
-adapter. The pinned reconstructed v1.0.26 Claude baseline paired with this
-Codex v1.0.27 adapter is prepared for publication as
-`solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip`. Its SHA-256,
-base archive, source commits, top-level folder, and manifest digest are pinned
-in `canonical-source.json`. The exact archive and sidecar are checked in under
-`parity/artifacts/` in the source checkout. The deterministic install ZIP
-intentionally omits nested archives and checksum sidecars. After completion of
-normal review and merge, protected-tag validation, and final private-draft asset
-re-verification, the release workflow publishes and
-attests the canonical archive and sidecar as separate assets alongside the
-Codex package. At this source snapshot, the candidate has not yet completed that
-publication workflow.
+The parity baseline is the public Solo Suite Claude `v1.0.27` release, pinned
+to an annotated tag object and its peeled commit:
 
-**Provenance scope:** the v1.0.26 base is independently reproducible from the
-public immutable Solo Suite release, its annotated tag, and its published
-provenance record. The exact 19 replacements and three generated additions are
-disclosed with before/after SHA-256 digests in `source-overlay-manifest.json`.
-This is the historical v1.0.26 baseline paired to this Codex adapter; it is not
-a claim of byte parity with any later Claude v1.0.27 source release.
+| material | pinned value |
+| --- | --- |
+| tag | `v1.0.27` |
+| tag object | `7495f3ac2c4da972f0f4435028ed468da3135475` |
+| commit | `a31be037edaee840479977585e33ac0e57088cb4` |
+| tree | `0517f8f10a5406f227eb3177b188b2b1103fcf47` |
+| tag signature | not present (`base_tag_signed=false`) |
+| base archive SHA-256 | `e6ade834f95695766af5655a2444d49096ba3b0c49b4f1f726a119ef30848caa` |
+| base provenance SHA-256 | `a6d59e91229d38dfb284c130957c138a2718912dcd23fea4917670f9b875633b` |
 
-Reconstruct the canonical source from the public Claude v1.0.26 archive:
+The base archive and the exact public provenance record downloaded from the
+release are checked in under `parity/artifacts/`. The archive was independently
+rebuilt twice from the clean pinned Git tree and reproduced its digest. The
+provenance JSON is the public release CI record (not a locally rebuilt record),
+and its digest, artifact digest, commit, tree, and `source_dirty=false` binding
+are checked before use. The archive is independently downloadable from the
+[Claude v1.0.27 release](https://github.com/Unn0wn002/solo-suite/releases/tag/v1.0.27).
+The unsigned tag is an explicit provenance caveat; the commit/tree and release
+bytes remain fully pinned and checked.
+
+## Declared adapter overlay
+
+The Codex canonical source is
+`solo-suite-plugin-v1.0.27-codex-v1.0.27-parity-source.zip`. It is not claimed to
+be byte-identical to the unmodified Claude archive. The independently generated
+manifest declares exactly ten changed paths:
+
+* four Codex-native command sources (`full-team:verify`, release deploy and
+  rollback plans, and `solo:full-team-dev`);
+* three reviewed gate-policy merges (the reviewer skill, policy module, and
+  evidence checker);
+* the hardened parity checker;
+* the regenerated `parity/capabilities.json`; and
+* the embedded `PARITY-SOURCE.json` provenance record.
+
+No other source, specialist skill, helper, schema, or archived AgentRoom file
+is an allowed difference. The two intentional platform skill waivers are still
+`ai:agent-room-templates` (Codex's executable runner) and `solo:suite-integrity`
+(Codex manifest/install validation), and the Codex-only
+`full-team:full-team-orchestrator` skill remains explicitly declared in
+`capabilities.json`.
+
+## Reproduce and verify
+
+From this checkout, using the bundled base artifacts:
 
 ```text
 python tools/build_canonical_source.py \
-  --base-archive <solo-suite-plugin-v1.0.26.zip> \
-  --output <solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip>
-```
+  --base-archive parity/artifacts/solo-suite-plugin-v1.0.27.zip \
+  --base-provenance parity/artifacts/solo-suite-plugin-v1.0.27.provenance.json \
+  --output parity/artifacts/solo-suite-plugin-v1.0.27-codex-v1.0.27-parity-source.zip
 
-The builder verifies the base archive digest, safely extracts it, overlays the
-eight synchronized Site Doctor helpers, eight reviewed adapter command sources,
-and three synchronized gate-policy files, installs the exact parity checker, regenerates the source manifest,
-requires byte equality with this checkout's manifest, and runs the complete
-source/target check. It emits a deterministic ZIP and adjacent SHA-256 file.
-The command must reproduce the digest in `canonical-source.json`.
-
-Verify the byte overlay independently from the builder, then rerun full parity:
-
-```text
 python tools/verify_source_overlay.py \
-  --base-archive <solo-suite-plugin-v1.0.26.zip> \
-  --canonical-source-archive <path-to-canonical-parity-source.zip> \
+  --base-archive parity/artifacts/solo-suite-plugin-v1.0.27.zip \
+  --base-provenance parity/artifacts/solo-suite-plugin-v1.0.27.provenance.json \
+  --canonical-source-archive parity/artifacts/solo-suite-plugin-v1.0.27-codex-v1.0.27-parity-source.zip \
   --target .
-```
 
-For offline review or a network outage, verify the checked-in canonical result
-without downloading the public base. This checks the pinned archive digest,
-embedded provenance, declared result hashes, origins, and target parity; it is
-not a substitute for the networked public-base provenance check:
-
-```text
 python tools/verify_source_overlay.py --canonical-only \
-  --canonical-source-archive <path-to-canonical-parity-source.zip> \
+  --canonical-source-archive parity/artifacts/solo-suite-plugin-v1.0.27-codex-v1.0.27-parity-source.zip \
   --target .
 ```
 
-The verifier compares the archives directly, rejects any undeclared change,
-checks the exact base and result digest for every changed path, validates the
-checked-in overlay origins, and only then executes the digest-pinned parity
-checker. It does not import or trust the source builder.
+To authenticate the public base rather than use the checked-in copy, run
+`tools/verify_source_overlay.py --fetch-public-base` with the canonical archive
+argument. Every download URL and redirect is restricted to the GitHub release
+host set, and the provenance digest, commit, tree, and clean-source assertion
+are checked before the overlay is compared.
 
-An independently extracted snapshot can be checked directly:
+`tools/generate_source_overlay_manifest.py` derives the manifest from the two
+archives and fails closed on an undeclared or missing difference. It is used
+when the pinned source or an intentional adapter overlay changes; do not edit
+the ten-path delta by hand. `tools/parity.py generate` and `tools/parity.py
+check` remain the capability-level contract and must both pass.
 
-```text
-python <canonical-source>/tools/parity.py check \
-  --source <canonical-source> \
-  --target <solo-suite-codex-checkout>
-```
-
-The checker is standard-library-only and fails closed. It verifies the exact
-command-map IDs and paths, explicit-only policy, normalized bodies for all 102
-command-derived skills and all non-waived specialists, byte hashes for
-helper/schema files, all 159 Codex `openai.yaml` policies, and the byte-exact
-Claude AgentRoom archive under `parity/claude-rooms`. Command normalization
-replays the deterministic command converter and only the declared Codex path
-and wording adaptations. It excludes only the suite's exact standardized
-terminal output-contract block (and its legacy one-line predecessor); detailed
-workflow and output instructions remain hash-bound.
-
-Two skills are platform adapters rather than byte-identical copies:
-
-* `ai:agent-room-templates` - Codex has a native runner, trust journal, and
-  state machinery. The canonical Claude tree is archived for review.
-* `solo:suite-integrity` - Codex validates Codex manifests and installed
-  plugin metadata, so its implementation is intentionally native.
-
-The only other permitted differences are the Codex-only
-`full-team:full-team-orchestrator` skill and the six gate runtime support files
-listed in `capabilities.json`. Any additional skill, helper, policy, or archive
-file is a parity failure.
+The checked-in reference, overlay manifest, and archive digest are recorded in
+[`canonical-source.json`](canonical-source.json) and
+[`source-overlay-manifest.json`](source-overlay-manifest.json).

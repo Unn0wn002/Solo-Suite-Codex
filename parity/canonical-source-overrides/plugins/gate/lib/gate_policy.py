@@ -212,6 +212,26 @@ def evaluate_production_gate(scores, profile, not_applicable=(), blockers=(),
         ),
     }
 
+
+# A category record proves one captured command, not every independent launch
+# control associated with that category.  These controls therefore require
+# separately cited command/live-test evidence in the human launch review.  The
+# direct checker exposes this list machine-readably, while the launch reviewer
+# fails closed when an applicable item remains unverified.
+REVIEWER_REQUIRED_CONTROLS = {
+    "accessibility-core-flows": "blocking WCAG failures on core flows",
+    "authentication": "required authentication and session behavior",
+    "backup-restore": "a current backup plus a tested restore result",
+    "committed-secrets": "a dedicated repository secret scan",
+    "error-tracking": "live error capture and alert delivery",
+    "mobile-core-flows": "core flows at the required mobile breakpoints",
+    "payments": "the applicable payment flow and failure handling",
+    "rls-authorization": "live authorization/RLS behavior where applicable",
+    "rollback": "a tested rollback result, not only a written plan",
+    "transactional-email": "actual delivery behavior, not only DNS records",
+}
+
+
 EVIDENCE_DIR = ".solo/gate-evidence"
 RUN_STATE_DIR = ".solo/run-state"
 PROJECT_PROFILE_SOURCE = ".solo/project.md"

@@ -21,7 +21,7 @@ const workspaceRoot = path.resolve(packageRoot, "..");
 // Keep the Codex adapter pointed at the current Claude source tree by
 // default.  A caller can still override this with --source-root for a
 // reproducible historical conversion.
-const defaultSourceRoot = path.join(workspaceRoot, "solo-suite-v1.0.26-work");
+const defaultSourceRoot = path.join(workspaceRoot, "solo-suite-v1.0.27-work");
 
 function parseArgs(argv) {
   const options = {

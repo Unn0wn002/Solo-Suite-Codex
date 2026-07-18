@@ -14,9 +14,9 @@
   "source_date_epoch": null,
   "materials": [
     {
-      "uri": "solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip",
+      "uri": "solo-suite-plugin-v1.0.27-codex-v1.0.27-parity-source.zip",
       "digest": {
-        "sha256": "6e4da1b2eb3d4880057c35611699cf1fed241d0f25c644d741ea7b9fa5522d83"
+        "sha256": "7dde7bbe44e7534e3f1890ddb1c5feba5554d60127c4dd7ef2095b31cafb03aa"
       },
       "role": "canonical-parity-source",
       "required_for_build": false,
@@ -41,11 +41,11 @@
     "python plugins/solo/skills/suite-integrity/scripts/self_check.py . -",
     "python plugins/ai/skills/agent-room-templates/scripts/validate_rooms.py --suite .",
     "python tools/validate_plugins.py --official-if-available",
-    "python tools/smoke_package.py <release.zip> --canonical-source-archive <solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip>"
+    "python tools/smoke_package.py <release.zip> --canonical-source-archive <solo-suite-plugin-v1.0.27-codex-v1.0.27-parity-source.zip>"
   ],
   "source_checkout_validation_commands": [
     "python -m unittest discover -s tests -t . -v",
-    "python tools/verify_source_overlay.py --canonical-only --canonical-source-archive parity/artifacts/solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip --target .",
+    "python tools/verify_source_overlay.py --canonical-only --canonical-source-archive parity/artifacts/solo-suite-plugin-v1.0.27-codex-v1.0.27-parity-source.zip --target .",
     "git diff --exit-code",
     "git status --short --untracked-files=all"
   ],
@@ -53,7 +53,7 @@
     "python plugins/solo/skills/suite-integrity/scripts/self_check.py . -",
     "python plugins/ai/skills/agent-room-templates/scripts/validate_rooms.py --suite .",
     "python tools/validate_plugins.py --official-if-available",
-    "python tools/smoke_package.py <release.zip> --canonical-source-archive <solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip>"
+    "python tools/smoke_package.py <release.zip> --canonical-source-archive <solo-suite-plugin-v1.0.27-codex-v1.0.27-parity-source.zip>"
   ],
   "artifact_digest_note": "The ZIP SHA-256 is stored beside the ZIP and in the outer release handoff; embedding it in this file would create a circular digest."
 }

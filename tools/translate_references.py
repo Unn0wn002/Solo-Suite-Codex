@@ -15,7 +15,7 @@ TEXT_SUFFIXES = {".md", ".json", ".py", ".yaml", ".yml", ".txt"}
 def main() -> None:
     map_path = ROOT / "command-map.json"
     mappings = json.loads(map_path.read_text(encoding="utf-8"))
-    source_prefix = "../solo-suite-v1.0.26-work/"
+    source_prefix = "../solo-suite-v1.0.27-work/"
     map_changed = False
     for entry in mappings:
         source_path = entry.get("source_path")

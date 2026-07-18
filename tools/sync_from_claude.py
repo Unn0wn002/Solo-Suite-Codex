@@ -206,6 +206,22 @@ def run_converter(source: Path, target: Path, node: str) -> None:
         skill_md.write_bytes(body.encode("utf-8"))
 
 
+def normalize_output_contracts(target: Path) -> None:
+    """Reapply the Codex-native terminal response contract after source sync."""
+    command = [
+        sys.executable,
+        str(target / "tools" / "normalize_skill_contracts.py"),
+        "--root",
+        str(target),
+    ]
+    result = subprocess.run(command, text=True, capture_output=True, check=False)
+    if result.returncode:
+        raise RuntimeError(
+            f"skill output-contract normalization failed:\n{result.stdout}{result.stderr}"
+        )
+    print(result.stdout.strip())
+
+
 def make_all_explicit(target: Path) -> None:
     for skill_md in target.glob("plugins/*/skills/*/SKILL.md"):
         skill = skill_md.parent.name
@@ -219,10 +235,12 @@ def copy_parity(source: Path, target: Path) -> None:
     source_parity = source / "parity"
     target_parity = target / "parity"
     target_parity.mkdir(parents=True, exist_ok=True)
-    if source_parity.is_dir():
-        for path in source_parity.iterdir():
-            if path.is_file():
-                shutil.copy2(path, target_parity / path.name)
+    # capabilities.json is the canonical machine contract.  Other target
+    # parity files document and reproduce the Codex adapter/release overlay;
+    # overwriting them with Claude-facing prose would erase that provenance.
+    source_manifest = source_parity / "capabilities.json"
+    if source_manifest.is_file():
+        shutil.copy2(source_manifest, target_parity / source_manifest.name)
     source_rooms = source / "plugins" / "ai" / "skills" / "agent-room-templates"
     if source_rooms.is_dir():
         archive = target_parity / "claude-rooms"
@@ -252,6 +270,7 @@ def sync(source: Path, target: Path, node: str) -> None:
     specialists = copy_specialists(source, target)
     copy_shared_roots(source, target)
     run_converter(source, target, node)
+    normalize_output_contracts(target)
     make_all_explicit(target)
     copy_parity(source, target)
     mappings = load_json(target / "command-map.json")

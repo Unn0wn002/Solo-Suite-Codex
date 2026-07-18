@@ -14,7 +14,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SOURCE_ROOT = os.path.abspath(
     os.environ.get(
         "SOLO_SUITE_SOURCE_ROOT",
-        os.path.join(REPO, "..", "solo-suite-v1.0.26-work"),
+        os.path.join(REPO, "..", "solo-suite-v1.0.27-work"),
     )
 )
 MAP_FILE = os.path.join(REPO, "command-map.json")

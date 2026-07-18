@@ -2,7 +2,7 @@
 
 ## Supported release
 
-Solo Suite Codex `1.0.27` is the supported release in this package. Its reconstructed Claude v1.0.26 parity baseline is a separately attested validation asset: the source checkout pins it under `parity/artifacts/`, while the deterministic install ZIP intentionally omits nested archives. It is not required to build v1.0.27, but its exact SHA-256 is required for full parity validation and it must not be described as byte parity with a later Claude v1.0.27 source release.
+Solo Suite Codex `1.0.27` is the supported release in this package. Its Claude v1.0.27 public release asset is pinned under `parity/artifacts/` together with the exact public CI provenance record; the deterministic install ZIP intentionally omits nested archives. The Codex source is a declared ten-path adapter overlay, not byte identity with the unmodified Claude archive. The annotated upstream tag is unsigned, so the commit/tree and release bytes are reproducible but do not constitute a cryptographic upstream signature.
 
 ## Reporting a vulnerability
 
