@@ -81,3 +81,9 @@ check` remain the capability-level contract and must both pass.
 The checked-in reference, overlay manifest, and archive digest are recorded in
 [`canonical-source.json`](canonical-source.json) and
 [`source-overlay-manifest.json`](source-overlay-manifest.json).
+
+The deterministic install ZIP intentionally omits nested archives and checksum
+sidecars. The separately attested Codex parity-source archive under
+`parity/artifacts/` is a validation input and release asset, not a second copy
+embedded inside the install package; verify its digest independently before
+using it as the canonical comparison source.
