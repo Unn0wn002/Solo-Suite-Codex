@@ -2,14 +2,16 @@
 
 `capabilities.json` is the deterministic parity contract for the Solo Suite
 adapter. The pinned reconstructed v1.0.26 Claude baseline paired with this
-Codex v1.0.27 adapter is published as
+Codex v1.0.27 adapter is prepared for publication as
 `solo-suite-plugin-v1.0.26-codex-v1.0.27-parity-source.zip`. Its SHA-256,
 base archive, source commits, top-level folder, and manifest digest are pinned
 in `canonical-source.json`. The exact archive and sidecar are checked in under
 `parity/artifacts/` in the source checkout. The deterministic install ZIP
-intentionally omits nested archives and checksum sidecars; the release workflow
-publishes and attests the canonical archive and sidecar as separate assets
-alongside the Codex package.
+intentionally omits nested archives and checksum sidecars. After completion of
+normal review and merge, protected-tag validation, and final private-draft asset
+re-verification, the release workflow publishes and
+attests the canonical archive and sidecar as separate assets alongside the
+Codex package. This candidate has not yet completed that publication workflow.
 
 **Provenance scope:** the v1.0.26 base is independently reproducible from the
 public immutable Solo Suite release, its annotated tag, and its published
