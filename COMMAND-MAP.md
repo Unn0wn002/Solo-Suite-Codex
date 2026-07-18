@@ -26,9 +26,11 @@ Invoke the specific native Codex skill shown in the second column; the legacy Cl
 | `/docs:runbook` | `$docs-runbook` | `plugins/docs/skills/docs-runbook/SKILL.md` |
 | `/docs:setup-guide` | `$docs-setup-guide` | `plugins/docs/skills/docs-setup-guide/SKILL.md` |
 | `/docs:update` | `$docs-update` | `plugins/docs/skills/docs-update/SKILL.md` |
+| `/full-team:verify` | `$full-team-verify` | `plugins/full-team/skills/full-team-verify/SKILL.md` |
 | `/gate:before-code` | `$gate-before-code` | `plugins/gate/skills/gate-before-code/SKILL.md` |
 | `/gate:before-deploy` | `$gate-before-deploy` | `plugins/gate/skills/gate-before-deploy/SKILL.md` |
 | `/gate:before-merge` | `$gate-before-merge` | `plugins/gate/skills/gate-before-merge/SKILL.md` |
+| `/gate:finalize-evidence` | `$gate-finalize-evidence` | `plugins/gate/skills/gate-finalize-evidence/SKILL.md` |
 | `/gate:production-ready` | `$gate-production-ready` | `plugins/gate/skills/gate-production-ready/SKILL.md` |
 | `/gate:score-project` | `$gate-score-project` | `plugins/gate/skills/gate-score-project/SKILL.md` |
 | `/git:commit-plan` | `$git-commit-plan` | `plugins/git/skills/git-commit-plan/SKILL.md` |

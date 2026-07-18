@@ -2,7 +2,7 @@
 
 ## Supported release
 
-Solo Suite Codex `1.0.12` is the supported release in this package. The original `1.0.10` archive is optional external historical material: only its verified SHA-256 digest is pinned here, and the archive is neither bundled nor required to build v1.0.12. It must not be treated as containing the v1.0.12 hardening.
+Solo Suite Codex `1.0.27` is the supported release in this package. Its Claude v1.0.27 public release asset is pinned under `parity/artifacts/` together with the exact public CI provenance record; the deterministic install ZIP intentionally omits nested archives. The Codex source is a declared ten-path adapter overlay, not byte identity with the unmodified Claude archive. The annotated upstream tag is unsigned, so the commit/tree and release bytes are reproducible but do not constitute a cryptographic upstream signature.
 
 ## Reporting a vulnerability
 
@@ -23,8 +23,8 @@ Include the affected plugin/skill, release version, platform, minimal reproducti
 
 ## Release integrity
 
-Verify the distributed ZIP with its adjacent `.sha256` file or `RELEASE-CHECKSUMS.txt`. Review `RELEASE-PROVENANCE.json` and `SBOM.spdx.json` before installation. Publication packages are built only from a clean committed tree; the packager reads committed blobs directly so untracked Git attributes, replacement refs, filters, and working-tree line endings cannot alter the archive, and it refuses to overwrite tracked source. A mismatch means the artifact must not be installed.
+Verify the distributed ZIP with its adjacent `.sha256` file or `RELEASE-CHECKSUMS.txt`. Review `RELEASE-PROVENANCE.json` and `SBOM.spdx.json` before installation. The repository copy of `RELEASE-PROVENANCE.json` is explicitly an unbound source template; the packager replaces it inside each artifact. Publication packages are built only from a clean committed tree and their generated provenance is bound to that exact commit. The packager reads committed blobs directly so untracked Git attributes, replacement refs, filters, and working-tree line endings cannot alter the archive, and it refuses to overwrite tracked source. A mismatch means the artifact must not be installed.
 
 Future GitHub releases are rebuilt from the published version tag, revalidated, smoke-tested, and uploaded without overwrite semantics by `.github/workflows/publish-release.yml`. Public repositories also receive GitHub/Sigstore build-provenance attestations for the ZIP and checksum sidecar. GitHub supports attestations for private repositories only on eligible GitHub Enterprise Cloud plans; after confirming eligibility, set the repository variable `ENABLE_PRIVATE_ATTESTATIONS` to `true`. Verify an attested asset with `gh attestation verify <archive.zip> --repo Unn0wn002/Solo-Suite-Codex` while authenticated to GitHub.
 
-Dependabot monitors the hash-locked Python validation dependencies and every pinned GitHub Action weekly. CodeQL is scheduled for pushes and pull requests to `main` and a weekly scan. Public repositories run it automatically. Because this repository is private, first enable GitHub Code Security and then set the repository variable `ENABLE_PRIVATE_CODEQL` to `true`; until then, its analysis job safely skips.
+Dependabot monitors the hash-locked Python validation dependencies and every pinned GitHub Action weekly. CodeQL is scheduled for pushes and pull requests to `main` and a weekly scan. Public repositories run it automatically. For private repositories, first enable GitHub Code Security and then set the repository variable `ENABLE_PRIVATE_CODEQL` to `true`; until then, its analysis job safely skips.

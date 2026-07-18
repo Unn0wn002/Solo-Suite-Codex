@@ -1,6 +1,6 @@
 ---
 name: cost-optimization
-description: "Find and reduce cloud, hosting, and database spend without hurting reliability — over-provisioned compute, idle/orphaned resources, inefficient database usage, bandwidth and egress waste, unattached storage and old snapshots, expensive managed services, and missed savings plans or reserved capacity. Use whenever the user wants to cut their cloud bill, reduce hosting/AWS/GCP/Azure costs, asks \"why is my bill so high\", \"how do I save money on infrastructure\", or wants a cost review. Pairs with infrastructure-audit and database-audit."
+description: Find and reduce cloud, hosting, and database spend without hurting reliability — over-provisioned compute, idle/orphaned resources, inefficient database usage, bandwidth and egress waste, unattached storage and old snapshots, expensive managed services, and missed savings plans or reserved capacity. Use whenever the user wants to cut their cloud bill, reduce hosting/AWS/GCP/Azure costs, asks "why is my bill so high", "how do I save money on infrastructure", or wants a cost review. Pairs with infrastructure-audit and database-audit.
 ---
 
 # Cost Optimization
@@ -59,6 +59,8 @@ Shared audit structure, but each finding leads with **estimated monthly savings*
 
 ## Project memory integration (solo-team)
 
+**AgentRoom proposal mode:** when a trusted seat lists any memory target below under `proposes`, write the intended target, patch/entries, evidence, and merge notes to `.solo/proposals/<seat>-<run_id>.md` instead of editing that target. Only the memory steward merges it; missing seat or run identity stops the write. Direct memory updates remain normal outside a stewarded room.
+
 If a `.solo/` directory exists at the project root — the solo-team suite's shared memory — read `handoff.md` and `tasks.md` for context before starting, so the work is grounded in the project's actual state. Afterward, persist the results: capture the prioritized fix list as tasks in `.solo/tasks.md` (stable T-IDs, Doing/Todo/Blocked/Done sections, per project-memory-manager's conventions), append significant findings, decisions, or accepted risks to `.solo/decisions.md`, and note what was run in `handoff.md`. This keeps results in persistent project memory instead of dying with the session, and lets `$solo-next-step` and `$release-preflight` see them. If `.solo/` doesn't exist, proceed normally (and optionally mention the solo plugin can add cross-session memory).
 
 ## Session lifecycle
@@ -68,3 +70,7 @@ This skill works inside a session that the solo plugin bookends: `$solo-start-se
 ## Stack awareness
 
 Before auditing or building, read `.solo/stack.md` if it exists — it records the project's actual tools (hosting, DNS/CDN/WAF, database, auth, storage, analytics/tags, email, payments, repo/CI), captured by `$stack-intake`. Tailor the work to the real stack instead of giving generic advice (e.g. don't suggest an S3 lifecycle rule to a Cloudinary project, or a generic WAF to a site already on Cloudflare). If `stack.md` is missing and the stack matters here, suggest running `$stack-intake` first. For vendor-specific depth, the stack plugin adds `$stack-audit-cloudflare`, `-vercel`, `-supabase`, `-tags`, and `-payments`.
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

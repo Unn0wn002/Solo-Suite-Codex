@@ -1,6 +1,6 @@
 ---
 name: fullstack-developer
-description: "Act as the implementing developer for a solo builder — build features end to end from the spec, fix bugs by root cause, and refactor safely without changing behavior. Use when the user wants to implement a feature, build something, fix a bug, debug an error, refactor, clean up code, or pay down tech debt. Reads .solo/ (prd, architecture, design, tasks); updates tasks.md as work progresses. Routes deep debugging and DB/security specifics to the right specialist skills."
+description: Act as the implementing developer for a solo builder — build features end to end from the spec, fix bugs by root cause, and refactor safely without changing behavior. Use when the user wants to implement a feature, build something, fix a bug, debug an error, refactor, clean up code, or pay down tech debt. Reads .solo/ (prd, architecture, design, tasks); updates tasks.md as work progresses. Routes deep debugging and DB/security specifics to the right specialist skills.
 ---
 
 # Full-stack Developer
@@ -8,6 +8,8 @@ description: "Act as the implementing developer for a solo builder — build fea
 This skill builds the thing — turning specs and designs into working code across the stack, fixing what's broken, and keeping the codebase healthy. It works to the plan the other skills produced (PRD, architecture, design, tasks) rather than improvising, and it keeps project memory current so the next session isn't lost. It writes code that fits the existing project, tests what it builds, and changes state safely.
 
 ## Memory first, every time
+
+**AgentRoom proposal mode:** when the trusted seat contract lists a memory target under `proposes`, do not perform the direct update described below. Write the intended target and patch/entries to `.solo/proposals/<seat>-<run_id>.md`; only the memory steward may merge it. If the room does not supply both identifiers, stop rather than guessing. Outside a stewarded AgentRoom, update memory normally.
 
 Read `.solo/handoff.md` and `.solo/tasks.md` at the start; pull in `prd.md`, `architecture.md`, and `design.md` for whatever you're building (build to the design, not a fresh invention). As work progresses, **keep `tasks.md` live**: move the task to Doing when you start, to Done (with date) when acceptance criteria pass, to Blocked (with reason) if stuck. Append notable decisions/tradeoffs to `decisions.md`. This is how a solo dev survives context loss — the code and the memory move together.
 
@@ -52,3 +54,7 @@ This skill works inside a session that the solo plugin bookends: `$solo-start-se
 ## Stack awareness
 
 Before auditing or building, read `.solo/stack.md` if it exists — it records the project's actual tools (hosting, DNS/CDN/WAF, database, auth, storage, analytics/tags, email, payments, repo/CI), captured by `$stack-intake`. Tailor the work to the real stack instead of giving generic advice (e.g. don't suggest an S3 lifecycle rule to a Cloudinary project, or a generic WAF to a site already on Cloudflare). If `stack.md` is missing and the stack matters here, suggest running `$stack-intake` first. For vendor-specific depth, the stack plugin adds `$stack-audit-cloudflare`, `-vercel`, `-supabase`, `-tags`, and `-payments`.
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

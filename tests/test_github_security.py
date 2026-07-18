@@ -65,11 +65,11 @@ class GitHubSecurityPolicy(unittest.TestCase):
         self.assertTrue(any(action.startswith("github/codeql-action/init@") for action in actions))
         self.assertTrue(any(action.startswith("github/codeql-action/analyze@") for action in actions))
 
-    def test_release_publication_is_tag_bound_attested_and_non_overwriting(self):
+    def test_release_publication_is_tag_bound_attested_draft_first_and_non_overwriting(self):
         path = WORKFLOWS / "publish-release.yml"
         payload = load_yaml(path)
         self.assertEqual(payload.get("permissions"), {})
-        self.assertEqual(payload["on"], {"release": {"types": ["published"]}})
+        self.assertEqual(payload["on"], {"push": {"tags": ["v*"]}})
         build = payload["jobs"]["build"]
         self.assertEqual(
             build.get("permissions"), {"contents": "read"},
@@ -96,10 +96,58 @@ class GitHubSecurityPolicy(unittest.TestCase):
         )
         self.assertIn("subject-path", attestation.get("with", {}))
         source = path.read_text(encoding="utf-8")
+        self.assertEqual(source.count("tools/verify_release_ref.py"), 3)
+        self.assertEqual(source.count('--expected-commit "$RELEASE_COMMIT"'), 3)
+        self.assertEqual(
+            source.count("${{ github.event.repository.default_branch }}"), 3
+        )
+        self.assertIn("${{ github.ref_protected }}", source)
+        self.assertIn("release tag is not protected by an active ruleset", source)
         self.assertIn("release tag", source)
         self.assertIn("--validation-state validated", source)
+        self.assertIn("gh release create", source)
+        self.assertIn("--verify-tag", source)
+        self.assertIn("--draft", source)
         self.assertIn("gh release upload", source)
+        self.assertIn("tools/verify_release_assets.py", source)
+        self.assertGreaterEqual(source.count("--asset "), 8)
+        self.assertIn("gh release edit", source)
+        self.assertIn("--draft=false", source)
+        self.assertIn(
+            "Claude v1.0.27", source
+        )
+        self.assertIn("unsigned", source.lower())
+        for report in (
+            "dependency-audit-dev-v1.0.27.json",
+            "dependency-audit-tools-v1.0.27.json",
+        ):
+            self.assertGreaterEqual(source.count(report), 3, report)
         self.assertNotIn("--clobber", source)
+        final_publish = next(
+            step
+            for step in publish["steps"]
+            if "gh release edit" in step.get("run", "")
+        )
+        self.assertIn("tools/verify_release_ref.py", final_publish["run"])
+        self.assertIn("tools/verify_release_assets.py", final_publish["run"])
+        self.assertEqual(final_publish["env"]["REF_PROTECTED"], "${{ github.ref_protected }}")
+        self.assertLess(
+            final_publish["run"].index("tools/verify_release_ref.py"),
+            final_publish["run"].index("tools/verify_release_assets.py"),
+        )
+        self.assertLess(
+            final_publish["run"].index("tools/verify_release_assets.py"),
+            final_publish["run"].index("gh release edit"),
+        )
+        self.assertLess(
+            source.index("Reverify the remote tag and default branch"),
+            source.index("gh release create"),
+        )
+        self.assertLess(source.index("gh release create"), source.index("gh release upload"))
+        self.assertLess(
+            source.index("gh release upload"),
+            source.index("Reverify release binding and uploaded asset bytes"),
+        )
 
 
 if __name__ == "__main__":

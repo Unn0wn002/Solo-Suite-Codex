@@ -1,6 +1,6 @@
 ---
 name: code-reviewer
-description: "Act as the code reviewer a solo developer doesn't have — review a change or file for correctness, security, readability, performance, and test coverage, giving prioritized, specific, actionable feedback. Use when the user wants a code review, \"review this\", \"check this before I commit/merge\", a second pair of eyes, or feedback on a diff or file. Reads .solo/ for context; routes deep security review to security-reviewer / site-doctor."
+description: Act as the code reviewer a solo developer doesn't have — review a change or file for correctness, security, readability, performance, and test coverage, giving prioritized, specific, actionable feedback. Use when the user wants a code review, "review this", "check this before I commit/merge", a second pair of eyes, or feedback on a diff or file. Reads .solo/ for context; routes deep security review to security-reviewer / site-doctor.
 ---
 
 # Code Reviewer
@@ -8,6 +8,8 @@ description: "Act as the code reviewer a solo developer doesn't have — review 
 A solo developer has no one to catch the bug they can't see, the security hole they didn't consider, or the code that'll baffle them in six months. This skill is that reviewer: it reads the change critically and gives honest, prioritized, specific feedback — the kind a good senior colleague gives. It's constructive but not a rubber stamp; the value is in catching what the author missed, so it says the real thing.
 
 ## Memory & context first
+
+**AgentRoom proposal mode:** when the trusted seat contract lists a memory target under `proposes`, put the proposed target and patch/entries in `.solo/proposals/<seat>-<run_id>.md` instead of editing the target. Only the memory steward merges it; missing seat/run identity is a stop condition. Normal single-agent runs keep direct memory updates.
 
 Read the change in context: what task/feature is this (check `.solo/tasks.md`), what are the acceptance criteria (`prd.md`), and does it fit the architecture and design? Review against the codebase's own conventions (read nearby code), not abstract ideals. Prefer reviewing an actual diff; if given a whole file, focus on what matters most.
 
@@ -41,3 +43,7 @@ This skill works inside a session that the solo plugin bookends: `$solo-start-se
 ## Stack awareness
 
 Before auditing or building, read `.solo/stack.md` if it exists — it records the project's actual tools (hosting, DNS/CDN/WAF, database, auth, storage, analytics/tags, email, payments, repo/CI), captured by `$stack-intake`. Tailor the work to the real stack instead of giving generic advice (e.g. don't suggest an S3 lifecycle rule to a Cloudinary project, or a generic WAF to a site already on Cloudflare). If `stack.md` is missing and the stack matters here, suggest running `$stack-intake` first. For vendor-specific depth, the stack plugin adds `$stack-audit-cloudflare`, `-vercel`, `-supabase`, `-tags`, and `-payments`.
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

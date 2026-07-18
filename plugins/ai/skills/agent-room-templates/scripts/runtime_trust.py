@@ -30,6 +30,10 @@ RUNTIME_PATHS = {
         "state_journal", "validate_rooms",
     )
 }
+# The production validator and room semantic validator both import this exact
+# policy file.  Pin and install it with the runtime so ``python -I`` validation
+# cannot fall back to a mutable or absent suite-level copy.
+RUNTIME_PATHS["gate_policy"] = "plugins/gate/lib/gate_policy.py"
 
 
 class TrustError(ValueError):

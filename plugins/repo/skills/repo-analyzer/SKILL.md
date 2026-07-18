@@ -1,9 +1,11 @@
 ---
 name: repo-analyzer
-description: "Understand a whole codebase before editing it. Use for mapping structure, entry points, and key files; finding risky/fragile/complex areas and missing tests; showing internal module/service dependencies; finding dead code (unused files, exports, routes, components, packages); and generating a new-developer onboarding guide from the actual code. Use when the user says map the repo, risk map, dependency map, dead code, onboarding, \"understand this codebase\", or before implementing/reviewing a change. Read-only — it inspects and reports, it never edits."
+description: Understand a whole codebase before editing it. Use for mapping structure, entry points, and key files; finding risky/fragile/complex areas and missing tests; showing internal module/service dependencies; finding dead code (unused files, exports, routes, components, packages); and generating a new-developer onboarding guide from the actual code. Use when the user says map the repo, risk map, dependency map, dead code, onboarding, "understand this codebase", or before implementing/reviewing a change. Read-only — it inspects and reports, it never edits.
 ---
 
 # Repo Analyzer
+
+**AgentRoom proposal mode:** this role remains read-only over the repository. Any memory finding/task/decision whose target appears under the trusted seat's `proposes` goes to `.solo/proposals/<seat>-<run_id>.md`, with target and proposed entries, and never directly into the target. Only the memory steward merges; missing seat/run identity is a stop condition.
 
 Read before you write. This skill builds an accurate picture of the codebase so edits are safe and reviews are grounded. **Don't guess from filenames — open files, follow imports, and respect the framework's conventions.** Use any repo tooling that exists (package scripts, lockfiles, tsconfig, framework config) as ground truth. It has five modes.
 
@@ -33,10 +35,14 @@ End every run with these seven sections:
 4. **Required fixes** — must-fix items before moving forward.
 5. **Suggested tasks** — concrete entries for `.solo/tasks.md`, each with a stable T-ID.
 6. **Verification** — how to prove the result works.
-7. **Next skill** — the exact next Codex skill invocation to run.
+7. **Next skill** — the exact next skill invocation to run.
 
 ## Session lifecycle
-Runs inside a session the solo plugin bookends: `$solo-start-session` restores `.solo/` context at the start and `$solo-end-session` saves it at the end. Read `.solo/` before acting; write findings, decisions, and tasks back (stable T-IDs) so the next command — or the next agent — picks up cleanly.
+Runs inside a session the solo plugin bookends: `$solo-start-session` restores `.solo/` context at the start and `$solo-end-session` saves it at the end. Read `.solo/` before acting; write findings, decisions, and tasks back (stable T-IDs) so the next skill — or the next agent — picks up cleanly.
 
 ## Stack awareness
 Check `.solo/stack.md` first and tailor everything to the real stack. For vendor depth the `$stack-audit-*` skills go further: Cloudflare, Vercel, Supabase, analytics/tags, payments. If a sibling skill or connector isn't installed, do a lighter inline version and say so.
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

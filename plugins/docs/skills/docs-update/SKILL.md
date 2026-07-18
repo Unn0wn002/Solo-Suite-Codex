@@ -12,7 +12,10 @@ Use $documentation-writer in docs-update mode for the user's supplied arguments 
 Read .solo/prd.md and .solo/architecture.md, and the actual code/config for real commands
 and values. Write/refresh a README: what it is + who for, quick start, features/usage with
 examples, tech stack, structure, links. Reconcile against current reality - fix drifted
-skills/config/names (code wins over stale docs). Every example must actually work.
+commands/config/names (code wins over stale docs). Every example must actually work.
 
 ## Output
-End with the 7-part contract: **Summary · Findings/Work done · Risks · Required fixes · Suggested tasks** (→ `.solo/tasks.md`, stable T-IDs) **· Verification · Next skill** (exact skill invocation).
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

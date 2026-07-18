@@ -11,5 +11,10 @@ Use $git-workflow-manager in sync-issues mode with $connector-auditor for GitHub
 
 Map `.solo/tasks.md` T-IDs to GitHub issues (one issue per T-ID, T-ID kept in the title/body for idempotency) and/or pull issue status back. Show a would-create / would-update / would-close diff and confirm before writing anything.
 
+SAFETY: manual-only (external write to GitHub). Default to a dry-run preview of creates/updates/closes; require explicit confirmation before writing; never delete issues; record what was written.
+
 ## Output
-End with the 7-part contract: **Summary · Findings/Work done · Risks · Required fixes · Suggested tasks** (→ `.solo/tasks.md`, stable T-IDs) **· Verification · Next skill** (exact skill invocation).
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

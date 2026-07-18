@@ -19,5 +19,12 @@ incident-response.
 
 Record the plan in **`.solo/release.md`**.
 
+## Plan-only safety boundary
+
+This skill may inspect evidence and write a rollback **plan only**. It must not revert a deployment, run database recovery, change traffic, execute production commands, publish artifacts, or cause any external side effect. Plan approval is not execution authorization. If execution is requested, stop after producing the plan and create a separate handoff that names the environment, exact proposed actions, data-safety prerequisites, risks, recovery verification, and abort condition. Production rollback execution requires a distinct explicit user confirmation after that handoff and a separately authorized execution workflow or tool.
+
 ## Output
-End with the 7-part contract: **Summary · Findings/Work done · Risks · Required fixes · Suggested tasks** (→ `.solo/tasks.md`, stable T-IDs) **· Verification · Next skill** (exact skill invocation).
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

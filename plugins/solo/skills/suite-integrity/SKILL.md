@@ -16,8 +16,12 @@ Pass `-` as `<project-root>` to skip `.solo/` memory checks. On a source checkou
 The checker supports two modes:
 
 - `source-checkout`: validate the repo marketplace, every plugin, all skills, the command migration map, release inventory, AgentRooms, and documentation counts.
-- `installed-plugin`: validate the current cached plugin without assuming sibling plugins or a source-repository marketplace exist.
+- `installed-plugin`: validate the current cached plugin without assuming sibling plugins or a source-repository marketplace exist. AgentRooms is a suite-level contract: when the cached plugin is `ai` without the sibling `gate` plugin, the checker reports a warning and defers that check until a full suite root is available.
 
 Treat a clean result as evidence that structural checks passed, not as proof of security, functional correctness, or production readiness. Report every warning and failure with its path, then run the relevant unit tests and plugin validator before calling the suite healthy.
 
 End with summary, findings, risks, required fixes, suggested `.solo/tasks.md` entries with stable task IDs, verification evidence, and the next `$solo-*` skill to invoke.
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

@@ -151,11 +151,24 @@ def validate_plugin(plugin: Path) -> list[str]:
     return failures
 
 
-def official_validation(paths: list[Path]) -> tuple[bool, list[str]]:
+def official_validation(paths: list[Path]) -> tuple[bool, list[str], dict[str, Any]]:
     executable = shutil.which("codex")
     if executable is None:
         print("UNVERIFIED official Codex CLI plugin validation: codex is unavailable")
-        return False, []
+        return False, [], {
+            "status": "unavailable",
+            "cli_version": None,
+            "reason": "codex executable is unavailable",
+        }
+    version = None
+    try:
+        version_result = subprocess.run(
+            [executable, "--version"], capture_output=True, text=True,
+            encoding="utf-8", errors="replace", timeout=20,
+        )
+        version = (version_result.stdout + version_result.stderr).strip() or None
+    except (OSError, subprocess.SubprocessError):
+        version = None
     try:
         help_result = subprocess.run(
             [executable, "plugin", "--help"], capture_output=True, text=True,
@@ -163,11 +176,19 @@ def official_validation(paths: list[Path]) -> tuple[bool, list[str]]:
         )
     except (OSError, subprocess.SubprocessError) as exc:
         print(f"UNVERIFIED official Codex CLI plugin validation: {exc}")
-        return False, []
+        return False, [], {
+            "status": "unavailable",
+            "cli_version": version,
+            "reason": f"unable to query plugin help: {exc}",
+        }
     help_text = help_result.stdout + help_result.stderr
     if help_result.returncode != 0 or "validate" not in help_text.lower():
         print("UNVERIFIED official Codex CLI plugin validation: installed CLI has no validate subcommand")
-        return False, []
+        return False, [], {
+            "status": "unavailable",
+            "cli_version": version,
+            "reason": "installed CLI has no validate subcommand",
+        }
     failures = []
     for path in paths:
         result = subprocess.run(
@@ -178,30 +199,84 @@ def official_validation(paths: list[Path]) -> tuple[bool, list[str]]:
             failures.append(f"official validation failed for {path}: {result.stdout}{result.stderr}")
     if not failures:
         print(f"PASS official Codex CLI validated {len(paths)} plugin(s)")
-    return True, failures
+    return not failures, failures, {
+        "status": "pass" if not failures else "fail",
+        "cli_version": version,
+        "reason": None if not failures else "one or more plugins failed official validation",
+    }
+
+
+def write_report(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    # ``Path.write_text`` did not accept ``newline`` on Python 3.9, which is
+    # still part of the CI matrix.  Encode explicitly so report bytes remain
+    # UTF-8 with deterministic LF endings across every supported interpreter.
+    path.write_bytes(
+        (json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False) + "\n")
+        .encode("utf-8")
+    )
+
+
+def overall_validation_status(
+    portable_status: str, official_status: str
+) -> str:
+    """Summarize validation without treating a missing official check as a pass."""
+
+    if portable_status == "fail" or official_status == "fail":
+        return "fail"
+    if official_status == "pass":
+        return "pass"
+    if official_status == "unavailable":
+        return "portable_pass_official_unavailable"
+    return "portable_pass_official_not_requested"
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("paths", nargs="*", type=Path)
     parser.add_argument("--official-if-available", action="store_true")
+    parser.add_argument(
+        "--report", type=Path,
+        help="write a deterministic portable/official validation status JSON",
+    )
     args = parser.parse_args()
     paths = [path.resolve() for path in args.paths] or sorted(
         path.resolve() for path in (ROOT / "plugins").iterdir() if path.is_dir()
     )
     failures = []
+    portable_failures = 0
     for path in paths:
         mine = validate_plugin(path)
         if mine:
             failures.extend(mine)
+            portable_failures += len(mine)
         else:
             print(f"PASS portable plugin validation: {path.name}")
+    official = {
+        "status": "not_requested",
+        "cli_version": None,
+        "reason": "--official-if-available was not supplied",
+    }
     if args.official_if_available:
-        _available, official_failures = official_validation(paths)
+        _available, official_failures, official = official_validation(paths)
         failures.extend(official_failures)
     for failure in failures:
         print(f"FAIL {failure}")
     print(f"== {len(paths)} plugin(s), {len(failures)} failure(s) ==")
+    if args.report:
+        portable_status = "pass" if portable_failures == 0 else "fail"
+        write_report(args.report.resolve(), {
+            "schema": "solo-suite/plugin-validation-report-v1",
+            "plugin_count": len(paths),
+            "portable": {
+                "status": portable_status,
+                "failure_count": portable_failures,
+            },
+            "official": official,
+            "overall_status": overall_validation_status(
+                portable_status, official["status"]
+            ),
+        })
     return 1 if failures else 0
 
 

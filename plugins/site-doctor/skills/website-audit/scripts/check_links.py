@@ -1,143 +1,246 @@
 #!/usr/bin/env python3
-"""Crawl same-domain pages and check links, assets, redirects, and HTTP mix.
+"""check_links.py — crawl same-domain pages, verify every link and asset,
+and flag broken links (status >= 400), mixed content, and long redirect chains.
 
-Exit 0 is clean under the selected policy, 1 means broken links or another
-configured failure, and 2 means the crawl could not start.
+Stdlib only. Outbound requests go through lib/url_guard.py (SSRF guard) —
+private/internal/metadata targets and unsafe redirects are refused with a
+BLOCKED result. Usage:
+    python3 check_links.py https://example.com [--max-pages 30] [--delay 0.3]
+        [--max-urls 500] [--max-requests 750] [--max-total-bytes 33554432]
+        [--max-seconds 300] [--max-output-findings 200]
+        [--max-redirect-hops 2] [--fail-on-mixed]
+
+Exit code: 0 = clean, 1 = broken links found (or mixed content with
+--fail-on-mixed, or redirect chains past --max-redirect-hops), 2 = could
+not start crawl. Numeric options must be positive (delay may be 0).
+
+Exit codes: 0 = crawl complete, nothing broken; 1 = broken links / long
+redirect chains (or mixed content with --fail-on-mixed); 2 = usage or
+blocked start URL; 3 = nothing broken but coverage is UNVERIFIED (crawl
+stopped by a page/request/URL/byte/time budget or a truncated response).
 """
-from __future__ import annotations
-
-import argparse
-from collections import deque
-from html.parser import HTMLParser
 import os
 import sys
 import time
-from urllib.parse import urldefrag, urljoin, urlparse
+import argparse
+from html.parser import HTMLParser
+from urllib.parse import urljoin, urlparse, urldefrag
+from collections import deque
 
 sys.path.insert(0, os.path.normpath(os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "lib")))
 try:
     from url_guard import safe_get, check_url, BlockedUrlError
 except ImportError:
-    sys.exit("url_guard.py not found - run from an intact site-doctor plugin")
+    sys.exit("url_guard.py not found — run from an intact site-doctor plugin")
 
 UA = "site-doctor-linkcheck/1.0"
 TIMEOUT = 12
-MAX_BYTES = 2 * 1024 * 1024
-MIN_REDIRECT_FETCH_LIMIT = 10
+MAX_BYTES = 2 * 1024 * 1024  # per-response read cap
 
 
 class LinkExtractor(HTMLParser):
-    """Collect navigable links and resource URLs separately."""
+    """Collect hrefs (navigable) and asset srcs separately."""
 
     def __init__(self):
         super().__init__()
         self.links, self.assets = [], []
 
     def handle_starttag(self, tag, attrs):
-        values = dict(attrs)
-        if tag == "a" and values.get("href"):
-            self.links.append(values["href"])
-        elif (tag in ("img", "script", "iframe", "source", "video", "audio")
-              and values.get("src")):
-            self.assets.append(values["src"])
-        elif tag == "link" and values.get("href"):
-            self.assets.append(values["href"])
+        a = dict(attrs)
+        if tag == "a" and a.get("href"):
+            self.links.append(a["href"])
+        elif tag in ("img", "script", "iframe", "source", "video", "audio") and a.get("src"):
+            self.assets.append(a["src"])
+        elif tag == "link" and a.get("href"):
+            self.assets.append(a["href"])
 
 
-def positive_int(value):
-    parsed = int(value)
-    if parsed <= 0:
-        raise argparse.ArgumentTypeError("must be greater than zero")
-    return parsed
+def _budget_exhausted(budget):
+    if budget is None:
+        return None
+    if time.monotonic() >= budget["deadline"]:
+        return "wall-clock budget reached"
+    if budget["requests"] >= budget["max_requests"]:
+        return "request budget reached"
+    if budget["bytes"] >= budget["max_bytes"]:
+        return "response-byte budget reached"
+    return budget.get("reason")
 
 
-def nonnegative_float(value):
-    parsed = float(value)
-    if parsed < 0:
-        raise argparse.ArgumentTypeError("must be zero or greater")
-    return parsed
+def request(url, method="HEAD", budget=None):
+    """Return status, URL, hops, type, body, and truncation state.
 
-
-def parse_args(argv=None):
-    parser = argparse.ArgumentParser()
-    parser.add_argument("start_url")
-    parser.add_argument("--max-pages", type=positive_int, default=30)
-    parser.add_argument("--delay", type=nonnegative_float, default=0.3)
-    parser.add_argument(
-        "--max-redirects",
-        type=positive_int,
-        default=1,
-        help="fail URLs whose redirect chain exceeds this many hops",
-    )
-    parser.add_argument(
-        "--mixed-content",
-        choices=("warn", "fail"),
-        default="warn",
-        help="whether HTTP resources on HTTPS pages are warnings or failures",
-    )
-    return parser.parse_args(argv)
-
-
-def request(url, method="HEAD", redirect_limit=MIN_REDIRECT_FETCH_LIMIT):
-    """Return (status, final_url, redirect_hops, content_type, body_or_none)."""
+    A global crawl budget is translated into a per-request timeout and body
+    cap.  That keeps one slow or oversized response from silently overrunning
+    the aggregate limits.
+    """
+    exhausted = _budget_exhausted(budget)
+    if exhausted:
+        if budget is not None:
+            budget["reason"] = exhausted
+        return f"BUDGET: {exhausted}", url, 0, "", None, False
+    timeout = TIMEOUT
+    max_bytes = MAX_BYTES
+    if budget is not None:
+        remaining_seconds = budget["deadline"] - time.monotonic()
+        remaining_bytes = budget["max_bytes"] - budget["bytes"]
+        if remaining_seconds <= 0:
+            budget["reason"] = "wall-clock budget reached"
+            return "BUDGET: wall-clock budget reached", url, 0, "", None, False
+        if remaining_bytes <= 0:
+            budget["reason"] = "response-byte budget reached"
+            return "BUDGET: response-byte budget reached", url, 0, "", None, False
+        timeout = max(0.001, min(TIMEOUT, remaining_seconds))
+        max_bytes = min(MAX_BYTES, remaining_bytes)
+        budget["requests"] += 1
     try:
-        response = safe_get(
-            url,
-            method=method,
-            timeout=TIMEOUT,
-            allow_http=True,
-            max_bytes=MAX_BYTES,
-            max_redirects=redirect_limit,
-            headers={"User-Agent": UA},
-        )
-    except BlockedUrlError as exc:
-        return f"BLOCKED: {exc}", url, 0, "", None
-    except Exception as exc:
-        return f"ERR: {type(exc).__name__}", url, 0, "", None
-    if method == "HEAD" and response.status in (403, 405, 501):
-        return request(url, "GET", redirect_limit=redirect_limit)
-    return (response.status, response.url, response.hops,
-            response.headers.get("Content-Type", ""), response.body)
+        r = safe_get(url, method=method, timeout=timeout, allow_http=True,
+                     max_bytes=max_bytes, headers={"User-Agent": UA})
+    except BlockedUrlError as e:
+        return f"BLOCKED: {e}", url, 0, "", None, False
+    except Exception as e:
+        if budget is not None and time.monotonic() >= budget["deadline"]:
+            budget["reason"] = "wall-clock budget reached"
+            return "BUDGET: wall-clock budget reached", url, 0, "", None, False
+        return f"ERR: {type(e).__name__}", url, 0, "", None, False
+    if method == "HEAD" and r.status in (403, 405, 501):
+        return request(url, "GET", budget)  # some servers reject HEAD
+    if budget is not None and r.body:
+        budget["bytes"] += len(r.body)
+        if r.truncated:
+            budget["reason"] = "response body truncated before complete coverage"
+        elif budget["bytes"] >= budget["max_bytes"]:
+            budget["reason"] = "response-byte budget reached"
+    return (r.status, r.url, r.hops, r.headers.get("Content-Type", ""),
+            r.body, bool(r.truncated))
+
+
+def _sleep_with_budget(delay, budget):
+    """Sleep no longer than the remaining crawl time; return whether usable."""
+    if delay <= 0:
+        return True
+    remaining = budget["deadline"] - time.monotonic()
+    if remaining <= 0:
+        budget["reason"] = "wall-clock budget reached"
+        return False
+    time.sleep(min(delay, remaining))
+    if delay >= remaining or time.monotonic() >= budget["deadline"]:
+        budget["reason"] = "wall-clock budget reached"
+        return False
+    return True
 
 
 def skippable(url):
     return url.startswith(("mailto:", "tel:", "javascript:", "data:", "#"))
 
 
+def positive_int(value):
+    n = int(value)
+    if n < 1:
+        raise argparse.ArgumentTypeError("must be a positive integer")
+    return n
+
+
+def non_negative_float(value):
+    import math
+    f = float(value)
+    if not math.isfinite(f) or f < 0:
+        raise argparse.ArgumentTypeError(
+            "must be a finite number >= 0 (got %r)" % value)
+    return f
+
+
+def positive_float(value):
+    f = non_negative_float(value)
+    if f <= 0:
+        raise argparse.ArgumentTypeError("must be a finite number > 0")
+    return f
+
+
+def parse_args(argv=None):
+    ap = argparse.ArgumentParser()
+    ap.add_argument("start_url")
+    ap.add_argument("--max-pages", type=positive_int, default=30)
+    ap.add_argument("--max-urls", type=positive_int, default=500,
+                    help="maximum unique URLs admitted to the crawl")
+    ap.add_argument("--max-requests", type=positive_int, default=750,
+                    help="maximum HTTP attempts, including HEAD-to-GET fallbacks")
+    ap.add_argument("--max-total-bytes", type=positive_int,
+                    default=32 * 1024 * 1024,
+                    help="maximum aggregate response-body bytes")
+    ap.add_argument("--max-seconds", type=positive_float, default=300.0,
+                    help="maximum total wall-clock runtime")
+    ap.add_argument("--max-output-findings", type=positive_int, default=200,
+                    help="maximum detailed findings printed per category")
+    ap.add_argument("--delay", type=non_negative_float, default=0.3)
+    ap.add_argument("--max-redirect-hops", type=positive_int, default=2,
+                    help="redirect chains longer than this are reported "
+                         "(and fail the run)")
+    ap.add_argument("--max-redirects", dest="max_redirect_hops",
+                    type=positive_int, default=argparse.SUPPRESS,
+                    help=argparse.SUPPRESS)
+    ap.add_argument("--fail-on-mixed", action="store_true",
+                    help="exit non-zero when mixed content is found")
+    ap.add_argument("--mixed-content", choices=("warn", "fail"),
+                    help=argparse.SUPPRESS)
+    args = ap.parse_args(argv)
+    if args.mixed_content == "fail":
+        args.fail_on_mixed = True
+    return args
+
+
+def _request_result(value):
+    """Normalize the legacy five-field request seam to the current six."""
+    if len(value) == 5:
+        return (*value, False)
+    return value
+
+
 def main(argv=None):
     args = parse_args(argv)
+
     start = args.start_url.rstrip("/")
     host = urlparse(start).netloc
     if not host:
-        print("Invalid URL")
-        return 2
+        print("Invalid URL"); return 2
     try:
         check_url(start, allow_http=True)
-    except BlockedUrlError as exc:
-        print(f"BLOCKED unsafe target: {exc}")
-        return 2
+    except BlockedUrlError as e:
+        print(f"BLOCKED unsafe target: {e}"); return 2
 
-    redirect_fetch_limit = max(MIN_REDIRECT_FETCH_LIMIT, args.max_redirects + 1)
     queue = deque([start])
-    seen_pages, checked = set(), {}
-    broken, mixed, long_redirects = [], [], []
+    discovered = {start}
+    seen_pages, checked, broken, mixed, long_chains = set(), {}, [], [], []
+    budget = {
+        "deadline": time.monotonic() + args.max_seconds,
+        "requests": 0,
+        "max_requests": args.max_requests,
+        "bytes": 0,
+        "max_bytes": args.max_total_bytes,
+        "reason": None,
+    }
 
     while queue and len(seen_pages) < args.max_pages:
+        if _budget_exhausted(budget):
+            budget["reason"] = _budget_exhausted(budget)
+            break
         page = queue.popleft()
         if page in seen_pages:
             continue
         seen_pages.add(page)
-        status, final, hops, content_type, body = request(
-            page, "GET", redirect_limit=redirect_fetch_limit
-        )
+        status, final, page_hops, ctype, body, truncated = _request_result(
+            request(page, "GET", budget))
         print(f"[crawl {len(seen_pages)}/{args.max_pages}] {status} {page}")
-        if hops > args.max_redirects:
-            long_redirects.append((page, final, hops))
+        if isinstance(status, int) and page_hops > args.max_redirect_hops:
+            long_chains.append((page, page_hops, final or page))
+        if truncated or (isinstance(status, str) and
+                         status.startswith("BUDGET:")):
+            break
         if not isinstance(status, int) or status >= 400 or body is None:
             broken.append((page, status, "(crawled page)"))
             continue
-        if "html" not in content_type.lower():
+        if "html" not in ctype:
             continue
 
         parser = LinkExtractor()
@@ -146,58 +249,89 @@ def main(argv=None):
         except Exception:
             continue
 
-        page_https = urlparse(final).scheme.lower() == "https"
+        page_https = urlparse(final).scheme == "https"
         for raw in parser.links + parser.assets:
             if skippable(raw):
                 continue
             url = urldefrag(urljoin(final, raw))[0]
-            scheme = urlparse(url).scheme.lower()
+            scheme = urlparse(url).scheme
             if scheme not in ("http", "https"):
                 continue
             if page_https and scheme == "http":
                 mixed.append((final, url))
+            if url not in discovered:
+                if len(discovered) >= args.max_urls:
+                    budget["reason"] = "unique-URL budget reached"
+                    break
+                discovered.add(url)
             if url not in checked:
-                time.sleep(args.delay)
-                link_status, link_final, link_hops, _, _ = request(
-                    url, redirect_limit=redirect_fetch_limit
-                )
-                checked[url] = (link_status, link_final, link_hops)
-                if not isinstance(link_status, int) or link_status >= 400:
-                    broken.append((final, link_status, url))
-                if link_hops > args.max_redirects:
-                    long_redirects.append((url, link_final, link_hops))
-            if (raw in parser.links and urlparse(url).netloc == host
-                    and url not in seen_pages):
+                if _budget_exhausted(budget):
+                    budget["reason"] = _budget_exhausted(budget)
+                    break
+                if not _sleep_with_budget(args.delay, budget):
+                    break
+                st, _, hops, _, _, truncated = _request_result(
+                    request(url, "HEAD", budget))
+                if truncated or (isinstance(st, str) and
+                                 st.startswith("BUDGET:")):
+                    break
+                checked[url] = st
+                if not isinstance(st, int) or st >= 400:
+                    broken.append((final, st, url))
+                elif hops > args.max_redirect_hops:
+                    long_chains.append((final, hops, url))
+            # enqueue same-host pages found via <a>
+            if raw in parser.links and urlparse(url).netloc == host \
+                    and url not in seen_pages and url not in queue:
                 queue.append(url)
-
-    # A resource referenced repeatedly is one distinct mixed-content defect.
-    mixed = list(dict.fromkeys(mixed))
-    long_redirects = list(dict.fromkeys(long_redirects))
+        if budget.get("reason"):
+            break
 
     print(f"\n=== Link check summary for {start} ===")
     print(f"Pages crawled: {len(seen_pages)}   Unique URLs checked: {len(checked)}")
     if broken:
         print(f"\nBROKEN ({len(broken)}):")
-        for source, status, url in broken:
-            print(f"  [{status}] {url}\n         found on: {source}")
-    if long_redirects:
-        print(f"\nREDIRECT CHAINS OVER {args.max_redirects} HOP(S) "
-              f"({len(long_redirects)}):")
-        for source, final, hops in long_redirects:
-            print(f"  [{hops} hops] {source}\n         final: {final}")
+        for src, st, url in broken[:args.max_output_findings]:
+            print(f"  [{st}] {url}\n         found on: {src}")
+        if len(broken) > args.max_output_findings:
+            print(f"  ... {len(broken) - args.max_output_findings} omitted by output budget")
     if mixed:
-        level = "FAIL" if args.mixed_content == "fail" else "WARN"
-        print(f"\nMIXED CONTENT [{level}] ({len(mixed)}):")
-        for source, url in mixed:
-            print(f"  {url}\n         loaded by: {source}")
-    if not broken and not long_redirects and not mixed:
-        print("No broken links, long redirects, or mixed content found.")
-
-    failed = bool(broken or long_redirects)
-    if args.mixed_content == "fail" and mixed:
-        failed = True
-    return 1 if failed else 0
+        print(f"\nMIXED CONTENT ({len(mixed)}){' [configured as FAILURE]' if args.fail_on_mixed else ''}:")
+        for src, url in mixed[:args.max_output_findings]:
+            print(f"  {url}\n         loaded by: {src}")
+        if len(mixed) > args.max_output_findings:
+            print(f"  ... {len(mixed) - args.max_output_findings} omitted by output budget")
+    if long_chains:
+        print(f"\nREDIRECT CHAINS over {args.max_redirect_hops} hop(s) ({len(long_chains)}):")
+        for src, hops, url in long_chains[:args.max_output_findings]:
+            print(f"  [{hops} hops] {url}\n         found on: {src}")
+        if len(long_chains) > args.max_output_findings:
+            print(f"  ... {len(long_chains) - args.max_output_findings} omitted by output budget")
+    if not broken and not mixed and not long_chains:
+        print("No broken links, mixed content, or long redirect chains found.")
+    failed = bool(broken) or bool(long_chains) or (args.fail_on_mixed and bool(mixed))
+    unverified = 0
+    if budget.get("reason"):
+        unverified = 1
+        print(f"[UNVERIFIED] crawl stopped: {budget['reason']} "
+              f"(requests={budget['requests']}, bytes={budget['bytes']}, "
+              f"urls={len(discovered)})")
+    if len(seen_pages) >= args.max_pages and queue:
+        unverified = 1
+        print(f"[UNVERIFIED] crawl stopped at --max-pages {args.max_pages} "
+              f"with {len(queue)} page(s) still queued - link coverage "
+              "incomplete")
+    ok = max(len(checked) - len(broken) - len(long_chains), 0)
+    mixed_fail = len(mixed) if args.fail_on_mixed else 0
+    print(f"RESULT: pass={ok} warn={len(mixed) - mixed_fail} "
+          f"fail={len(broken) + len(long_chains) + mixed_fail} "
+          f"unverified={unverified}")
+    if failed:
+        return 1
+    if unverified:
+        return 3
+    return 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    sys.exit(main())

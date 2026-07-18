@@ -1,9 +1,11 @@
 ---
 name: quality-gatekeeper
-description: "Decide whether work is ready to continue coding, ready to merge, or ready to deploy — a GO / NO-GO checkpoint. Use when the user says gate, ready to merge, ready to deploy, \"can I ship this\", or before starting code. Returns a clear verdict plus the exact blockers; hard-blocks on critical gaps rather than averaging them away."
+description: Decide whether work is ready to continue coding, ready to merge, or ready to deploy — a GO / NO-GO checkpoint. Use when the user says gate, ready to merge, ready to deploy, "can I ship this", or before starting code. Returns a clear verdict plus the exact blockers; hard-blocks on critical gaps rather than averaging them away.
 ---
 
 # Quality Gatekeeper
+
+**AgentRoom proposal mode:** gate evidence/verdicts remain in output or declared direct artifacts. Any blocker task, risk, or other memory target under the trusted seat's `proposes` must be written to `.solo/proposals/<seat>-<run_id>.md`, not the target. Only the steward merges; missing seat/run identity is a stop condition.
 
 A gate is a decision, not a vibe: **GO** or **NO-GO**, with the specific blockers when it's no-go. It hard-blocks on critical failures (a great average doesn't cancel a missing backup or committed secret). Reads `.solo/` and delegates the deep checks to the specialist plugins. Three modes (a fourth, full-readiness scoring, lives in `production-readiness-reviewer` behind `$gate-production-ready`).
 
@@ -45,18 +47,6 @@ One missing item = **NO-GO**. Record open blockers in `.solo/risks.md` so the ne
 ## Verdict rules
 State **GO** or **NO-GO** up front. List blockers (must-fix) separately from nits (nice-to-have). Never soften a critical gap; if in doubt, NO-GO and say what would flip it.
 
-## Machine-readable phase evidence
-
-For before-code, before-merge, and before-deploy, write the declared AgentRoom evidence artifact using `references/phase-gate-evidence-v1.schema.json`. Bind it to the prepared room's SHA-256 digest and the exact `run_id`, `gate_id`, commit, environment, reviewer, timestamp, and expiry. Record every declared prerequisite, in order, as a `checks[]` entry with its own run/gate IDs, the executed subset of its predeclared producer `$skill` commands, exit code, exact artifact path, and SHA-256 digest. Never substitute a plausible category, skill, or artifact.
-
-Validate the record before routing work:
-
-```text
-<python> <skill-root>/scripts/validate_phase_gate_evidence.py <evidence.json> --root <project-root> --room <prepared-room.json> --run-id <run-id> --gate-id <gate-id> --commit <sha> --environment <name>
-```
-
-Treat a missing room contract, missing prerequisite, validation failure, unknown decision, changed digest, different run/gate/commit/environment, evidence older than the gate's `max_age_hours`, or an expired record as `NO-GO`. An AgentRoom may advance only through the transition for a validated `GO`; never use an unconditional handoff around a gate.
-
 ## Working with other skills
 Orchestrates the specialist plugins: `spec`, `project`, `design`, `dev`, `test`, `security`, `docs`, `release`, `site-doctor`, and `browser`. `$gate-production-ready` uses `production-readiness-reviewer` for the full scored checklist.
 
@@ -68,10 +58,14 @@ End every run with these seven sections:
 4. **Required fixes** — must-fix items before moving forward.
 5. **Suggested tasks** — concrete entries for `.solo/tasks.md`, each with a stable T-ID.
 6. **Verification** — how to prove the result works.
-7. **Next skill** — the exact next Codex skill invocation to run.
+7. **Next skill** — the exact next skill invocation to run.
 
 ## Session lifecycle
-Runs inside a session the solo plugin bookends: `$solo-start-session` restores `.solo/` context at the start and `$solo-end-session` saves it at the end. Read `.solo/` before acting; write findings, decisions, and tasks back (stable T-IDs) so the next command — or the next agent — picks up cleanly.
+Runs inside a session the solo plugin bookends: `$solo-start-session` restores `.solo/` context at the start and `$solo-end-session` saves it at the end. Read `.solo/` before acting; write findings, decisions, and tasks back (stable T-IDs) so the next skill — or the next agent — picks up cleanly.
 
 ## Stack awareness
 Check `.solo/stack.md` first and tailor everything to the real stack. For vendor depth the `$stack-audit-*` skills go further: Cloudflare, Vercel, Supabase, analytics/tags, payments. If a sibling skill or connector isn't installed, do a lighter inline version and say so.
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

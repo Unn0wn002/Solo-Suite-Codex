@@ -1,9 +1,11 @@
 ---
 name: vercel-audit
-description: "Audit a Vercel project — build settings, environment variables, preview vs production environments, domain config, redirects/rewrites, edge middleware, serverless/edge function limits, deployment rollback, image optimization, and Analytics/Speed Insights. Use when the user wants a Vercel review, \"check my Vercel\", env-var/domain/deploy configuration on Vercel, or asks if their Vercel setup is safe and optimal. Vendor-specific front end to site-doctor's deployment-review and performance-tuning; reads .solo/stack.md; uses a Vercel connector for live config when available."
+description: Audit a Vercel project — build settings, environment variables, preview vs production environments, domain config, redirects/rewrites, edge middleware, serverless/edge function limits, deployment rollback, image optimization, and Analytics/Speed Insights. Use when the user wants a Vercel review, "check my Vercel", env-var/domain/deploy configuration on Vercel, or asks if their Vercel setup is safe and optimal. Vendor-specific front end to site-doctor's deployment-review and performance-tuning; reads .solo/stack.md; uses a Vercel connector for live config when available.
 ---
 
 # Vercel Audit
+
+**AgentRoom proposal mode:** preserve raw audit evidence in the seat's declared direct artifact. Any tasks, decisions, handoff, stack update, or other target listed under `proposes` goes to `.solo/proposals/<seat>-<run_id>.md` with its target and proposed entries; never edit that target. Only the memory steward merges, and missing seat/run identity stops the write.
 
 Vercel makes deploying trivial, which means the risks move to configuration: a secret exposed to the browser through a `NEXT_PUBLIC_` var, preview deployments leaking production data or sitting unprotected, functions quietly hitting duration limits under load. This skill audits the Vercel-specific configuration and hands the general release/performance mechanics to site-doctor so the advice is consistent.
 
@@ -71,3 +73,7 @@ Either way, every finding must name its evidence (which setting, file, screensho
 ## Session lifecycle
 
 This skill works inside a session that the solo plugin bookends: `$solo-start-session` restores project context at the start (reading `.solo/`), and `$solo-end-session` saves progress, blockers, decisions, and the next task at the end. `$solo-run-cycle` may invoke this skill as one step of a complete task cycle. Keep `.solo/` current as you go so those session commands stay accurate.
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

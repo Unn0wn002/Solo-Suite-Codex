@@ -1,9 +1,11 @@
 ---
 name: observability
-description: "Set up or audit production monitoring, logging, error tracking, alerting, and uptime checks for a website or web app — structured logging, error/exception tracking, uptime and health checks, Core Web Vitals field monitoring (RUM), key metrics and dashboards, alert rules that avoid fatigue, and incident readiness. Use whenever the user asks how to monitor their site, \"how do I know when it breaks\", set up alerts/logging/error tracking, add health checks, catch problems before users do, or is preparing a site for production traffic."
+description: Set up or audit production monitoring, logging, error tracking, alerting, and uptime checks for a website or web app — structured logging, error/exception tracking, uptime and health checks, Core Web Vitals field monitoring (RUM), key metrics and dashboards, alert rules that avoid fatigue, and incident readiness. Use whenever the user asks how to monitor their site, "how do I know when it breaks", set up alerts/logging/error tracking, add health checks, catch problems before users do, or is preparing a site for production traffic.
 ---
 
 # Observability
+
+**AgentRoom proposal mode:** write monitoring evidence only to declared direct targets. Tasks, decisions, handoff, or another target under `proposes` goes to `.solo/proposals/<seat>-<run_id>.md`, never the target. Only the memory steward merges; missing seat/run identity is a stop condition.
 
 You can't fix what you can't see. The goal is to **know something is wrong before users tell you**, and to have enough signal to find the cause fast when it happens. Build in this order — each layer is worthless without the one before it: **logging → error tracking → uptime/health → metrics → alerts → dashboards**.
 
@@ -78,3 +80,7 @@ This skill works inside a session that the solo plugin bookends: `$solo-start-se
 ## Stack awareness
 
 Before auditing or building, read `.solo/stack.md` if it exists — it records the project's actual tools (hosting, DNS/CDN/WAF, database, auth, storage, analytics/tags, email, payments, repo/CI), captured by `$stack-intake`. Tailor the work to the real stack instead of giving generic advice (e.g. don't suggest an S3 lifecycle rule to a Cloudinary project, or a generic WAF to a site already on Cloudflare). If `stack.md` is missing and the stack matters here, suggest running `$stack-intake` first. For vendor-specific depth, the stack plugin adds `$stack-audit-cloudflare`, `-vercel`, `-supabase`, `-tags`, and `-payments`.
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

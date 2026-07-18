@@ -1,6 +1,6 @@
 ---
 name: seo-optimization
-description: "Advanced technical and on-page SEO beyond a basic tag check — crawlability and indexation, structured data (JSON-LD/schema.org), Core Web Vitals impact on ranking, internal linking and site architecture, canonicalization, hreflang/i18n, XML sitemaps, robots directives, duplicate content, and AI-answer-engine visibility (GEO/AEO). Use whenever the user wants to improve search rankings, \"get found on Google\", fix indexation problems, add schema markup, do keyword-to-content mapping, or optimize for AI search (ChatGPT/Perplexity/Google AI). Deeper than the SEO section of website-audit."
+description: Advanced technical and on-page SEO beyond a basic tag check — crawlability and indexation, structured data (JSON-LD/schema.org), Core Web Vitals impact on ranking, internal linking and site architecture, canonicalization, hreflang/i18n, XML sitemaps, robots directives, duplicate content, and AI-answer-engine visibility (GEO/AEO). Use whenever the user wants to improve search rankings, "get found on Google", fix indexation problems, add schema markup, do keyword-to-content mapping, or optimize for AI search (ChatGPT/Perplexity/Google AI). Deeper than the SEO section of website-audit.
 ---
 
 # SEO Optimization
@@ -9,13 +9,11 @@ Rankings follow from three things search engines actually reward: they can **cra
 
 ## Run the meta extractor first
 
-Read [`HELPERS.md`](../../HELPERS.md), resolve the installed plugin root from
-this `SKILL.md` rather than the current working directory, and select the first
-available documented Python 3 command.
-
-```text
-<python-command> <resolved-plugin-root>/scripts/run_helper.py seo-optimization/extract-meta https://example.com --max-pages 25
+```bash
+python3 "<skill-root>/scripts/extract_meta.py" https://example.com --max-pages 25
 ```
+> **Running helpers:** `<resolved-plugin-root>` is set by Codex to this plugin's installed root, so the command works from any working directory. If `python3` is not on PATH, use `python` (macOS/Linux/Windows) (Windows launcher) instead.
+
 Stdlib-only crawl that pulls titles, descriptions, canonicals, H1s, robots directives, OG tags, and structured-data presence per page, and flags duplicates and gaps. Use its table as the factual base, then apply judgment below.
 
 ## 1. Crawlability & Indexation (fix these first — nothing else matters if pages can't be indexed)
@@ -70,6 +68,8 @@ Shared audit structure (Summary → Scorecard → Findings → Fix order). Bucke
 
 ## Project memory integration (solo-team)
 
+**AgentRoom proposal mode:** when a trusted seat lists any memory target below under `proposes`, write the intended target, patch/entries, evidence, and merge notes to `.solo/proposals/<seat>-<run_id>.md` instead of editing that target. Only the memory steward merges it; missing seat or run identity stops the write. Direct memory updates remain normal outside a stewarded room.
+
 If a `.solo/` directory exists at the project root — the solo-team suite's shared memory — read `handoff.md` and `tasks.md` for context before starting, so the work is grounded in the project's actual state. Afterward, persist the results: capture the prioritized fix list as tasks in `.solo/tasks.md` (stable T-IDs, Doing/Todo/Blocked/Done sections, per project-memory-manager's conventions), append significant findings, decisions, or accepted risks to `.solo/decisions.md`, and note what was run in `handoff.md`. This keeps results in persistent project memory instead of dying with the session, and lets `$solo-next-step` and `$release-preflight` see them. If `.solo/` doesn't exist, proceed normally (and optionally mention the solo plugin can add cross-session memory).
 
 ## Session lifecycle
@@ -82,7 +82,8 @@ Before auditing or building, read `.solo/stack.md` if it exists — it records t
 
 ## Script safety (url_guard)
 
-The bundled script(s) route every outbound request through `plugins/site-doctor/lib/url_guard.py`: HTTPS-first scheme policy (http only where auditing it is the point), refusal of loopback/private/link-local/CGNAT/reserved/multicast and cloud-metadata targets — every DNS answer and every redirect hop is re-validated — plus a hard response-size cap. A refused target prints `BLOCKED unsafe target: <reason>` instead of being fetched.
+The bundled script(s) route every outbound request through `<skill-root>/../../lib/url_guard.py` (shipped at `plugins/site-doctor/lib/url_guard.py` in the source tree): HTTPS-first scheme policy (http only where auditing it is the point), refusal of loopback/private/link-local/CGNAT/reserved/multicast and cloud-metadata targets — every DNS answer and every redirect hop is re-validated — plus a hard response-size cap. A refused target prints `BLOCKED unsafe target: <reason>` instead of being fetched.
 
-The skill folder is not standalone; it requires the plugin-level launcher and
-shared `lib/url_guard.py` from an intact Site Doctor installation.
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

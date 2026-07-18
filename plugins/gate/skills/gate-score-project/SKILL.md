@@ -1,20 +1,20 @@
 ---
 name: gate-score-project
-description: "Score the project across the same 14 production-readiness categories and fixed 140-point formula without issuing a launch status. Use when the user explicitly invokes $gate-score-project or asks for a trend score before the enforced production gate."
+description: "Score production readiness across 14 categories (each /10; matrix-accepted N/A categories leave the denominator, normalized /100) — scoring only, no launch verdict; the gate itself is $gate-production-ready. Use when the user explicitly invokes $gate-score-project or asks for this gate score-project workflow."
 ---
 
-# Score the project
+# Gate Score Project
 
-Use `$production-readiness-reviewer` in score-only mode. Score the canonical 14 categories from 0 to 10, report the total out of 140, and calculate `round(total / 140 * 100)`.
+Follow this workflow using the user's supplied context. Preserve stated gates, evidence requirements, safety constraints, and output contracts.
 
-Require evidence for every score and an evidence-backed N/A reason for any inapplicable category. An all-N/A review is `INSUFFICIENT EVIDENCE`, never `SCORED`. Run provider checks only when `.solo/stack.md` records the provider. List missing, over-age, different-run/gate/commit/environment, or unnamespaced evidence as risks worth zero; do not invent a pass.
+Use $production-readiness-reviewer, scoring only. Apply it to the user's supplied arguments and surrounding request.
 
-Write `solo-suite/score-evidence-v1` using the reviewer skill's `references/score-evidence-v1.schema.json`. Include the exact `run_id`, `gate_id`, commit, environment, reviewer, timestamps, 14 category records, fixed-denominator scores, `assessment_status`, and risks. Use only `SCORED` or `INSUFFICIENT EVIDENCE`; never add `launch_status` or a GO/NO-GO decision.
+Run the 14-section checklist (Product, Architecture, Design, Frontend, Backend, Database, Security, Testing, Performance, SEO, Analytics, Deployment, Monitoring, Documentation) as evidence and produce the skill's exact score block — every applicable category 0–10, total /(10 × applicable), normalized /100, with N/A categories listed per the skill's applicability matrix (mandatory categories are never N/A) — but stop there: **no Launch Status, no verdict**. Would-be hard blockers met along the way are listed as risks with their fix invocations, not turned into a verdict. Vendor checks stay stack-conditional (only providers in `.solo/stack.md`; others N/A with evidence). Use this as the trend metric between gate runs; when you need the enforced verdict, run `$gate-production-ready`.
 
-Validate it before reporting:
+Record the dated score in `.solo/project.md` so progress is visible across sessions.
 
-```text
-<python> <resolved-plugin-root>/skills/production-readiness-reviewer/scripts/validate_gate_evidence.py <evidence.json> --root <project-root> --run-id <run-id> --gate-id <gate-id> --commit <sha> --environment <name> --mode score --max-age-hours <hours>
-```
+## Output
 
-Record the dated score and evidence path in `.solo/project.md` only after the user has authorized project-memory writes. Recommend `$gate-production-ready` when an enforced launch verdict is needed.
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

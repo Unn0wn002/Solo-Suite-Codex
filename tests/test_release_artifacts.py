@@ -18,7 +18,10 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE_COMMIT_EPOCH = 1_700_000_000
 HISTORICAL_DIGEST = (
-    "3d8989c6e201215812b00f9299b47b5da0e12a7d54f899bbd7cffcea905c438a"
+    "b691905f8ade4c2fb7e0084a46f537c9be8d7b2bf0f4d160c38c5e930aed1d43"
+)
+CANONICAL_DIGEST = (
+    "7dde7bbe44e7534e3f1890ddb1c5feba5554d60127c4dd7ef2095b31cafb03aa"
 )
 
 
@@ -32,7 +35,7 @@ def sha256(path: Path) -> str:
 
 def package_module():
     path = ROOT / "tools/package_release.py"
-    name = "package_release_v111"
+    name = "package_release_v127"
     spec = importlib.util.spec_from_file_location(name, path)
     if spec is None or spec.loader is None:
         raise RuntimeError(f"cannot load {path}")
@@ -66,7 +69,7 @@ def write_fixture(root: Path) -> None:
     manifest = root / "plugins/demo/.codex-plugin/plugin.json"
     manifest.parent.mkdir(parents=True)
     manifest.write_text(
-        json.dumps({"name": "demo", "version": "1.0.11", "license": "MIT"})
+        json.dumps({"name": "demo", "version": "1.0.12", "license": "MIT"})
         + "\n",
         encoding="utf-8",
     )
@@ -83,6 +86,12 @@ def write_fixture(root: Path) -> None:
         "referencing==0.36.2\n"
         "rpds-py==0.27.1\n"
         "typing_extensions==4.15.0\n",
+        encoding="utf-8",
+    )
+    (root / "requirements-audit.txt").write_text(
+        "-c requirements-dev.txt\n"
+        "pip==26.1.2\n"
+        "pip-audit==2.10.1\n",
         encoding="utf-8",
     )
     (root / "payload.txt").write_text("portable payload\n", encoding="utf-8")
@@ -108,16 +117,50 @@ def read_zip_json(path: Path, relative: str) -> dict:
 
 
 class ReleaseArtifacts(unittest.TestCase):
-    def test_historical_material_is_pinned_and_not_required(self):
+    def test_canonical_and_historical_materials_are_pinned(self):
+        self.assertEqual(PACKAGE.CANONICAL_SOURCE_SHA256, CANONICAL_DIGEST)
         self.assertEqual(PACKAGE.HISTORICAL_SOURCE_SHA256, HISTORICAL_DIGEST)
         provenance = json.loads(
             (ROOT / "RELEASE-PROVENANCE.json").read_text(encoding="utf-8")
         )
-        material = provenance["materials"][0]
-        self.assertEqual(material["uri"], PACKAGE.HISTORICAL_SOURCE_NAME)
-        self.assertEqual(material["digest"]["sha256"], HISTORICAL_DIGEST)
-        # No conditional skip: the legacy archive is historical metadata, not an input.
-        self.assertNotIn("UNAVAILABLE", json.dumps(material))
+        self.assertEqual(provenance["record_kind"], "unbound-source-template")
+        self.assertEqual(provenance["build_type"], "unbound-source-template")
+        self.assertIsNone(provenance["build_timestamp"])
+        self.assertIsNone(provenance["source_date_epoch"])
+        self.assertIsNone(provenance["source_git_commit"])
+        self.assertIsNone(provenance["source_git_dirty"])
+        self.assertEqual(provenance["validation_state"], "unbound")
+        source_sbom = json.loads(
+            (ROOT / "SBOM.spdx.json").read_text(encoding="utf-8")
+        )
+        self.assertTrue(
+            source_sbom["documentNamespace"].endswith("unbound-source-template")
+        )
+        source_packages = {item["name"] for item in source_sbom["packages"]}
+        self.assertTrue({"pip", "pip-audit"}.issubset(source_packages))
+        self.assertEqual(
+            provenance["validation_commands"],
+            provenance["installed_package_validation_commands"],
+        )
+        self.assertTrue(any(
+            "unittest discover" in command
+            for command in provenance["source_checkout_validation_commands"]
+        ))
+        self.assertFalse(any(
+            "unittest discover" in command
+            for command in provenance["installed_package_validation_commands"]
+        ))
+        materials = {item["role"]: item for item in provenance["materials"]}
+        self.assertNotIn("release-source", materials)
+        canonical = materials["canonical-parity-source"]
+        self.assertEqual(canonical["uri"], PACKAGE.CANONICAL_SOURCE_NAME)
+        self.assertEqual(canonical["digest"]["sha256"], CANONICAL_DIGEST)
+        self.assertTrue(canonical["required_for_validation"])
+        historical = materials["historical-source-reference"]
+        self.assertEqual(historical["uri"], PACKAGE.HISTORICAL_SOURCE_NAME)
+        self.assertEqual(historical["digest"]["sha256"], HISTORICAL_DIGEST)
+        self.assertFalse(historical["required_for_validation"])
+        self.assertNotIn("UNAVAILABLE", json.dumps(materials))
 
     def test_optional_historical_archive_verification_is_strict(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -130,6 +173,21 @@ class ReleaseArtifacts(unittest.TestCase):
                 PACKAGE.verify_historical_archive(archive)
             with self.assertRaisesRegex(RuntimeError, "does not exist"):
                 PACKAGE.verify_historical_archive(Path(temp) / "missing.zip")
+
+    def test_checked_in_canonical_source_is_exact_and_matches_target(self):
+        archive = ROOT / "parity/artifacts" / PACKAGE.CANONICAL_SOURCE_NAME
+        reference = json.loads(
+            (ROOT / "parity/canonical-source.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(reference["archive_sha256"], CANONICAL_DIGEST)
+        self.assertEqual(sha256(archive), CANONICAL_DIGEST)
+        self.assertEqual(
+            archive.with_suffix(archive.suffix + ".sha256")
+            .read_text(encoding="utf-8")
+            .split()[0],
+            CANONICAL_DIGEST,
+        )
+        PACKAGE.verify_canonical_source_archive(archive, ROOT)
 
     def test_validated_build_fails_without_git_even_with_source_date_epoch(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -156,9 +214,32 @@ class ReleaseArtifacts(unittest.TestCase):
                 environ={"SOURCE_DATE_EPOCH": str(FIXTURE_COMMIT_EPOCH)},
             )
             provenance = read_zip_json(result.output, "RELEASE-PROVENANCE.json")
+            self.assertEqual(
+                provenance["record_kind"], "generated-build-provenance"
+            )
             self.assertIsNone(provenance["source_git_commit"])
+            self.assertIsNone(provenance["source_git_dirty"])
             self.assertIn("non-publication preflight", provenance["source_identity_note"])
             self.assertNotIn("UNAVAILABLE", json.dumps(provenance))
+
+    def test_strict_provenance_writer_rejects_non_clean_identity(self):
+        contexts = (
+            PACKAGE.BuildContext(
+                None, False, FIXTURE_COMMIT_EPOCH,
+                "2023-11-14T22:13:20Z", (2023, 11, 14, 22, 13, 20), None,
+            ),
+            PACKAGE.BuildContext(
+                "a" * 40, True, FIXTURE_COMMIT_EPOCH,
+                "2023-11-14T22:13:20Z", (2023, 11, 14, 22, 13, 20), ROOT,
+            ),
+        )
+        for context in contexts:
+            with self.subTest(commit=context.commit, dirty=context.dirty):
+                with tempfile.TemporaryDirectory() as temp:
+                    with self.assertRaisesRegex(
+                        RuntimeError, "requires an exact clean Git commit"
+                    ):
+                        PACKAGE.write_provenance(Path(temp), "validated", context)
 
     def test_validated_build_fails_for_dirty_git_tree(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -171,6 +252,15 @@ class ReleaseArtifacts(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "clean Git working tree"):
                 PACKAGE.build_release(output, "ci", root=root, environ={})
             self.assertFalse(output.exists())
+
+    def test_clean_validated_build_requires_canonical_source(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "source"
+            root.mkdir()
+            write_fixture(root)
+            initialize_git(root)
+            with self.assertRaisesRegex(RuntimeError, "requires --canonical-source-archive"):
+                PACKAGE.build_release(Path(temp) / "release.zip", "validated", root=root)
 
     def test_same_commit_is_byte_reproducible_across_clean_clones(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -200,22 +290,30 @@ class ReleaseArtifacts(unittest.TestCase):
                 timeout=60,
             ).stdout.decode("ascii").strip()
             run_git(clone, "replace", original_blob, replacement)
-            first = PACKAGE.build_release(
-                temp_root / "first.zip", "ci", root=source, environ={}
-            )
-            second = PACKAGE.build_release(
-                temp_root / "second.zip", "ci", root=clone, environ={}
-            )
-            supplied_archive = temp_root / "legacy-anywhere.zip"
-            with mock.patch.object(PACKAGE, "verify_historical_archive") as verifier:
-                verified = PACKAGE.build_release(
-                    temp_root / "verified.zip",
-                    "ci",
-                    root=source,
-                    environ={},
-                    verify_source_archive=supplied_archive,
+            canonical_archive = temp_root / "canonical-source.zip"
+            with mock.patch.object(
+                PACKAGE, "verify_canonical_source_archive"
+            ) as canonical_verifier:
+                first = PACKAGE.build_release(
+                    temp_root / "first.zip", "ci", root=source, environ={},
+                    canonical_source_archive=canonical_archive,
                 )
+                second = PACKAGE.build_release(
+                    temp_root / "second.zip", "ci", root=clone, environ={},
+                    canonical_source_archive=canonical_archive,
+                )
+            supplied_archive = temp_root / "legacy-anywhere.zip"
+            with mock.patch.object(
+                PACKAGE, "verify_historical_archive"
+            ) as verifier:
+                with mock.patch.object(PACKAGE, "verify_canonical_source_archive"):
+                    verified = PACKAGE.build_release(
+                        temp_root / "verified.zip", "ci", root=source, environ={},
+                        canonical_source_archive=canonical_archive,
+                        verify_source_archive=supplied_archive,
+                    )
             verifier.assert_called_once_with(supplied_archive)
+            self.assertEqual(canonical_verifier.call_count, 2)
 
             self.assertEqual(first.digest, second.digest)
             self.assertEqual(first.output.read_bytes(), second.output.read_bytes())
@@ -229,21 +327,28 @@ class ReleaseArtifacts(unittest.TestCase):
             )
 
             provenance = read_zip_json(first.output, "RELEASE-PROVENANCE.json")
+            self.assertEqual(
+                provenance["record_kind"], "generated-build-provenance"
+            )
             self.assertEqual(provenance["source_git_commit"], commit)
             self.assertFalse(provenance["source_git_dirty"])
             self.assertEqual(provenance["source_date_epoch"], FIXTURE_COMMIT_EPOCH)
             self.assertEqual(provenance["validation_state"], "ci")
             self.assertEqual(
                 provenance["materials"][0]["digest"]["sha256"],
-                HISTORICAL_DIGEST,
+                CANONICAL_DIGEST,
             )
             self.assertEqual(
-                provenance["materials"][1]["digest"]["gitCommit"], commit
+                provenance["materials"][2]["digest"]["gitCommit"], commit
             )
 
             release = read_zip_json(first.output, "RELEASE.json")
             self.assertFalse(release["source_archive_required_for_build"])
-            self.assertEqual(release["source_archive_sha256"], HISTORICAL_DIGEST)
+            self.assertTrue(release["source_archive_required_for_validation"])
+            self.assertEqual(release["source_archive_sha256"], CANONICAL_DIGEST)
+            self.assertEqual(
+                release["historical_source_archive_sha256"], HISTORICAL_DIGEST
+            )
             sbom = read_zip_json(first.output, "SBOM.spdx.json")
             self.assertEqual(sbom["creationInfo"]["created"], provenance["build_timestamp"])
             with zipfile.ZipFile(second.output) as archive:
@@ -272,7 +377,11 @@ class ReleaseArtifacts(unittest.TestCase):
                 PACKAGE.build_release(temp_root / "release.tar", "ci", root=source)
 
             allowed = source / "dist/untracked-release.zip"
-            result = PACKAGE.build_release(allowed, "ci", root=source)
+            with mock.patch.object(PACKAGE, "verify_canonical_source_archive"):
+                result = PACKAGE.build_release(
+                    allowed, "ci", root=source,
+                    canonical_source_archive=temp_root / "canonical-source.zip",
+                )
             self.assertTrue(result.output.is_file())
 
     def test_committed_paths_must_be_portable_and_collision_free(self):
@@ -299,12 +408,12 @@ class ReleaseArtifacts(unittest.TestCase):
             write_fixture(source)
             initialize_git(source)
             override = 1_800_000_000
-            result = PACKAGE.build_release(
-                temp_root / "release.zip",
-                "validated",
-                root=source,
-                environ={"SOURCE_DATE_EPOCH": str(override)},
-            )
+            with mock.patch.object(PACKAGE, "verify_canonical_source_archive"):
+                result = PACKAGE.build_release(
+                    temp_root / "release.zip", "validated", root=source,
+                    canonical_source_archive=temp_root / "canonical-source.zip",
+                    environ={"SOURCE_DATE_EPOCH": str(override)},
+                )
             provenance = read_zip_json(result.output, "RELEASE-PROVENANCE.json")
             self.assertEqual(provenance["source_date_epoch"], override)
             with zipfile.ZipFile(result.output) as archive:
@@ -339,7 +448,10 @@ class ReleaseArtifacts(unittest.TestCase):
             write_fixture(root)
             commit = initialize_git(root)
             context = PACKAGE.resolve_build_context(root, "ci", {})
-            stage = Path(temp) / "stage"
+            # Windows runners may expose the same temp directory through an
+            # 8.3 alias (for example ``RUNNER~1``) while os.walk returns the
+            # long path.  Resolve both sides before computing relative paths.
+            stage = (Path(temp) / "stage").resolve()
             PACKAGE.stage_source(root, stage, context)
             PACKAGE.generate_metadata(stage, "ci", context)
 
@@ -361,7 +473,7 @@ class ReleaseArtifacts(unittest.TestCase):
                 self.assertEqual(sha256(target), digest, relative)
                 declared[relative] = digest
             actual = {
-                path.relative_to(stage).as_posix()
+                path.resolve().relative_to(stage).as_posix()
                 for path in PACKAGE.included_files(stage)
                 if path.name != "RELEASE-CHECKSUMS.txt"
             }
@@ -380,12 +492,17 @@ class ReleaseArtifacts(unittest.TestCase):
                 "referencing": "MIT",
                 "rpds-py": "MIT",
                 "typing_extensions": "PSF-2.0",
+                "pip": "MIT",
+                "pip-audit": "Apache-2.0",
             }
             self.assertTrue({"demo", *expected_licenses}.issubset(packages))
             for name, license_id in expected_licenses.items():
                 self.assertEqual(packages[name]["licenseDeclared"], license_id)
             provenance = json.loads(
                 (stage / "RELEASE-PROVENANCE.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(
+                provenance["record_kind"], "generated-build-provenance"
             )
             self.assertEqual(provenance["source_git_commit"], commit)
 

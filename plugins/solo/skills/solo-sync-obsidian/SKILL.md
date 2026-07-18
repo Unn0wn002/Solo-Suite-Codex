@@ -1,22 +1,31 @@
 ---
 name: solo-sync-obsidian
-description: "Preview and, after explicit confirmation, mirror sanitized .solo/ project memory into an Obsidian vault using stable managed sections. Use only when the user explicitly invokes $solo-sync-obsidian."
+description: "Sync .solo/ project memory into an Obsidian vault as linked, idempotent notes Use when the user explicitly invokes $solo-sync-obsidian or asks for this solo sync-obsidian workflow."
 ---
 
-# Sync project memory to Obsidian
+# Solo Sync Obsidian
 
-Use `$memory-sync` in Obsidian mode and preserve its complete safety contract.
+Follow this workflow using the user's supplied context. Preserve stated gates, evidence requirements, safety constraints, and output contracts.
 
-Start in preview/dry-run mode. Read only the 16 allowlisted `.solo/` contract files. Never read or copy `.solo/config.md`, `.env*`, credentials, secret-store data, or arbitrary extra `.solo/` files. Scan allowlisted content for likely credentials; omit suspicious content and block the write until the source is repaired.
+Use $memory-sync in Obsidian mode. Apply it to the user's supplied arguments and surrounding request.
 
-The optional config may store only `obsidian_vault_path`. Recommend or add `.solo/config.md` to the project-root `.gitignore` before creating it. Do not store credentials or private note contents in config or logs.
+Read all of .solo/ and mirror it into an Obsidian vault as clean linked markdown: one note
+per memory file that exists (Overview/MOC plus the full 16-file contract: Project, Stack, PRD, Architecture, API/Data/Env Contracts, Design, Tasks, Decisions, Risks, Bugs, Tests, Release, Monitoring, Handoff)
+with frontmatter and wikilinks; tasks become native checkboxes keeping stable T-IDs. Ask for
+the vault path on first run and remember it in .solo/config.md. Update notes in place
+(idempotent - no duplicates), write managed content between solo:begin$solo-end markers so
+the user's own note content survives, and NEVER delete their notes. Report which notes were
+created vs updated. .solo/ stays the source of truth; the vault is a one-way mirror.
 
-Generate an Overview/MOC and one stable linked note per present allowlisted file. Convert tasks to checkboxes while retaining stable task IDs. Manage only content between `<!-- solo:begin -->` and `<!-- solo:end -->`, preserving all user-authored content outside those markers.
 
-The preview names the resolved vault, notes to create/update/skip, and cleanup plan without dumping note bodies. Require explicit confirmation for that exact preview before any filesystem write outside the project. If the source, destination, or generated content changes, preview and confirm again.
+SAFETY: writes to the vault only after a dry-run preview and explicit confirmation; never
+sync `.solo/config.md`, `.env*`, or secret values into notes; vault path is remembered in
+`.solo/config.md` (non-secrets only, gitignored).
 
-Never delete a user's note. On a partial failure, clean up only new managed records from the confirmed run and report any remaining synthetic/managed IDs. Verify stable filenames and counts after the write.
+Treat the dry run as a PREVIEW and require EXPLICIT CONFIRMATION before writing any note.
 
 ## Output
 
-Report summary, preview versus applied state, destination, stable filenames, create/update/skip counts, cleanup, risks, verification, and the next explicit `$solo-*` skill. Do not include credentials or copied note bodies.
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

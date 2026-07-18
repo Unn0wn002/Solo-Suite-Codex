@@ -1,15 +1,17 @@
 ---
 name: database-fix
-description: "Safely apply database fixes in PostgreSQL, MySQL, or SQLite — add missing indexes without downtime, write reversible migrations, add constraints to existing data, backfill columns, deduplicate rows, and clean orphaned records. Use when the user says \"fix the database issues\", \"add the missing indexes\", \"write a migration for\", \"clean up the orphaned rows\", or wants any schema or data change applied from an audit or debug finding."
+description: Safely apply database fixes in PostgreSQL, MySQL, or SQLite — add missing indexes without downtime, write reversible migrations, add constraints to existing data, backfill columns, deduplicate rows, and clean orphaned records. Use when the user says "fix the database issues", "add the missing indexes", "write a migration for", "clean up the orphaned rows", or wants any schema or data change applied from an audit or debug finding.
 ---
 
 # Database Fix
 
 Schema and data changes are the highest-blast-radius edits in a codebase — a bad one can lock a production table or destroy rows irreversibly. Every fix here follows the same contract: **restore point → smallest safe change → verify → next**.
 
+**Manual execution boundary:** generate and review fixes freely, but never run DDL, DML, maintenance statements, migrations, or database tooling against a live database until the user has confirmed the exact target, restore point, statement, and expected impact. Approval is per state-changing step, not blanket approval for the session.
+
 ## Golden rules
 
-1. **Restore point first.** Confirm a recent backup exists (`pg_dump`, `mysqldump`, or a consistent SQLite backup) before any DDL or bulk write. For SQLite, prefer the cross-platform SQLite CLI backup command `sqlite3 app.db ".backup 'app.db.bak'"`; if the CLI is unavailable, stop the application and use the platform's literal-path copy operation (`Copy-Item -LiteralPath` on Windows or `cp --` on POSIX). Verify that the backup opens before proceeding.
+1. **Restore point first.** Confirm a recent backup exists (`pg_dump`, `mysqldump`, or a file copy for SQLite) before any DDL or bulk write. For SQLite specifically: `cp app.db app.db.bak` is one command and makes everything below reversible.
 2. **Write migrations, not ad-hoc statements**, when the project has a migration tool — with a working `down`/rollback for each `up`.
 3. **One logical change per migration.** A failed half-applied mega-migration is far worse than five small ones. Note: MySQL DDL auto-commits (it is not transactional), so on MySQL small migrations aren't just tidy — they're the only rollback granularity you get. PG DDL is transactional; SQLite mostly is.
 4. **Preview every bulk write.** Before any `UPDATE`/`DELETE`, run the same `WHERE` as a `SELECT count(*)` and show the number. No mass write without a reviewed WHERE clause and row count.
@@ -78,25 +80,17 @@ PRAGMA foreign_key_check;   -- must return zero rows
 Stay inside the shared dialect: `TEXT` + `CHECK (col IN (...))` instead of native ENUMs; UUIDs generated in the application, stored as TEXT; `TIMESTAMP DEFAULT CURRENT_TIMESTAMP`; no engine-specific index types in the portable core. Write the migration once, run it against all three engines in CI before calling it done — SQLite's ALTER limitations are usually what breaks first.
 
 ### Fix a slow query without touching the schema
-Order of attack: refresh statistics (`ANALYZE`) → add/adjust the index the plan is missing → rewrite the query (avoid `SELECT *`, avoid functions on indexed columns in WHERE, replace `OFFSET` pagination with keyset pagination) → only then consider denormalization or caching.
 
-### Refresh planner statistics (a maintenance write)
+## Maintenance statements (moved here from the read-only audit)
 
-`ANALYZE` and SQLite `PRAGMA optimize` may update statistics tables and are
-never part of the read-only audit. Before running either command:
+`ANALYZE` and `PRAGMA optimize` (SQLite) refresh planner statistics — cheap, but they **write** to the database, so they run here and never inside database-audit. Before running either (or `VACUUM`/`REINDEX`):
 
-1. Show the exact database, environment, command, and expected write effect.
-2. Verify a current, restorable backup or snapshot and record its identifier.
-3. Warn that plans and statistics will change, then obtain explicit user
-   confirmation for that exact target and command.
-4. Capture the relevant statistics/query plan before and after. If the result
-   regresses, restore the snapshot (SQLite can restore the verified database
-   copy; managed PG/MySQL should use the provider's documented point-in-time
-   restore process). Do not imply that every statistics update has a simple SQL
-   inverse.
+1. **Explicit confirmation** — state the exact statement, the target database, and that it mutates state; proceed only after the user confirms.
+2. **Backup verification** — confirm a restorable backup/snapshot exists and has been tested (see backup-recovery). "A backup probably exists" does not count.
+3. **Mutation warning** — on a busy production system `VACUUM` takes locks and `ANALYZE` changes plans; schedule accordingly.
+4. **Rollback guidance** — state how to undo or recover: restore from the verified backup; for plan regressions after `ANALYZE`, re-run `ANALYZE` after fixing data or use the engine's plan-management tools.
 
-Do not bundle this maintenance with another fix; it needs its own confirmation
-and evidence so the effect can be isolated.
+Order of attack: refresh statistics (`ANALYZE` — see Maintenance statements above) → add/adjust the index the plan is missing → rewrite the query (avoid `SELECT *`, avoid functions on indexed columns in WHERE, replace `OFFSET` pagination with keyset pagination) → only then consider denormalization or caching.
 
 ## Deployment order for production changes
 
@@ -108,6 +102,8 @@ Re-run the relevant audit sections from **database-audit** and show before/after
 
 ## Project memory integration (solo-team)
 
+**AgentRoom proposal mode:** when a trusted seat lists any memory target below under `proposes`, write the intended target, patch/entries, evidence, and merge notes to `.solo/proposals/<seat>-<run_id>.md` instead of editing that target. Only the memory steward merges it; missing seat or run identity stops the write. Direct memory updates remain normal outside a stewarded room.
+
 If a `.solo/` directory exists at the project root — the solo-team suite's shared memory — read `handoff.md` and `tasks.md` for context before starting, so the work is grounded in the project's actual state. Afterward, persist the results: capture the prioritized fix list as tasks in `.solo/tasks.md` (stable T-IDs, Doing/Todo/Blocked/Done sections, per project-memory-manager's conventions), append significant findings, decisions, or accepted risks to `.solo/decisions.md`, and note what was run in `handoff.md`. This keeps results in persistent project memory instead of dying with the session, and lets `$solo-next-step` and `$release-preflight` see them. If `.solo/` doesn't exist, proceed normally (and optionally mention the solo plugin can add cross-session memory).
 
 ## Session lifecycle
@@ -117,3 +113,7 @@ This skill works inside a session that the solo plugin bookends: `$solo-start-se
 ## Stack awareness
 
 Before auditing or building, read `.solo/stack.md` if it exists — it records the project's actual tools (hosting, DNS/CDN/WAF, database, auth, storage, analytics/tags, email, payments, repo/CI), captured by `$stack-intake`. Tailor the work to the real stack instead of giving generic advice (e.g. don't suggest an S3 lifecycle rule to a Cloudinary project, or a generic WAF to a site already on Cloudflare). If `stack.md` is missing and the stack matters here, suggest running `$stack-intake` first. For vendor-specific depth, the stack plugin adds `$stack-audit-cloudflare`, `-vercel`, `-supabase`, `-tags`, and `-payments`.
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

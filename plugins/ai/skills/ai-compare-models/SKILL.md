@@ -12,4 +12,7 @@ Use $ai-output-auditor in compare-models mode. Apply it to the user's supplied a
 Recommend which agent fits by task type (deep reasoning/refactor/ambiguous vs boilerplate/scaffolding vs very large context), with a short rationale and a fallback. Frame it as a judgment call, not a guarantee.
 
 ## Output
-End with the 7-part contract: **Summary · Findings/Work done · Risks · Required fixes · Suggested tasks** (→ `.solo/tasks.md`, stable T-IDs) **· Verification · Next skill** (exact skill invocation).
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

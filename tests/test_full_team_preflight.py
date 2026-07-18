@@ -53,8 +53,49 @@ class FullTeamPreflight(unittest.TestCase):
             self.assertEqual(result["status"], "FAIL")
             text = "\n".join(result["failures"])
             self.assertIn("below required 99.0.0", text)
+            self.assertIn("codex plugin add ai@solo-suite-codex", text)
             self.assertIn("$missing-preflight-skill", text)
-            self.assertIn("validator rejected", text)
+        self.assertIn("validator rejected", text)
+
+    def test_contract_uses_current_codex_release_floor(self):
+        contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
+        self.assertEqual(
+            {item["minimum_version"] for item in contract["components"]},
+            {"1.0.27"},
+        )
+
+    def test_verify_delegates_to_native_preflight_and_uses_codex_installer(self):
+        verify = (
+            ROOT / "plugins/full-team/skills/full-team-verify/SKILL.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("full-team-orchestrator/scripts/preflight.py", verify)
+        self.assertIn("codex plugin add <plugin-name>@solo-suite-codex", verify)
+        self.assertNotIn("/plugin install", verify)
+
+    def test_authoritative_flow_and_compatibility_alias_are_explicit(self):
+        orchestrator = (
+            ROOT / "plugins/full-team/skills/full-team-orchestrator/SKILL.md"
+        ).read_text(encoding="utf-8")
+        solo = (
+            ROOT / "plugins/solo/skills/solo-full-team-dev/SKILL.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("authoritative", orchestrator.lower())
+        self.assertIn("$solo-full-team-dev", orchestrator)
+        self.assertIn("delegates", solo.lower())
+        self.assertIn("full-team-orchestrator", solo)
+        self.assertNotIn("room-*", solo)
+
+    def test_active_docs_do_not_claim_per_role_agent_files(self):
+        paths = list((ROOT / "plugins").glob("**/*.md")) + [
+            ROOT / "README.md",
+            ROOT / "CHANGELOG.md",
+        ]
+        offenders = [
+            str(path.relative_to(ROOT))
+            for path in paths
+            if "room-*" in path.read_text(encoding="utf-8")
+        ]
+        self.assertEqual(offenders, [])
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 ---
 name: compliance-check
-description: "Review a website for common privacy and data-protection compliance gaps — GDPR/CCPA/UK-GDPR obligations, cookie consent and tracker behavior, privacy policy presence and adequacy, data collection and retention practices, user rights (access/deletion/opt-out), and third-party data sharing. Use whenever the user asks about GDPR, CCPA, privacy compliance, cookie consent/banners, \"is my site legally compliant\", privacy policy review, or handling of personal data. This surfaces gaps and points to obligations — it is not legal advice."
+description: Review a website for common privacy and data-protection compliance gaps — GDPR/CCPA/UK-GDPR obligations, cookie consent and tracker behavior, privacy policy presence and adequacy, data collection and retention practices, user rights (access/deletion/opt-out), and third-party data sharing. Use whenever the user asks about GDPR, CCPA, privacy compliance, cookie consent/banners, "is my site legally compliant", privacy policy review, or handling of personal data. This surfaces gaps and points to obligations — it is not legal advice.
 ---
 
 # Compliance Check
@@ -13,13 +13,11 @@ Determine what personal data the site collects (accounts, forms, analytics, cook
 
 ## Run the tracker scan
 
-Read [`HELPERS.md`](../../HELPERS.md), resolve the installed plugin root from
-this `SKILL.md` rather than the current working directory, and select the first
-available documented Python 3 command.
-
-```text
-<python-command> <resolved-plugin-root>/scripts/run_helper.py compliance-check/scan-trackers https://example.com
+```bash
+python3 "<skill-root>/scripts/scan_trackers.py" https://example.com
 ```
+> **Running helpers:** `<resolved-plugin-root>` is set by Codex to this plugin's installed root, so the command works from any working directory. If `python3` is not on PATH, use `python` (macOS/Linux/Windows) (Windows launcher) instead.
+
 Stdlib-only. Fetches the page and flags cookies set, third-party script/pixel origins, and common analytics/ad trackers — the factual basis for "what's actually collecting data here." Note: it sees server-set cookies and static third-party references; client-set cookies and dynamically injected tags need a real browser to catch fully, so treat it as a floor, not a ceiling.
 
 ## 1. Consent & cookies (the most common concrete gap)
@@ -65,6 +63,8 @@ Shared audit structure (Summary → Scorecard → Findings → Fix order), group
 
 ## Project memory integration (solo-team)
 
+**AgentRoom proposal mode:** when a trusted seat lists any memory target below under `proposes`, write the intended target, patch/entries, evidence, and merge notes to `.solo/proposals/<seat>-<run_id>.md` instead of editing that target. Only the memory steward merges it; missing seat or run identity stops the write. Direct memory updates remain normal outside a stewarded room.
+
 If a `.solo/` directory exists at the project root — the solo-team suite's shared memory — read `handoff.md` and `tasks.md` for context before starting, so the work is grounded in the project's actual state. Afterward, persist the results: capture the prioritized fix list as tasks in `.solo/tasks.md` (stable T-IDs, Doing/Todo/Blocked/Done sections, per project-memory-manager's conventions), append significant findings, decisions, or accepted risks to `.solo/decisions.md`, and note what was run in `handoff.md`. This keeps results in persistent project memory instead of dying with the session, and lets `$solo-next-step` and `$release-preflight` see them. If `.solo/` doesn't exist, proceed normally (and optionally mention the solo plugin can add cross-session memory).
 
 ## Session lifecycle
@@ -77,7 +77,8 @@ Before auditing or building, read `.solo/stack.md` if it exists — it records t
 
 ## Script safety (url_guard)
 
-The bundled script(s) route every outbound request through `plugins/site-doctor/lib/url_guard.py`: HTTPS-first scheme policy (http only where auditing it is the point), refusal of loopback/private/link-local/CGNAT/reserved/multicast and cloud-metadata targets — every DNS answer and every redirect hop is re-validated — plus a hard response-size cap. A refused target prints `BLOCKED unsafe target: <reason>` instead of being fetched.
+The bundled script(s) route every outbound request through `<skill-root>/../../lib/url_guard.py` (shipped at `plugins/site-doctor/lib/url_guard.py` in the source tree): HTTPS-first scheme policy (http only where auditing it is the point), refusal of loopback/private/link-local/CGNAT/reserved/multicast and cloud-metadata targets — every DNS answer and every redirect hop is re-validated — plus a hard response-size cap. A refused target prints `BLOCKED unsafe target: <reason>` instead of being fetched.
 
-The skill folder is not standalone; it requires the plugin-level launcher and
-shared `lib/url_guard.py` from an intact Site Doctor installation.
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

@@ -1,6 +1,6 @@
 ---
 name: devops-engineer
-description: "Act as the DevOps engineer for a solo developer — run a pre-release preflight, plan a safe deployment, prepare a rollback plan before shipping, and author the CI pipeline that runs the project's checks on every PR. Use when the user is about to release, wants a pre-launch checklist, a deploy plan, a go-live plan, a rollback/recovery plan, CI set up (GitHub Actions), or asks \"am I ready to ship\", \"how do I deploy this safely\", \"what if it breaks\". Reads .solo/ for release context; leans on site-doctor's infra/deploy/backup skills for depth when installed."
+description: Act as the DevOps engineer for a solo developer — run a pre-release preflight, plan a safe deployment, prepare a rollback plan before shipping, and author the CI pipeline that runs the project's checks on every PR. Use when the user is about to release, wants a pre-launch checklist, a deploy plan, a go-live plan, a rollback/recovery plan, CI set up (GitHub Actions), or asks "am I ready to ship", "how do I deploy this safely", "what if it breaks". Reads .solo/ for release context; leans on site-doctor's infra/deploy/backup skills for depth when installed.
 ---
 
 # DevOps Engineer
@@ -8,6 +8,8 @@ description: "Act as the DevOps engineer for a solo developer — run a pre-rele
 Shipping is where a solo developer is most exposed — no ops team, no one on call but them, and a bad deploy means *they* are the incident response at 2am. This skill de-risks release: a preflight that catches "you forgot X" before it's live, a deploy plan that's boring and reversible, and a rollback plan written *before* it's needed. The goal is that going live is a non-event.
 
 ## Memory & context first
+
+**AgentRoom proposal mode:** when a trusted room seat declares a memory target under `proposes`, replace every direct-write instruction with a proposal at `.solo/proposals/<seat>-<run_id>.md` naming the target and intended patch/entries. Only the steward merges; missing seat/run identity is a stop condition. Single-agent runs update memory directly.
 
 Read `.solo/tasks.md` (is the release scope actually done?), `architecture.md` (what's being deployed and where), `handoff.md`, and `decisions.md`. Note what shipped since last release. Write the plans/checklists into `.solo/` (e.g. a `release.md`, or append to `handoff.md`) and log release decisions in `decisions.md` so there's a record of what went out and how.
 
@@ -60,3 +62,7 @@ This skill works inside a session that the solo plugin bookends: `$solo-start-se
 ## Stack awareness
 
 Before auditing or building, read `.solo/stack.md` if it exists — it records the project's actual tools (hosting, DNS/CDN/WAF, database, auth, storage, analytics/tags, email, payments, repo/CI), captured by `$stack-intake`. Tailor the work to the real stack instead of giving generic advice (e.g. don't suggest an S3 lifecycle rule to a Cloudinary project, or a generic WAF to a site already on Cloudflare). If `stack.md` is missing and the stack matters here, suggest running `$stack-intake` first. For vendor-specific depth, the stack plugin adds `$stack-audit-cloudflare`, `-vercel`, `-supabase`, `-tags`, and `-payments`.
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

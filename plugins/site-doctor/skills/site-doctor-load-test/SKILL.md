@@ -15,6 +15,8 @@ type. For interpreting, report throughput/latency-percentiles/error-onset/
 breaking-point, identify the bottleneck with evidence, and give capacity/scaling
 recommendations.
 
+SAFETY: manual-only (can generate production-scale traffic and side effects). Target staging by default; production load tests require explicit confirmation, a traffic budget, and an abort plan.
+
 ## Output — evidence-based audit format
 Never just "good" or "bad" — every claim names its proof. If nothing was actually inspected for an area, say "not checked", don't guess. End with exactly:
 
@@ -48,5 +50,9 @@ Low / Medium / High / Critical
 1. …
 
 ## Next Recommended Skill
-$load-testing — use it to validate capacity after risk mitigation.
+No follow-up skill is implied here; choose the next validated skill for the current workflow.
 ```
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

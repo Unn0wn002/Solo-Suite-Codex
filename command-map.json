@@ -242,6 +242,17 @@
     "allow_implicit_invocation": false
   },
   {
+    "legacy_invocation": "/full-team:verify",
+    "skill_invocation": "$full-team-verify",
+    "codex_invocation": "$full-team-verify",
+    "plugin": "full-team",
+    "command": "verify",
+    "skill_name": "full-team-verify",
+    "source_path": "plugins/full-team/commands/verify.md",
+    "target_path": "plugins/full-team/skills/full-team-verify/SKILL.md",
+    "allow_implicit_invocation": false
+  },
+  {
     "legacy_invocation": "/gate:before-code",
     "skill_invocation": "$gate-before-code",
     "codex_invocation": "$gate-before-code",
@@ -272,6 +283,17 @@
     "skill_name": "gate-before-merge",
     "source_path": "plugins/gate/commands/before-merge.md",
     "target_path": "plugins/gate/skills/gate-before-merge/SKILL.md",
+    "allow_implicit_invocation": false
+  },
+  {
+    "legacy_invocation": "/gate:finalize-evidence",
+    "skill_invocation": "$gate-finalize-evidence",
+    "codex_invocation": "$gate-finalize-evidence",
+    "plugin": "gate",
+    "command": "finalize-evidence",
+    "skill_name": "gate-finalize-evidence",
+    "source_path": "plugins/gate/commands/finalize-evidence.md",
+    "target_path": "plugins/gate/skills/gate-finalize-evidence/SKILL.md",
     "allow_implicit_invocation": false
   },
   {

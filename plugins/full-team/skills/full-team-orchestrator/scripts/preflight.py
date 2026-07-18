@@ -27,6 +27,12 @@ def version_tuple(value: object) -> Tuple[int, int, int]:
     return tuple(int(part) for part in match.groups())  # type: ignore[return-value]
 
 
+def install_command(plugin: str) -> str:
+    """Return the platform-correct repair command for a missing component."""
+
+    return f"codex plugin add {plugin}@solo-suite-codex"
+
+
 def room_commands(room: Dict[str, Any]) -> Set[str]:
     commands: Set[str] = set()
     for seat in room.get("seats", []):
@@ -101,15 +107,28 @@ def preflight(
         manifest_path = suite / "plugins" / plugin / ".codex-plugin" / "plugin.json"
         try:
             manifest = read_json(manifest_path)
+            if not isinstance(manifest, dict):
+                failures.append(
+                    f"{plugin} manifest is malformed; repair with {install_command(plugin)}"
+                )
+                continue
+            if manifest.get("name") != plugin:
+                failures.append(
+                    f"{plugin} manifest name is invalid; repair with {install_command(plugin)}"
+                )
             installed = version_tuple(manifest.get("version"))
             minimum = version_tuple(component.get("minimum_version"))
         except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
-            failures.append("%s cannot verify version: %s" % (plugin, exc))
+            failures.append(
+                "%s cannot verify version: %s; repair with %s" %
+                (plugin, exc, install_command(plugin))
+            )
             continue
         if installed < minimum:
             failures.append(
                 "%s version %s is below required %s" %
                 (plugin, manifest.get("version"), component.get("minimum_version"))
+                + "; repair with " + install_command(plugin)
             )
         invocation = "$" + str(representative)
         if not isinstance(representative, str) or invocation not in skills:

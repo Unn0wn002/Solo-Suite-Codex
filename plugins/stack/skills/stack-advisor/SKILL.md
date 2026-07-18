@@ -1,9 +1,11 @@
 ---
 name: stack-advisor
-description: "Ask a solo developer what tools their project actually uses — hosting, DNS/CDN/WAF, database, auth, storage, analytics, email, payments, repo/CI — and record it as the single source of truth so every audit and build is stack-aware. Use when the user says intake, \"what stack\", set up the stack, \"tell you my stack\", before a first audit or build, or when .solo/stack.md is missing. Owns .solo/stack.md; run this first so other commands know the stack instead of guessing."
+description: Ask a solo developer what tools their project actually uses — hosting, DNS/CDN/WAF, database, auth, storage, analytics, email, payments, repo/CI — and record it as the single source of truth so every audit and build is stack-aware. Use when the user says intake, "what stack", set up the stack, "tell you my stack", before a first audit or build, or when .solo/stack.md is missing. Owns .solo/stack.md; run this first so other commands know the stack instead of guessing.
 ---
 
 # Stack Advisor
+
+**AgentRoom proposal mode:** when the trusted seat declares `.solo/stack.md`, `.solo/decisions.md`, or another target under `proposes`, put the target and idempotent proposed patch in `.solo/proposals/<seat>-<run_id>.md` instead of editing the target. Only the memory steward merges; missing seat/run identity is a stop condition. Single-agent intake keeps direct updates.
 
 The fastest way to give bad advice is to audit or build without knowing what the project runs on — recommending an S3 lifecycle rule to someone on Cloudinary, or a generic "add a WAF" to someone already behind Cloudflare. This skill fixes that once: it asks what the stack is and writes it to `.solo/stack.md`, which every other command in the suite reads for context. **Run it first.** Ten questions up front make every later audit sharper and every build fit the real tools.
 
@@ -110,3 +112,7 @@ Based on what they use, surface the relevant next steps (only the applicable one
 ## Session lifecycle
 
 This skill works inside a session that the solo plugin bookends: `$solo-start-session` restores project context at the start (and recommends this intake when `stack.md` is missing), and `$solo-end-session` saves progress — including any stack changes — at the end. `$solo-run-cycle` checks `stack.md` at task selection and may route to the vendor audits this plugin provides. Keep `stack.md` current as tools change so those session commands stay accurate.
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

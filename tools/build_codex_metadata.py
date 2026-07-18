@@ -1,15 +1,24 @@
 #!/usr/bin/env python3
-"""Build deterministic Codex manifests from the audited v1.0.10 source."""
+"""Build Codex manifests from the synchronized Claude source tree.
+
+The source defaults to the checked-out v1.0.27 Claude tree next to this
+repository.  ``SOLO_SUITE_SOURCE_ROOT`` is intentionally supported for CI or
+release workspaces that keep the source at a different absolute path.
+"""
 
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT.parent / ".source-v1.0.10"
-VERSION = "1.0.12"
+_source_setting = os.environ.get("SOLO_SUITE_SOURCE_ROOT")
+SOURCE = Path(
+    _source_setting or (ROOT.parent / "solo-suite-v1.0.27-work")
+).expanduser().resolve()
+VERSION = "1.0.27"
 AUTHOR = "Sakura Yukihira (Ayaya)"
 
 DISPLAY = {

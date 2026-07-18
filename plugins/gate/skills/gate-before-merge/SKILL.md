@@ -11,8 +11,6 @@ Use $quality-gatekeeper in before-merge mode. Apply it to the user's supplied ar
 
 **Block the merge if ANY is true:** tests missing/failing · types or lint failing (run them; paste the output as evidence) · code review not recorded for the change (`$dev-code-review` or `$git-pr-review` verdict) · acceptance criteria for the change not demonstrated passing (`.solo/tests.md`) · security pass not done on the change (`$git-pr-review` security section or `$security-*` evidence), or an open security issue in it · console error on affected pages (`$browser-console-errors`) · DB migration not reviewed · no rollback note. Critical `$ai-review-output` findings also block. One failed check = NO-GO with the exact blocker.
 
-When an AgentRoom declares an evidence path, also emit and validate `solo-suite/phase-gate-evidence-v1` through the sibling `$quality-gatekeeper` validator using the prepared room. Bind its digest, exact ordered prerequisites, producer commands, run, gate, commit, environment, artifact digests, and maximum age; missing, substituted, over-age, or invalid evidence is `NO-GO`.
-
 ## Output
 End with exactly:
 - **Verdict** — GO / NO-GO (one missing blocker = NO-GO; never averaged away)
@@ -21,3 +19,7 @@ End with exactly:
 - **Nits** — non-blocking improvements
 - **Suggested tasks** → `.solo/tasks.md` (stable T-IDs); record open blockers in `.solo/risks.md`
 - **Next skill** — what clears the top blocker, or the next phase command on GO
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

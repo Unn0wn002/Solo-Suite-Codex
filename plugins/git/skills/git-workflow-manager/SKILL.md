@@ -1,9 +1,11 @@
 ---
 name: git-workflow-manager
-description: "Manage git and repository workflow — safe branch names, clean grouped commits, PR review, release notes, and syncing tasks to GitHub issues. Use when the user says create a branch, commit, plan commits, review a PR, write release notes, or sync issues. Proposes commands and diffs and asks before anything that writes; never runs destructive git (force-push, hard reset, history rewrite) without explicit confirmation."
+description: Manage git and repository workflow — safe branch names, clean grouped commits, PR review, release notes, and syncing tasks to GitHub issues. Use when the user says create a branch, commit, plan commits, review a PR, write release notes, or sync issues. Proposes commands and diffs and asks before anything that writes; never runs destructive git (force-push, hard reset, history rewrite) without explicit confirmation.
 ---
 
 # Git Workflow Manager
+
+**AgentRoom proposal mode:** when a trusted seat lists a local memory target under `proposes`, put the intended target and idempotent patch/entries in `.solo/proposals/<seat>-<run_id>.md`; never edit the target directly. Only the memory steward merges, and missing seat/run identity stops the local update. This does not bypass the separate user-confirmation boundary for GitHub or git writes.
 
 Keeps version control clean and safe for a solo dev moving fast. **Default to read/plan; confirm before writing.** Never force-push, hard-reset, rebase published history, or delete branches without the user explicitly asking and confirming. Five modes.
 
@@ -33,10 +35,14 @@ End every run with these seven sections:
 4. **Required fixes** — must-fix items before moving forward.
 5. **Suggested tasks** — concrete entries for `.solo/tasks.md`, each with a stable T-ID.
 6. **Verification** — how to prove the result works.
-7. **Next skill** — the exact next Codex skill invocation to run.
+7. **Next skill** — the exact next skill invocation to run.
 
 ## Session lifecycle
-Runs inside a session the solo plugin bookends: `$solo-start-session` restores `.solo/` context at the start and `$solo-end-session` saves it at the end. Read `.solo/` before acting; write findings, decisions, and tasks back (stable T-IDs) so the next command — or the next agent — picks up cleanly.
+Runs inside a session the solo plugin bookends: `$solo-start-session` restores `.solo/` context at the start and `$solo-end-session` saves it at the end. Read `.solo/` before acting; write findings, decisions, and tasks back (stable T-IDs) so the next skill — or the next agent — picks up cleanly.
 
 ## Stack awareness
 Check `.solo/stack.md` first and tailor everything to the real stack. For vendor depth the `$stack-audit-*` skills go further: Cloudflare, Vercel, Supabase, analytics/tags, payments. If a sibling skill or connector isn't installed, do a lighter inline version and say so.
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

@@ -46,6 +46,14 @@ PY_HELPER = re.compile(
     r"(?<![\w.-])(?:(<resolved-plugin-root>|<skill-root>)/)?"
     r"((?:\.\./)*[A-Za-z0-9_./-]*scripts/[A-Za-z0-9_./-]+\.py)"
 )
+USER_OUTPUT_CONTRACT = (
+    "## User-facing output contract\n\n"
+    "Outside required machine-readable artifacts, end every response with exactly "
+    "these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, "
+    "**Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), "
+    "**Verification**, and **Next skill** (the exact `$skill` invocation)."
+)
+STALE_NEXT_COMMAND = re.compile(r"\bnext command\b", re.IGNORECASE)
 
 
 @dataclass
@@ -246,6 +254,12 @@ def validate_skills(layout: Layout, report: Report) -> list[Path]:
 
         if "${CLAUDE_PLUGIN_ROOT}" in body or "${CLAUDE_PLUGIN_DATA}" in body:
             report.fail(f"{label}: contains a Claude-only plugin-root variable")
+        if STALE_NEXT_COMMAND.search(body):
+            report.fail(f"{label}: contains stale 'Next command' wording")
+        if not body.rstrip().endswith(USER_OUTPUT_CONTRACT):
+            report.fail(
+                f"{label}: must end with the canonical seven-part user-facing output contract"
+            )
         if re.search(r"\b(?:python3|python|py\s+-3)\s+scripts[/\\]", body):
             report.fail(f"{label}: runs a helper relative to the current directory")
         for root_marker, helper in PY_HELPER.findall(body):
@@ -438,6 +452,17 @@ def validate_agentrooms(layout: Layout, report: Report) -> None:
     ]
     validator = next((path for path in candidates if path.is_file()), None)
     if validator is None:
+        return
+    if layout.mode == "installed-plugin":
+        # AgentRooms is a suite-level runtime.  The ai plugin intentionally
+        # carries its templates and validator, while the shared gate policy and
+        # sibling gate validators remain in the separately installable gate
+        # plugin.  Installed-plugin mode must not assume those siblings exist;
+        # the source-checkout path below remains strict.
+        report.warn(
+            "AgentRooms validation skipped in installed-plugin mode: "
+            "templates require the full suite root and sibling gate plugin"
+        )
         return
     rooms = sorted(validator.parent.parent.glob("agentsrooms/*.json"))
     if not rooms:

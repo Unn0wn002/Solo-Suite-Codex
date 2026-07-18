@@ -1,6 +1,6 @@
 ---
 name: email-deliverability
-description: "Audit email deliverability and sending setup for a domain — SPF, DKIM, and DMARC records, reverse DNS/PTR, sender reputation signals, content and configuration that trigger spam filters, list hygiene, and bounce/complaint handling. Use whenever the user asks why their emails go to spam, wants to check SPF/DKIM/DMARC, set up email authentication, improve deliverability, \"my transactional emails aren't arriving\", or is configuring a domain to send mail. Pairs with infrastructure-audit (DNS) and compliance-check (consent)."
+description: Audit email deliverability and sending setup for a domain — SPF, DKIM, and DMARC records, reverse DNS/PTR, sender reputation signals, content and configuration that trigger spam filters, list hygiene, and bounce/complaint handling. Use whenever the user asks why their emails go to spam, wants to check SPF/DKIM/DMARC, set up email authentication, improve deliverability, "my transactional emails aren't arriving", or is configuring a domain to send mail. Pairs with infrastructure-audit (DNS) and compliance-check (consent).
 ---
 
 # Email Deliverability
@@ -9,13 +9,11 @@ Email that lands in spam (or gets rejected) is a silent failure — password res
 
 ## Run the DNS record checker first
 
-Read [`HELPERS.md`](../../HELPERS.md), resolve the installed plugin root from
-this `SKILL.md` rather than the current working directory, and select the first
-available documented Python 3 command.
-
-```text
-<python-command> <resolved-plugin-root>/scripts/run_helper.py email-deliverability/check-email-dns example.com
+```bash
+python3 "<skill-root>/scripts/check_email_dns.py" example.com
 ```
+> **Running helpers:** `<resolved-plugin-root>` is set by Codex to this plugin's installed root, so the command works from any working directory. If `python3` is not on PATH, use `python` (macOS/Linux/Windows) (Windows launcher) instead.
+
 Stdlib-only; queries public DNS for the domain's MX, SPF, DMARC, and (with a selector) DKIM records and parses them for common misconfigurations. Use it as the factual base — it directly answers "are the auth records present and sane?"
 
 ## 1. Authentication — SPF, DKIM, DMARC (this is ~80% of deliverability)
@@ -74,6 +72,8 @@ Shared audit structure (Summary → Scorecard → Findings → Fix order), group
 
 ## Project memory integration (solo-team)
 
+**AgentRoom proposal mode:** when a trusted seat lists any memory target below under `proposes`, write the intended target, patch/entries, evidence, and merge notes to `.solo/proposals/<seat>-<run_id>.md` instead of editing that target. Only the memory steward merges it; missing seat or run identity stops the write. Direct memory updates remain normal outside a stewarded room.
+
 If a `.solo/` directory exists at the project root — the solo-team suite's shared memory — read `handoff.md` and `tasks.md` for context before starting, so the work is grounded in the project's actual state. Afterward, persist the results: capture the prioritized fix list as tasks in `.solo/tasks.md` (stable T-IDs, Doing/Todo/Blocked/Done sections, per project-memory-manager's conventions), append significant findings, decisions, or accepted risks to `.solo/decisions.md`, and note what was run in `handoff.md`. This keeps results in persistent project memory instead of dying with the session, and lets `$solo-next-step` and `$release-preflight` see them. If `.solo/` doesn't exist, proceed normally (and optionally mention the solo plugin can add cross-session memory).
 
 ## Session lifecycle
@@ -86,7 +86,8 @@ Before auditing or building, read `.solo/stack.md` if it exists — it records t
 
 ## Script safety (url_guard)
 
-The bundled script(s) route every outbound request through `plugins/site-doctor/lib/url_guard.py`: HTTPS-first scheme policy (http only where auditing it is the point), refusal of loopback/private/link-local/CGNAT/reserved/multicast and cloud-metadata targets — every DNS answer and every redirect hop is re-validated — plus a hard response-size cap. A refused target prints `BLOCKED unsafe target: <reason>` instead of being fetched. DNS questions necessarily reach the DoH endpoint (Cloudflare by default; `SITE_DOCTOR_DOH` overrides it), which sees the queried names.
+The bundled script(s) route every outbound request through `<skill-root>/../../lib/url_guard.py` (shipped at `plugins/site-doctor/lib/url_guard.py` in the source tree): HTTPS-first scheme policy (http only where auditing it is the point), refusal of loopback/private/link-local/CGNAT/reserved/multicast and cloud-metadata targets — every DNS answer and every redirect hop is re-validated — plus a hard response-size cap. A refused target prints `BLOCKED unsafe target: <reason>` instead of being fetched. DNS questions necessarily reach the DoH endpoint (Cloudflare by default; `SITE_DOCTOR_DOH` overrides it), which sees the queried names.
 
-The skill folder is not standalone; it requires the plugin-level launcher and
-shared `lib/url_guard.py` from an intact Site Doctor installation.
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

@@ -58,5 +58,9 @@ Low / Medium / High / Critical
 1. …
 
 ## Next Recommended Skill
-$security-review — use it to investigate verified payment security findings before remediation.
+No follow-up skill is implied here; choose the next validated skill for the current workflow.
 ```
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

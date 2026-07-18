@@ -12,4 +12,7 @@ Use $ai-output-auditor in prompt-improve mode. Apply it to the user's supplied a
 Rewrite into precise instructions: goal, relevant files/context, hard constraints, acceptance criteria (pass/fail), and the exact expected output format. Remove ambiguity that invites guessing.
 
 ## Output
-End with the 7-part contract: **Summary · Findings/Work done · Risks · Required fixes · Suggested tasks** (→ `.solo/tasks.md`, stable T-IDs) **· Verification · Next skill** (exact skill invocation).
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

@@ -1,9 +1,11 @@
 ---
 name: ai-output-auditor
-description: "Work safely with AI coding agents — sharpen vague prompts, check whether one agent's output is a clean handoff to the next, review AI-generated code for hallucinations and missing files, decide which model should handle a task, and repair failed AI output. Use when the user says improve this prompt, handoff, review AI code, which model, or \"the AI output failed\". Focuses on catching fake imports, missing files, and unsafe assumptions."
+description: Work safely with AI coding agents — sharpen vague prompts, check whether one agent's output is a clean handoff to the next, review AI-generated code for hallucinations and missing files, decide which model should handle a task, and repair failed AI output. Use when the user says improve this prompt, handoff, review AI code, which model, or "the AI output failed". Focuses on catching fake imports, missing files, and unsafe assumptions.
 ---
 
 # AI Output Auditor
+
+**AgentRoom proposal mode:** an audit finding destined for a memory target under the trusted seat's `proposes` goes to `.solo/proposals/<seat>-<run_id>.md`, with its target and proposed entry, never directly to that target. Only the memory steward merges; missing seat/run identity is a stop condition.
 
 Solo devs orchestrate multiple coding agents; this skill keeps that loop trustworthy. Five modes.
 
@@ -38,10 +40,14 @@ End every run with these seven sections:
 4. **Required fixes** — must-fix items before moving forward.
 5. **Suggested tasks** — concrete entries for `.solo/tasks.md`, each with a stable T-ID.
 6. **Verification** — how to prove the result works.
-7. **Next skill** — the exact next Codex skill invocation to run.
+7. **Next skill** — the exact next skill invocation to run.
 
 ## Session lifecycle
-Runs inside a session the solo plugin bookends: `$solo-start-session` restores `.solo/` context at the start and `$solo-end-session` saves it at the end. Read `.solo/` before acting; write findings, decisions, and tasks back (stable T-IDs) so the next command — or the next agent — picks up cleanly.
+Runs inside a session the solo plugin bookends: `$solo-start-session` restores `.solo/` context at the start and `$solo-end-session` saves it at the end. Read `.solo/` before acting; write findings, decisions, and tasks back (stable T-IDs) so the next skill — or the next agent — picks up cleanly.
 
 ## Stack awareness
 Check `.solo/stack.md` first and tailor everything to the real stack. For vendor depth the `$stack-audit-*` skills go further: Cloudflare, Vercel, Supabase, analytics/tags, payments. If a sibling skill or connector isn't installed, do a lighter inline version and say so.
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

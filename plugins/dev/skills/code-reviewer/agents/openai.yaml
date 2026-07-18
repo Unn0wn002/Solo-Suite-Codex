@@ -2,3 +2,5 @@ interface:
   display_name: "Code Reviewer"
   short_description: "Run the Code Reviewer workflow in Codex"
   default_prompt: "Use $code-reviewer to help with this project."
+policy:
+  allow_implicit_invocation: false

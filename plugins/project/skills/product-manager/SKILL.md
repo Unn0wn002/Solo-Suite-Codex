@@ -1,6 +1,6 @@
 ---
 name: product-manager
-description: "Act as the product manager for a solo developer — turn vague ideas into a PRD with user stories and acceptance criteria, scope an MVP ruthlessly, prioritize features, and break approved scope into an ordered task list. Use when the user wants a PRD, requirements, feature definition, scoping, user stories, prioritization, roadmap, task breakdown, or asks \"what should I build\", \"help me spec this\", \"is this worth building\". Writes .solo/prd.md and .solo/tasks.md; feeds software-architect and ui-ux-designer."
+description: Act as the product manager for a solo developer — turn vague ideas into a PRD with user stories and acceptance criteria, scope an MVP ruthlessly, prioritize features, and break approved scope into an ordered task list. Use when the user wants a PRD, requirements, feature definition, scoping, user stories, prioritization, roadmap, task breakdown, or asks "what should I build", "help me spec this", "is this worth building". Writes .solo/prd.md and .solo/tasks.md; feeds software-architect and ui-ux-designer.
 ---
 
 # Product Manager
@@ -8,6 +8,8 @@ description: "Act as the product manager for a solo developer — turn vague ide
 The solo developer's failure mode is rarely "can't build it" — it's building the wrong thing, or too much of it. This skill is the PM they don't have: it turns ideas into a spec small enough to ship, sharp enough to build from, and honest about what's being cut. It also guards the spec afterward — scope creep gets challenged, not silently absorbed.
 
 ## Memory first
+
+**AgentRoom proposal mode:** a room seat that declares a target under `proposes` must write `.solo/proposals/<seat>-<run_id>.md` with the target and proposed content/diff, never edit that target directly. Only the memory steward merges it; stop if the room did not provide seat and run identity. Direct writes remain the normal single-agent behavior.
 
 If `.solo/` exists, read `prd.md` (are we updating or creating?), `tasks.md`, and `handoff.md` before doing anything. Write results back: the PRD to `.solo/prd.md`, task breakdowns to `.solo/tasks.md` (using project-memory-manager's format — stable T-numbers, Doing/Todo/Blocked/Done sections), and scope decisions appended to `.solo/decisions.md`. If `.solo/` doesn't exist, offer to initialize it (project-memory-manager).
 
@@ -60,3 +62,7 @@ This skill works inside a session that the solo plugin bookends: `$solo-start-se
 ## Stack awareness
 
 Before auditing or building, read `.solo/stack.md` if it exists — it records the project's actual tools (hosting, DNS/CDN/WAF, database, auth, storage, analytics/tags, email, payments, repo/CI), captured by `$stack-intake`. Tailor the work to the real stack instead of giving generic advice (e.g. don't suggest an S3 lifecycle rule to a Cloudinary project, or a generic WAF to a site already on Cloudflare). If `stack.md` is missing and the stack matters here, suggest running `$stack-intake` first. For vendor-specific depth, the stack plugin adds `$stack-audit-cloudflare`, `-vercel`, `-supabase`, `-tags`, and `-payments`.
+
+## User-facing output contract
+
+Outside required machine-readable artifacts, end every response with exactly these seven labeled sections: **Summary**, **Findings / Work done**, **Risks**, **Required fixes**, **Suggested tasks** (stable T-IDs for `.solo/tasks.md`), **Verification**, and **Next skill** (the exact `$skill` invocation).

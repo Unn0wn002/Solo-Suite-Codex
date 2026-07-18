@@ -128,7 +128,10 @@
           },
           "then": {
             "required": ["na_reason"],
-            "properties": {"evidence_type": {"const": "applicability-record"}}
+            "properties": {
+              "score": {"const": 0},
+              "evidence_type": {"const": "applicability-record"}
+            }
           }
         }
       ]

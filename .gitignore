@@ -1,4 +1,8 @@
 .venv/
+.venv-parity/
+.env
+.env.*
+!.env.example
 __pycache__/
 *.py[cod]
 .coverage
@@ -8,4 +12,8 @@ dist/
 .docx-qa/
 .solo/config.md
 .solo/sync-preview/
+.solo/gate-evidence/
+.solo/run-state/
+artifacts/runs/
+worktrees/runs/
 *.tmp
